@@ -1,31 +1,13 @@
 # pytorch_timeseries
 An all in one deep learning library that boost your timeseries research.
 
-# install requirements
-> Note:This library assumes that you've installed Pytorch according to it's official website, the basic dependencies of torch > > related libraries may not be listed in the requirements files:
-https://pytorch.org/get-started/locally/
-
-**The recommended python version is 3.8.1+.**
-Please first install torch according to your environment.
+## installation
 ```
-pip3 install torch torchvision torchaudio
+pip install pytorch-timeseries
 ```
 
-For running Graph Nerual Network based models, pytorch_geometric is also needed.
-
-```python
-pip install torch_geometric
-
-# Optional dependencies
-pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
-```
-
->check your torch & cuda version before you execute the command above
->```python
->python -c "import torch; print(torch.__version__)"
->python -c "import torch; print(torch.version.cuda)"
->```
-
+## documentation
+See [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/).
 
 # Quick Start
 
@@ -86,3 +68,32 @@ for scaled_x, scaled_y, x, y, x_date_enc, y_date_enc in dataloader.test_loader:
     
 
 ```
+
+
+
+# dev install 
+
+# install requirements
+> Note:This library assumes that you've installed Pytorch according to it's official website, the basic dependencies of torch > > related libraries may not be listed in the requirements files:
+https://pytorch.org/get-started/locally/
+
+**The recommended python version is 3.8.1+.**
+Please first install torch according to your environment.
+```
+pip3 install torch torchvision torchaudio
+```
+
+For running Graph Nerual Network based models, pytorch_geometric is also needed.
+
+```python
+pip install torch_geometric
+
+# Optional dependencies
+pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
+```
+
+>check your torch & cuda version before you execute the command above
+>```python
+>python -c "import torch; print(torch.__version__)"
+>python -c "import torch; print(torch.version.cuda)"
+>```
