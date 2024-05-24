@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+dynamic = ["version"]
+requires-python = ">= 3.8"
+name = "pytorch_timeseries"
+description = "Timeseries Learning Library for PyTorch."
+authors = [
+    { name = "Wayne Yip", email = "wwye155@gmail.com" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+keywords = ["deep Learning", "time series", "pytorch"]
+dependencies = [
+"torch",
+"torchvision",
+"numpy",
+"pandas"
+]
+
+[project.urls]
+Documentation = "https://pytorch-timeseries.readthedocs.io"
+BugTracker = "https://github.com/wayne155/pytorch_timeseries/issues"
+
+
+
+[project.optional-dependencies]
+g = [
+    "pyg",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39']

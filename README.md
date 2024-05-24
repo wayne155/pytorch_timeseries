@@ -1,4 +1,3 @@
-[TOC]
 # pytorch_timeseries
 An all in one deep learning library that boost your timeseries research.
 
