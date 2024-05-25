@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [project]
 dynamic = ["version"]
 requires-python = ">= 3.8"
-name = "pytorch_timeseries"
+name = "torch_timeseries"
 description = "Timeseries Learning Library for PyTorch."
 authors = [
     { name = "Wayne Yip", email = "wwye155@gmail.com" },
