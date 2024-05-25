@@ -3,7 +3,7 @@ An all in one deep learning library that boost your timeseries research.
 
 ## installation
 ```
-pip install pytorch-timeseries
+pip install torch-timeseries
 ```
 
 ## documentation
