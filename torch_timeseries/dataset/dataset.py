@@ -68,7 +68,7 @@ class TimeSeriesDataset(Dataset):
         self._process()
         self._load()
         
-        self.dates: Optional[pd.DataFrame ]
+        self.dates: Optional[pd.DataFrame]
         
 
     @abstractmethod

@@ -12,10 +12,11 @@ class DLinear(nn.Module):
     """
     Decomposition-Linear
     """
-    def __init__(self, seq_len, pred_len, enc_in, individual:bool = False):
+    def __init__(self, seq_len, pred_len, enc_in, individual:bool = False, output_prob=0):
         super(DLinear, self).__init__()
         self.seq_len = seq_len
         self.pred_len = pred_len
+        self.output_prob = output_prob
 
         # Decompsition Kernel Size
         kernel_size = 25
@@ -41,6 +42,10 @@ class DLinear(nn.Module):
             # Use this two lines if you want to visualize the weights
             # self.Linear_Seasonal.weight = nn.Parameter((1/self.seq_len)*torch.ones([self.pred_len,self.seq_len]))
             # self.Linear_Trend.weight = nn.Parameter((1/self.seq_len)*torch.ones([self.pred_len,self.seq_len]))
+        if self.output_prob > 0:
+            self.act = F.gelu
+            self.projection = nn.Linear(
+                enc_in * pred_len, self.output_prob)
 
     def forward(self, x):
         # x: [Batch, Input length, Channel]
@@ -57,7 +62,29 @@ class DLinear(nn.Module):
             trend_output = self.Linear_Trend(trend_init)
 
         x = seasonal_output + trend_output
-        return x.permute(0,2,1) # to [Batch, Output length, Channel]
+        enc_out= x.permute(0,2,1) # to [Batch, Output length, Channel]
+    
+        output = enc_out.reshape(enc_out.shape[0], -1)
+        # (batch_size, num_classes)
+        output = self.projection(output)
+        return output
 
 
+    # def forecast(self, x_enc):
+    #     return self(x_enc)
 
+    # def imputation(self, x_enc):
+    #     return self(x_enc)
+
+    # def anomaly_detection(self, x_enc):
+    #     return self(x_enc)
+
+    # def classification(self, x_enc):
+    #     # Encoder
+    #     enc_out = self(x_enc)
+    #     # Output
+    #     # (batch_size, seq_length * d_model)
+    #     output = enc_out.reshape(enc_out.shape[0], -1)
+    #     # (batch_size, num_classes)
+    #     output = self.projection(output)
+    #     return output
