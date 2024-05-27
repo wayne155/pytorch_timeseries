@@ -11,8 +11,7 @@ import torch.utils.data
 
 class Weather(TimeSeriesDataset):
     """
-    This dataset contains local climatological data for nearly 1,600 U.S. locations, covering 4 years from 2010 to 2013. Data points are collected every hour. Each data point consists of the target value “wet bulb” and 11 climate features.
-
+    This dataset contains local climatological data for nearly 1,600 in US locations, covering 4 years from 2010 to 2013. Data points are collected every hour. Each data point consists of the target value “wet bulb” and 11 climate features.
     The raw data can be acquired at https://www.ncei.noaa.gov/data/local-climatological-data/.
 
     Attributes:

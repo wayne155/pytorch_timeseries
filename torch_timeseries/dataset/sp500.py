@@ -9,8 +9,8 @@ import numpy as np
 
 class SP500(TimeSeriesDataset):
     """
-    The raw data is available at https://archive.ics.uci.edu/dataset/554/cnnpred+cnn+based+stock+market+prediction+using+a+diverse+set+of+variables.
     This dataset contains several daily features of S&P 500 from 2010 to 2017.
+    The raw data is available at https://archive.ics.uci.edu/dataset/554/cnnpred+cnn+based+stock+market+prediction+using+a+diverse+set+of+variables.
 
     Attributes:
         name (str): Name of the dataset.
