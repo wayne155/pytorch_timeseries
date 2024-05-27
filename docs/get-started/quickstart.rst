@@ -3,7 +3,7 @@
 quick start
 ======================
 
-Here is an example to train DLinear model in a long-term forecast settings, see `../examples/quickstart.py`_  for more details
+Here is an example to train DLinear model in a long-term forecast settings, see ../examples/quickstart.py  for more details
 
 .. code-block:: python 
     :caption: quick start

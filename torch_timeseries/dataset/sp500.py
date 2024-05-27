@@ -8,14 +8,26 @@ import pandas as pd
 import numpy as np
 
 class SP500(TimeSeriesDataset):
-    """The raw data is in https://archive.ics.uci.edu/dataset/554/cnnpred+cnn+based+stock+market+prediction+using+a+diverse+set+of+variables. 
-        This dataset contains several daily features of S&P 500  from 2010 to 2017.
     """
+    The raw data is available at https://archive.ics.uci.edu/dataset/554/cnnpred+cnn+based+stock+market+prediction+using+a+diverse+set+of+variables.
+    This dataset contains several daily features of S&P 500 from 2010 to 2017.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        length (int): Length of the dataset.
+        freq (str): Frequency of the data points.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
+    """
+
     name:str= 'SP500'
     num_features: int = 70
-    sample_rate:int # in hours
     length : int = 1984
-    windows : int = 40
     freq:str = 'd'
     
     def download(self) -> None:

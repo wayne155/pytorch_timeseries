@@ -11,16 +11,26 @@ import torch.utils.data
 
 
 class Electricity(TimeSeriesDataset):
-    """The raw dataset is in https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014. 
-    It is the electricity consumption in kWh was recorded every 15 minutes from 2011 to 2014.
-    Because the some dimensions are equal to 0. So we eliminate the records in 2011.
-    Final we get data contains electircity consumption of 321 clients from 2012 to 2014. 
-    And we converted the data to reflect hourly consumption.
-    
-    due to the missing data , we use the data processed in paper
-    《H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, “TimesNet: Temporal 2D-Variation Modeling for General Time Series Analysis.”》
-    
     """
+    The raw dataset is available at https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014.
+    It contains the electricity consumption in kWh recorded every 15 minutes from 2011 to 2014.
+    Some dimensions were equal to 0, so we eliminated the records from 2011.
+    The final dataset contains electricity consumption data for 321 clients from 2012 to 2014.
+    The data was converted to reflect hourly consumption.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        freq (str): Frequency of the data points, in minutes.
+        length (int): Length of the dataset.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
+    """
+
     name:str= 'electricity'
     num_features: int = 321
     freq: str = 't' # in minuts

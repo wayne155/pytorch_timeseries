@@ -11,7 +11,7 @@ install via pip
 ----------------------
 
 ```
-pip install pytorch-timeseries
+pip install torch-timeseries
 ```
 
 ```
@@ -23,7 +23,7 @@ pip install torch_geometric
 install via conda
 ----------------------
 ```
-conda install pytorch-timeseries
+conda install torch-timeseries
 ```
 
 ```

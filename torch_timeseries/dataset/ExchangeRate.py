@@ -9,12 +9,28 @@ from.dataset import Dataset, TimeSeriesDataset
 
 
 class ExchangeRate(TimeSeriesDataset):
-    name: str = 'exchange_rate'
+    """
+    The collection of the daily exchange rates of eight foreign countries including Australia, British, Canada, Switzerland, China, Japan, New Zealand, and Singapore ranging from 1990 to 2016.
+    
+    The raw data is collected from https://github.com/laiguokun/multivariate-time-series-data.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        freq (str): Frequency of the data points (daily).
+        length (int): Length of the dataset.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
+    """
+
+    name: str = 'ExchangeRate'
     num_features: int = 8
     freq: str = 'd' # daily data
     length : int = 7588
-    windows : int = 48
-
     
     
     def download(self) -> None:

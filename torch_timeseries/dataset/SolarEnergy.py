@@ -10,19 +10,30 @@ from tqdm import tqdm
 
 
 class SolarEnergy(TimeSeriesDataset):
-    """The raw data is in http://www.nrel.gov/grid/solar-power-data.html :
-    It contains the solar power production records in the year of 2006,
-    which is sampled every 5 minutes from 137 PV plants in Alabama State.
+    """
+    The dataset contains solar power production records for the year 2006, sampled every 5 minutes from 137 PV plants in Alabama State.
+    The raw data is available at http://www.nrel.gov/grid/solar-power-data.html.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        length (int): Length of the dataset.
+        freq (str): Frequency of the data points.
+        file_name (str): Name of the file containing the dataset.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
     """
 
     name: str = "solar_AL"
     num_features: int = 137
-    sample_rate: int  # in munites
     length: int = 52560
     freq:str = 'h'
     
     file_name = "solar_AL.txt"
-    windows : int = 168
 
     def download(self) -> None:
         # download_and_extract_archive(

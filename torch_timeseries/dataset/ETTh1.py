@@ -11,11 +11,29 @@ import torch.utils.data
 
 
 class ETTh1(TimeSeriesDataset):
+    """
+    Electricity Transformer Temperature hourly. This dataset contains 2-year data from two separate counties in China. Each data point consists of the target value "oil temperature" and 6 power load features.
+    
+    This dataset is collected by Informer and is available at https://github.com/zhouhaoyi/ETDataset.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        length (int): Length of the dataset.
+        freq (str): Frequency of the data points.
+        windows (int): Number of windows.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
+    """
+    
     name:str= 'ETTh1'
     num_features: int = 7
     length : int  = 17420
     freq : Freq = 'h'
-    windows : int = 384
     
     def download(self):
         download_url(

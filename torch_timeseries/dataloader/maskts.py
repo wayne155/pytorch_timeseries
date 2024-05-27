@@ -86,18 +86,50 @@ class MaskTS:
         uniform_eval=True,
     ) -> None:
         """
+        Parameters
+        ----------
+        dataset : TimeSeriesDataset
+            The input dataset, must be of type datasets.Dataset.
+        scaler : Scaler
+            Scaler to be used for data normalization.
+        time_enc : int, optional
+            Time encoding type, by default 0.
+        window : int, optional
+            Window size for data sequences, by default 168.
+        mask_rate : float, optional
+            Rate at which to mask data, by default 0.4.
+        scale_in_train : bool, optional
+            Whether to scale data during training, by default False.
+        shuffle_train : bool, optional
+            Whether to shuffle training data, by default True.
+        freq : str, optional
+            Frequency of the time series data, by default None.
+        batch_size : int, optional
+            Batch size for data loading, by default 32.
+        train_ratio : float, optional
+            Ratio of the training set, by default 0.7.
+        val_ratio : float, optional
+            Ratio of the validation set, by default 0.2.
+        num_worker : int, optional
+            Number of workers for data loading, by default 3.
+        uniform_eval : bool, optional
+            If True, the evaluation will not be affected by input window length, by default True.
+        
+        Raises
+        ------
+        AssertionError
+            If the sum of train_ratio, val_ratio, and test_ratio is not equal to 1.0.
 
-        Split the dataset sequentially, and then randomly sample from each subset.
-
-        :param dataset: the input dataset, must be of type datasets.Dataset
-        :param train_ratio: the ratio of the training set
-        :param test_ratio: the ratio of the testing set
-        :param val_ratio: the ratio of the validation set
-        :param uniform_eval: if True, the evalution will not be affected by input window length
-        :param independent_scaler: whether to set independent scaler for train , val and test dataset,
-                default: False, will have a global scaler for all data
-                if set to True, scaler is fitted by differenct part of data
+        Methods
+        -------
+        _load()
+            Loads the dataset and dataloaders.
+        _load_dataset()
+            Splits the dataset into training, validation, and testing subsets and applies scaling.
+        _load_dataloader()
+            Initializes the dataloaders for training, validation, and testing sets.
         """
+
         self.train_ratio = train_ratio
         self.val_ratio = val_ratio
         self.test_ratio = 1 - self.train_ratio - self.val_ratio

@@ -8,15 +8,27 @@ import pandas as pd
 import numpy as np
 
 class Traffic(TimeSeriesDataset):
-    """The raw data is in http://pems.dot.ca.gov. 
-    The data in this repo is a collection of 48 months (2015-2016) hourly data from the California Department of Transportation. 
-    The data describes the road occupancy rates (between 0 and 1) measured by different sensors on San Francisco Bay area freeways.
+    """Traffic dataset for road occupancy rates in the San Francisco Bay area.
+
+    The raw data is sourced from the California Department of Transportation
+    and is available at http://pems.dot.ca.gov. This dataset contains 48 months
+    (2015-2016) of hourly road occupancy rates (between 0 and 1) measured by
+    different sensors on freeways in the San Francisco Bay area.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        length (int): Length of the dataset.
+        freq (str): Frequency of the data points.
+
+    Methods:
+        download(): Downloads and extracts the dataset.
+        _load(): Loads the dataset into a NumPy array.
     """
+
     name:str= 'traffic'
     num_features: int = 862
-    sample_rate:int # in hours
     length : int = 17544
-    windows : int = 168
     freq:str = 'h'
     
     def download(self) -> None:

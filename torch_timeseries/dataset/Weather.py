@@ -10,12 +10,28 @@ import torch.utils.data
 
 
 class Weather(TimeSeriesDataset):
+    """
+    This dataset contains local climatological data for nearly 1,600 U.S. locations, covering 4 years from 2010 to 2013. Data points are collected every hour. Each data point consists of the target value “wet bulb” and 11 climate features.
+
+    The raw data can be acquired at https://www.ncei.noaa.gov/data/local-climatological-data/.
+
+    Attributes:
+        name (str): Name of the dataset.
+        num_features (int): Number of features in the dataset.
+        length (int): Length of the dataset.
+        freq (str): Frequency of the data points.
+
+    Methods:
+        download():
+            Downloads and extracts the dataset.
+        _load():
+            Loads the dataset into a NumPy array.
+    """
+    
     name:str= 'weather'
     num_features: int = 21
-    sample_rate:int # in munites
     length : int  = 52696
     freq:str=  'h'
-    windows : int = 168
     
     
     def download(self):
