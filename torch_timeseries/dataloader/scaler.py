@@ -114,9 +114,12 @@ class StandardScaler(Scaler):
         if isinstance(data, np.ndarray):
             self.mean = np.mean(data, axis=0)
             self.std = np.std(data, axis=0)
+            # do not normalize all zero values
+            self.std[self.std==0] = 1
         elif isinstance(data, Tensor):
             self.mean = data.mean(axis=0)
             self.std = data.std(axis=0)
+            self.std[self.std==0] = 1
         else:
             raise ValueError(f"not supported type : {type(data)}")
 

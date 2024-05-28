@@ -3,3 +3,4 @@ from .sliding_window import SlidingWindow
 from .sliding_window_ts import SlidingWindowTS
 from .maskts import MaskTimeFeatureSet, MaskTS
 from .uea import UEAClass
+from .anomaly import AnomalyLoader

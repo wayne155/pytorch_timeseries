@@ -62,11 +62,11 @@ class DLinear(nn.Module):
             trend_output = self.Linear_Trend(trend_init)
 
         x = seasonal_output + trend_output
-        enc_out= x.permute(0,2,1) # to [Batch, Output length, Channel]
-    
-        output = enc_out.reshape(enc_out.shape[0], -1)
-        # (batch_size, num_classes)
-        output = self.projection(output)
+        output= x.permute(0,2,1) # to [Batch, Output length, Channel]
+        if self.output_prob > 0:
+            output = output.reshape(output.shape[0], -1)
+            # (batch_size, num_classes)
+            output = self.projection(output)
         return output
 
 

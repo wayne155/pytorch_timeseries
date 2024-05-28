@@ -94,6 +94,14 @@ class TimeSeriesDataset(Dataset):
         raise NotImplementedError
 
 
+
+class AnomalyDataset(TimeSeriesDataset):
+    train_data : Optional[np.array]
+    test_data : Optional[np.array]
+    test_labels : Optional[np.array]
+        
+        
+
 class TimeSeriesStaticGraphDataset(TimeSeriesDataset):
     adj : np.ndarray 
     def _load_static_graph(self):
