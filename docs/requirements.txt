@@ -12,3 +12,4 @@ numpy
 pandas
 torch
 torchvision
+tqdm
