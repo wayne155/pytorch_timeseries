@@ -8,6 +8,9 @@ import pandas as pd
 import numpy as np
 
 class MSL(AnomalyDataset):
+    """
+    MSL is a public dataset from NASA with 55 dimensions showing the status of sensor and actuator data from the Mars Rover.
+    """
 
     name:str= 'MSL'
     
