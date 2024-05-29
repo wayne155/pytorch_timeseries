@@ -32,10 +32,10 @@ def adjustment(gt, pred):
 scaler = StandardScaler()
 
 
-dataset = SWaT('./data')
+# dataset = SWaT('./data')
 # dataset = SMD('./data')
 # dataset = PSM('./data')
-# dataset = MSL('./data')
+dataset = MSL('./data')
 # dataset = SMAP('./data')
 
 

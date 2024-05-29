@@ -9,6 +9,7 @@ import numpy as np
 
 class SMD(TimeSeriesDataset):
     """
+    SMD (Server Machine Dataset, Su et al. (2019)) is a 5-week dataset collected from a large Internet company with 38 dimensions.
     """
 
     name:str= 'SMD'

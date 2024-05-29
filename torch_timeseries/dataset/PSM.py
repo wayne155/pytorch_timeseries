@@ -8,7 +8,10 @@ import pandas as pd
 import numpy as np
 
 class PSM(AnomalyDataset):
-
+    """
+    PSM is a public dataset from eBay's internal server nodes. It has 26 dimensions and contains performance indicators and system metrics from multiple servers, such as CPU usage, memory usage, network traffic, disk IO, etc.
+    """
+    
     name:str= 'PSM'
     
     def download(self) -> None:

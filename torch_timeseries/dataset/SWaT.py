@@ -9,6 +9,7 @@ import numpy as np
 
 class SWaT(TimeSeriesDataset):
     """
+    SWaT (Safe Water Treatment, Mathur & Tippenhauer (2016)) is obtained from 51 sensors in continuously operating critical infrastructure systems.
     """
 
     name:str= 'SWaT'

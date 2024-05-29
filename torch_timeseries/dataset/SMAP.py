@@ -8,6 +8,9 @@ import pandas as pd
 import numpy as np
 
 class SMAP(AnomalyDataset):
+    """
+    SMAP is a multidimensional time series dataset collected by NASA's Mars rover. SMAP has 25 dimensional features and contains soil samples and telemetry information used by the Mars rover.
+    """
 
     name:str= 'SMAP'
     
