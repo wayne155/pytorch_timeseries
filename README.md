@@ -19,7 +19,7 @@
 
 # pytorch_timeseries
 An all in one deep learning library that boost your timeseries research.
-[Check The Documentation For more detail.](https://pytorch-timeseries.readthedocs.io/en/latest/).
+[Check the documentation for more detail](https://pytorch-timeseries.readthedocs.io/en/latest/).
 
 Compared to previous libraries, pytorch_timeseries is 
 - dataset automatically downloaded
