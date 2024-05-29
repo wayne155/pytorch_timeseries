@@ -1,4 +1,7 @@
-torch
-numpy
+numpy 
 pandas
+torch
 torchvision
+tqdm
+sktime
+scikit-learn

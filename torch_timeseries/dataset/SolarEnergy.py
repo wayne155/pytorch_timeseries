@@ -6,7 +6,6 @@ import os
 import resource
 import numpy as np
 from .dataset import Dataset, TimeSeriesDataset
-from tqdm import tqdm
 
 
 class SolarEnergy(TimeSeriesDataset):
