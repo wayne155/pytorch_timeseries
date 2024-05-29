@@ -1,7 +1,7 @@
 import numpy as np
 from torch_timeseries.scaler import StandardScaler
 from torch_timeseries.dataset import UEA
-from torch_timeseries.dataloader import UEAClass
+from torch_timeseries.dataloader import UEAClassification
 from torch_timeseries.model import DLinear
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
@@ -10,7 +10,7 @@ import torch
 
 uea = UEA('SpokenArabicDigits', './data')
 scaler = StandardScaler()
-dataloader = UEAClass(uea, scaler, 1700)
+dataloader = UEAClassification(uea, scaler, 1700)
 
 model = DLinear(1700, 48, uea.num_features, False, output_prob=uea.num_classes)
 optimizer = Adam(model.parameters())
