@@ -5,7 +5,7 @@ import torch
 
 from torch_timeseries.dataset import UEA
 from torch_timeseries.utils.timefeatures import time_features
-from .scaler import Scaler
+from ..scaler import Scaler
 from ..dataset import (
     TimeSeriesDataset,
     TimeseriesSubset,
@@ -13,7 +13,6 @@ from ..dataset import (
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 
 from .wrapper import MultiStepTimeFeatureSet
-from .scaler import Scaler
 
 
 
@@ -50,7 +49,18 @@ class UEADataset(Dataset):
 
 
 
-class UEAClass:
+class UEAClassification:
+    """
+    Class for handling the classification of UEA datasets.
+
+    Attributes:
+        batch_size (int): Number of samples per batch.
+        num_worker (int): Number of worker threads for data loading.
+        dataset (UEA): UEA dataset to be used.
+        scaler (Scaler): Scaler to normalize the data.
+        window (int): Window size for the time series data. If not enough data, zeros will be used for padding.
+        shuffle_train (bool): Whether to shuffle the training data.
+    """
     def __init__(
         self,
         dataset: UEA,

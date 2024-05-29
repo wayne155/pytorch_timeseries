@@ -28,6 +28,8 @@ pytorch_timeseries
    :titlesonly:
 
    modules/dataset
+   modules/dataloader
+   modules/scaler
 
 
 

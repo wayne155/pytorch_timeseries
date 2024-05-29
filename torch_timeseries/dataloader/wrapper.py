@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar, Tuple
 
 import pandas as pd
-from .scaler import Scaler
+from ..scaler import Scaler
 
 from torch_timeseries.utils.timefeatures import time_features
 from ..dataset import TimeSeriesDataset, TimeseriesSubset

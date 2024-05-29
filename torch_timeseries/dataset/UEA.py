@@ -35,8 +35,24 @@ def interpolate_missing(y):
 
 class UEA(TimeSeriesDataset):
     """
-        https://www.timeseriesclassification.com/description.php
+    Dataset class for datasets included in:
+    Time Series Classification Archive (www.timeseriesclassification.com).
+    
+    For a list of available datasets, see https://www.timeseriesclassification.com/dataset.php.
+
+    Attributes:
+        train_df (pd.DataFrame): DataFrame containing the training data.
+        train_labels (pd.DataFrame): DataFrame containing the labels for the training data.
+        test_df (pd.DataFrame): DataFrame containing the test data.
+        test_labels (pd.DataFrame): DataFrame containing the labels for the test data.
+        num_classes (int): Number of classes in the dataset.
     """
+    
+    train_df : pd.DataFrame
+    train_labels  : pd.DataFrame
+    test_df : pd.DataFrame
+    test_labels  : pd.DataFrame
+    num_classes  : int
 
     def __init__(self, name, root='./data'):
         self.name = name

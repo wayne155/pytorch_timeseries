@@ -1,5 +1,5 @@
 import numpy as np
-from torch_timeseries.dataloader.scaler import StandardScaler
+from torch_timeseries.scaler import StandardScaler
 from torch_timeseries.dataset import UEA
 from torch_timeseries.dataloader import UEAClass
 from torch_timeseries.model import DLinear
@@ -8,7 +8,7 @@ from torch.optim import Adam
 
 import torch
 
-uea = UEA('EthanolConcentration', './data')
+uea = UEA('SpokenArabicDigits', './data')
 scaler = StandardScaler()
 dataloader = UEAClass(uea, scaler, 1700)
 
@@ -22,34 +22,34 @@ def accuracy(preds, trues):
     trues = trues.flatten().cpu().numpy()
     accuracy = np.mean(predictions == trues)
     return accuracy
-for i in range(100):
-    print("training................................")
-    model.train()
-    for scaled_x, x, y, padding_masks in dataloader.train_loader:
-        optimizer.zero_grad()
-        
-        probs = model(scaled_x)
-        loss = loss_func(probs, y.long().squeeze(-1))
-        
-        loss.backward()
-        optimizer.step()
 
-        print(loss)
-        print("acc", accuracy(probs, y))
+print("training................................")
+model.train()
+for scaled_x, x, y, padding_masks in dataloader.train_loader:
+    optimizer.zero_grad()
+    
+    probs = model(scaled_x)
+    loss = loss_func(probs, y.long().squeeze(-1))
+    
+    loss.backward()
+    optimizer.step()
+
+    print(loss)
+    print("acc", accuracy(probs, y))
 
 
-    print("val................................")
-    model.eval()
-    for scaled_x, x, y, padding_masks in dataloader.val_loader:
-        probs = model(scaled_x)
-        loss = loss_func(probs, y.long().squeeze(-1))
-        print(loss)
-        
-        print("acc", accuracy(probs, y))
-    print("test................................")
-    model.eval()
-    for scaled_x, x, y, padding_masks in dataloader.test_loader:
-        probs = model(scaled_x)
-        loss = loss_func(probs, y.long().squeeze(-1))
-        print(loss)
-        print("acc", accuracy(probs, y))
+print("val................................")
+model.eval()
+for scaled_x, x, y, padding_masks in dataloader.val_loader:
+    probs = model(scaled_x)
+    loss = loss_func(probs, y.long().squeeze(-1))
+    print(loss)
+    
+    print("acc", accuracy(probs, y))
+print("test................................")
+model.eval()
+for scaled_x, x, y, padding_masks in dataloader.test_loader:
+    probs = model(scaled_x)
+    loss = loss_func(probs, y.long().squeeze(-1))
+    print(loss)
+    print("acc", accuracy(probs, y))

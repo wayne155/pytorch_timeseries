@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from torch_timeseries.utils.timefeatures import time_features
-from .scaler import Scaler
+from ..scaler import Scaler
 from ..dataset import (
     TimeSeriesDataset,
     TimeseriesSubset,
@@ -12,7 +12,6 @@ from ..dataset import (
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 
 from .wrapper import MultiStepTimeFeatureSet
-from .scaler import Scaler
 
 
 
@@ -69,6 +68,27 @@ class MaskTimeFeatureSet(Dataset):
 
 
 class MaskTS:
+    """
+    Data loader for imputation time series datasets.
+
+    Attributes:
+        dataset (TimeSeriesDataset): Time series dataset to be used.
+        scaler (Scaler): Scaler to normalize the data.
+        time_enc (int): Time encoding flag.
+        window (int): Window size for the time series data.
+        mask_rate (float): Rate at which data is masked.
+        scale_in_train (bool): Whether to scale data during training.
+        shuffle_train (bool): Whether to shuffle the training data.
+        freq (str or None): Frequency of the time series data.
+        batch_size (int): Number of samples per batch.
+        train_ratio (float): Ratio of the dataset to be used for training.
+        val_ratio (float): Ratio of the dataset to be used for validation.
+        num_worker (int): Number of worker threads for data loading.
+        uniform_eval (bool): Whether to use uniform evaluation.
+        train_loader (DataLoader): DataLoader for the training data.
+        val_loader (DataLoader): DataLoader for the validation data.
+        test_loader (DataLoader): DataLoader for the test data.
+    """
     def __init__(
         self,
         dataset: TimeSeriesDataset,
@@ -85,50 +105,6 @@ class MaskTS:
         num_worker: int = 3,
         uniform_eval=True,
     ) -> None:
-        """
-        Parameters
-        ----------
-        dataset : TimeSeriesDataset
-            The input dataset, must be of type datasets.Dataset.
-        scaler : Scaler
-            Scaler to be used for data normalization.
-        time_enc : int, optional
-            Time encoding type, by default 0.
-        window : int, optional
-            Window size for data sequences, by default 168.
-        mask_rate : float, optional
-            Rate at which to mask data, by default 0.4.
-        scale_in_train : bool, optional
-            Whether to scale data during training, by default False.
-        shuffle_train : bool, optional
-            Whether to shuffle training data, by default True.
-        freq : str, optional
-            Frequency of the time series data, by default None.
-        batch_size : int, optional
-            Batch size for data loading, by default 32.
-        train_ratio : float, optional
-            Ratio of the training set, by default 0.7.
-        val_ratio : float, optional
-            Ratio of the validation set, by default 0.2.
-        num_worker : int, optional
-            Number of workers for data loading, by default 3.
-        uniform_eval : bool, optional
-            If True, the evaluation will not be affected by input window length, by default True.
-        
-        Raises
-        ------
-        AssertionError
-            If the sum of train_ratio, val_ratio, and test_ratio is not equal to 1.0.
-
-        Methods
-        -------
-        _load()
-            Loads the dataset and dataloaders.
-        _load_dataset()
-            Splits the dataset into training, validation, and testing subsets and applies scaling.
-        _load_dataloader()
-            Initializes the dataloaders for training, validation, and testing sets.
-        """
 
         self.train_ratio = train_ratio
         self.val_ratio = val_ratio

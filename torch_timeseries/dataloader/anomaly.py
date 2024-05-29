@@ -1,10 +1,26 @@
 import numpy as np
-from .scaler import Scaler
+from ..scaler import Scaler
 from torch_timeseries.dataset import TimeSeriesDataset, AnomalyDataset
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 
 
 class AnomalySliced(TimeSeriesDataset):
+    """
+    Data loader for anomaly detection in time series datasets.
+
+    Attributes:
+        train_ratio (float): Ratio of the dataset to be used for training.
+        val_ratio (float): Ratio of the dataset to be used for validation.
+        batch_size (int): Number of samples per batch.
+        num_worker (int): Number of worker threads for data loading.
+        dataset (TimeSeriesDataset): Time series dataset to be used.
+        scaler (Scaler): Scaler to normalize the data.
+        window (int): Window size for the time series data.
+        shuffle_train (bool): Whether to shuffle the training data.
+        train_loader (DataLoader): DataLoader for the training data.
+        val_loader (DataLoader): DataLoader for the validation data.
+    """
+
     def __init__(
         self,
         dataset: AnomalyDataset,
@@ -70,6 +86,7 @@ class AnomalySliced(TimeSeriesDataset):
 
 
 class AnomalyLoader:
+
     def __init__(
         self,
         dataset: TimeSeriesDataset,
@@ -90,6 +107,10 @@ class AnomalyLoader:
         self.scaler = scaler
         self.window = window
         self.shuffle_train = shuffle_train
+        
+        self.train_loader : DataLoader
+        self.val_loader : DataLoader
+        self.test_loader : DataLoader
 
         self._load()
 

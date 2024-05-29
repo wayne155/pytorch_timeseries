@@ -1,7 +1,7 @@
 from typing import Sequence, Tuple, Type
 
 import torch
-from .scaler import Scaler
+from ..scaler import Scaler
 from torch_timeseries.dataset import (
     TimeSeriesDataset,
     TimeseriesSubset,
@@ -28,17 +28,25 @@ class SlidingWindow:
         uniform_eval=True,
     ) -> None:
         """
+        Class for splitting the dataset sequentially and then randomly sampling from each subset.
 
-        Split the dataset sequentially, and then randomly sample from each subset.
-
-        :param dataset: the input dataset, must be of type datasets.Dataset
-        :param train_ratio: the ratio of the training set
-        :param test_ratio: the ratio of the testing set
-        :param val_ratio: the ratio of the validation set
-        :param uniform_eval: if True, the evalution will not be affected by input window length
-        :param independent_scaler: whether to set independent scaler for train , val and test dataset,
-                default: False, will have a global scaler for all data
-                if set to True, scaler is fitted by differenct part of data
+        Attributes:
+            dataset (TimeSeriesDataset): Time series dataset to be used.
+            scaler (Scaler): Scaler to normalize the data.
+            window (int): Window size for the time series data.
+            horizon (int): Forecast horizon.
+            steps (int): Step size between windows.
+            scale_in_train (bool): Whether to scale data during training.
+            shuffle_train (bool): Whether to shuffle the training data.
+            batch_size (int): Number of samples per batch.
+            train_ratio (float): Ratio of the dataset to be used for training.
+            val_ratio (float): Ratio of the dataset to be used for validation.
+            test_ratio (float): Ratio of the dataset to be used for testing.
+            num_worker (int): Number of worker threads for data loading.
+            uniform_eval (bool): Whether to use uniform evaluation.
+            train_loader (DataLoader): DataLoader for the training data.
+            val_loader (DataLoader): DataLoader for the validation data.
+            test_loader (DataLoader): DataLoader for the test data.
         """
         self.train_ratio = train_ratio
         self.val_ratio = val_ratio
