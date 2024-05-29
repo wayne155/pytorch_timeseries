@@ -14,4 +14,4 @@ torch
 torchvision
 tqdm
 sktime
-sklearn
+scikit-learn
