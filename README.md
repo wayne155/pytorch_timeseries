@@ -25,6 +25,7 @@ Compared to previous libraries, pytorch_timeseries is
 - easy to use and extend 
 - clear documentation 
 - highly customizable 
+- install and run! 
 - ..........
 
 
@@ -113,7 +114,7 @@ Currently we have implemented all popular datasets, including
 [Check the documentation for more detail](https://pytorch-timeseries.readthedocs.io/en/latest/).
   -->
 
-#  Start Customize
+#  Customizing Your Own Pipeline
 
 we provide examples of :
 - [forecast](https://github.com/wayne155/pytorch_timeseries/blob/main/examples/forecast.py)
