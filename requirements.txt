@@ -3,5 +3,5 @@ pandas
 torch
 torchvision
 tqdm
-sktime
+sktime>=0.29.0
 scikit-learn

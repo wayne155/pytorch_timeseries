@@ -1,10 +1,17 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
     'tqdm',
+    'torch',
+    'numpy' ,
+    'pandas',
+    'torchvision',
+    'tqdm',
+    'sktime>=0.29.0',
+    'scikit-learn',
 ]
 
 full_requires =  [
