@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.0.3'
+__version__ = '0.1.0.dev3'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
@@ -11,6 +11,8 @@ install_requires = [
     'torchvision',
     'tqdm',
     'sktime>=0.29.0',
+    "torchmetrics>=1.1.1",
+    "fire>=0.5.0",
     'scikit-learn',
 ]
 
@@ -51,6 +53,11 @@ setup(
         'benchmark': benchmark_requires,
         'test': test_requires,
         'dev': dev_requires,
+    },
+    entry_points={
+        'console_scripts': [
+            'pytexp = torch_timeseries:exp',
+        ]
     },
     package_dir={"torch_timeseries":"torch_timeseries"},
     packages=find_packages(exclude=['test']),

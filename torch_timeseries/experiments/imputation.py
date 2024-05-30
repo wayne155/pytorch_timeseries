@@ -266,7 +266,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
                 result["test_" + name] = metric_value
             wandb.log(result, step=self.current_epoch)
 
-        self.run_print(f"test_results: {test_result}")
+        self._run_print(f"test_results: {test_result}")
         return test_result
 
     def _val(self):
@@ -281,7 +281,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
                 result["val_" + name] = metric_value
             wandb.log(result, step=self.current_epoch)
 
-        self.run_print(f"vali_results: {val_result}")
+        self._run_print(f"vali_results: {val_result}")
         return val_result
 
     def _train(self):
@@ -342,7 +342,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
             torch.load(self.best_checkpoint_filepath, map_location=self.device)
         )
 
-    def run_print(self, *args, **kwargs):
+    def _run_print(self, *args, **kwargs):
         time = (
             "["
             + str(datetime.datetime.now() + datetime.timedelta(hours=8))[:19]
@@ -370,18 +370,18 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
 
     def run(self, seed=42) -> Dict[str, float]:
         if hasattr(self, "finished") and self.finished is True:
-            self.run_print("Experiment finished!!!")
+            self._run_print("Experiment finished!!!")
             return {}
 
         self._setup_run(seed)
         if self._check_run_exist(seed):
             self._resume_run(seed)
 
-        self.run_print(f"run : {self.current_run} in seed: {seed}")
+        self._run_print(f"run : {self.current_run} in seed: {seed}")
 
         parameter_tables, model_parameters_num = count_parameters(self.model)
-        self.run_print(f"parameter_tables: {parameter_tables}")
-        self.run_print(f"model parameters: {model_parameters_num}")
+        self._run_print(f"parameter_tables: {parameter_tables}")
+        self._run_print(f"model parameters: {model_parameters_num}")
 
         if self._use_wandb():
             wandb.run.summary["parameters"] = self.model_parameters_num
@@ -390,7 +390,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         while self.current_epoch < self.epochs:
             epoch_start_time = time.time()
             if self.early_stopper.early_stop is True:
-                self.run_print(
+                self._run_print(
                     f"val loss no decreased for patience={self.patience} epochs,  early stopping ...."
                 )
                 break
@@ -400,12 +400,12 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
             # for resumable reproducibility
             reproducible(seed + self.current_epoch)
             train_losses = self._train()
-            self.run_print(
+            self._run_print(
                 "Epoch: {} cost time: {}".format(
                     self.current_epoch + 1, time.time() - epoch_start_time
                 )
             )
-            self.run_print(f"Traininng loss : {np.mean(train_losses)}")
+            self._run_print(f"Traininng loss : {np.mean(train_losses)}")
             if self._use_wandb():
                 wandb.log(np.mean(train_losses), step=self.current_epoch)
 

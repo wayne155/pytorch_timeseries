@@ -1,5 +1,5 @@
 import sys
-from torch_timeseries.apps.DLinear import DLinearForecast, DLinearImputation, DLinearUEAClassification, DLinearAnomalyDetection
+from torch_timeseries.experiments import DLinearForecast, DLinearImputation, DLinearUEAClassification, DLinearAnomalyDetection
 
 
 def main():

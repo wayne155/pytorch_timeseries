@@ -21,6 +21,8 @@
 An all in one deep learning library that boost your timeseries research.
 [Check the documentation for more detail](https://pytorch-timeseries.readthedocs.io/en/latest/).
 
+
+
 Compared to previous libraries, pytorch_timeseries is 
 - dataset automatically downloaded
 - easy to use and extend 
@@ -50,6 +52,24 @@ pip install torch_geometric
 pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 ```
 
+# Development Milestones
+# Implemented Tasks
+
+- [x] Forecast
+- [x] Classfication (for UEA datasets)
+- [x] Anomaly Detection 
+- [x] Imputation
+- [ ] You can fill this check box! (contribute to develop your own task!)
+
+# Implemented Models
+
+| Models | Forecasting | Imputation | Anomaly | Classification|
+| --------- | ------- | ------- | ------- | ------- |
+| [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |✅ |✅ |
+
+
+
+ 
 
 # Quick Start
 

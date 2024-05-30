@@ -3,7 +3,7 @@ import sys
 
 import torch
 from ..model import DLinear
-from ..experiments import (
+from . import (
     ForecastExp,
     ImputationExp,
     UEAClassificationExp,

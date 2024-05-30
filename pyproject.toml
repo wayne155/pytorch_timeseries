@@ -21,8 +21,14 @@ dependencies = [
     "pandas>=0.29.0",
     "scikit-learn",
     "tqdm",
-    "prettytable"
+    "prettytable",
+    "torchmetrics>=1.1.1",
+    "fire>=0.5.0"
 ]
+
+[project.scripts]
+pytexp = "torch_timeseries:exp"
+
 
 [project.urls]
 Documentation = "https://pytorch-timeseries.readthedocs.io"
