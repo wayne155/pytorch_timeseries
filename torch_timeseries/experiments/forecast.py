@@ -38,6 +38,7 @@ class ForecastSettings:
     
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
+    loss_func_type : str = 'mse'
 
     def config_wandb(
         self,

@@ -10,12 +10,15 @@ from typing import Dict, List, Type, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import torch
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 from tqdm import tqdm
 from torch.nn import MSELoss, L1Loss
 import wandb
 from torch.optim import *
+from torch_timeseries.core.dataset import AnomalyDataset
+from torch_timeseries.dataloader import AnomalyLoader
 from torch_timeseries.dataset import *
 from torch_timeseries.scaler import *
 
@@ -29,21 +32,20 @@ from ..utils import asdict_exc
 
 
 @dataclass
-class ForecastSettings:
-    horizon: int = 1
-    windows: int = 336
-    pred_len: int = 96
-    train_ratio: float = 0.7
-    val_ratio: float = 0.2
+class AnomalyDetectionSettings:
+    windows: int = 102
+    spacing : int = 100
+    train_ratio: float = 0.8
+    anomaly_ratio: float = 0.25
 
-
-class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
-
+@dataclass
+class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, AnomalyDetectionSettings):
+    loss_func_type : str = 'mse'
     def config_wandb(
         self,
         project: str,
         name: str,
-        mode: str='online',
+        mode: str = "online",
     ):
 
         # TODO: add seeds config parameters
@@ -57,12 +59,14 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         api = wandb.Api()
         config_filter = convert_dict(self.result_related_config)
         runs = api.runs(path=project, filters=config_filter)
-        
+
         try:
             if runs[0].state == "finished" or runs[0].state == "running":
-                print(f"{self.model_type} {self.dataset_type} w{self.windows} w{self.horizon}  Experiment already reported, quiting...")
+                print(
+                    f"{self.model_type} {self.dataset_type} w{self.windows} w{self.horizon}  Experiment already reported, quiting..."
+                )
                 self.finished = True
-                return 
+                return
         except:
             pass
         m = self.model_type
@@ -70,21 +74,24 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             mode=mode,
             project=project,
             name=name,
-            tags=[m, self.dataset_type, f"horizon-{self.horizon}", f"window-{self.windows}", f"pred-{self.pred_len}"],
+            tags=[
+                m,
+                self.dataset_type,
+                f"ar-{self.anomaly_ratio}",
+                f"window-{self.windows}",
+            ],
         )
         wandb.config.update(asdict(self))
         self.wandb = True
         print(f"using wandb , running in config: {asdict(self)}")
         return self
 
-
-
     def _init_optimizer(self):
-        self.model_optim = parse_type(self.optm_type, globals=globals())(
+        self.optimizer = parse_type(self.optm_type, globals=globals())(
             self.model.parameters(), lr=self.lr, weight_decay=self.l2_weight_decay
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.model_optim, T_max=self.epochs
+            self.optimizer, T_max=self.epochs
         )
 
     def _setup(self):
@@ -112,8 +119,10 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self.metrics.to(self.device)
 
     def _init_loss_func(self):
-        loss_func_map = {'mse': MSELoss, 'mae': L1Loss}
-        self.loss_func = parse_type(loss_func_map[self.loss_func_type], globals=globals())()
+        loss_func_map = {"mse": MSELoss, "mae": L1Loss}
+        self.loss_func = parse_type(
+            loss_func_map[self.loss_func_type], globals=globals()
+        )()
 
     def _init_model(self):
         NotImplementedError("not implemented!!!")
@@ -124,22 +133,18 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         return ident
 
     def _init_data_loader(self):
-        self.dataset: TimeSeriesDataset = parse_type(self.dataset_type, globals=globals())(
+        self.dataset: AnomalyDataset = parse_type(self.dataset_type, globals=globals())(
             root=self.data_path
         )
         self.scaler = parse_type(self.scaler_type, globals=globals())()
-        self.dataloader = SlidingWindowTS(
+        self.dataloader = AnomalyLoader(
             self.dataset,
             self.scaler,
+            spacing=self.spacing,
             window=self.windows,
-            horizon=self.horizon,
-            steps=self.pred_len,
-            scale_in_train=True,
             shuffle_train=True,
-            freq=self.dataset.freq,
             batch_size=self.batch_size,
             train_ratio=self.train_ratio,
-            val_ratio=self.val_ratio,
             num_worker=self.num_worker,
         )
         self.train_loader, self.val_loader, self.test_loader = (
@@ -147,13 +152,9 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             self.dataloader.val_loader,
             self.dataloader.test_loader,
         )
-        self.train_steps = self.dataloader.train_size
-        self.val_steps = self.dataloader.val_size
-        self.test_steps = self.dataloader.test_size
-
-        print(f"train steps: {self.train_steps}")
-        print(f"val steps: {self.val_steps}")
-        print(f"test steps: {self.test_steps}")
+        print(f"train steps: {len(self.train_loader.dataset)}")
+        print(f"val steps: {len(self.val_loader.dataset)}")
+        print(f"test steps: {len(self.test_loader.dataset)}")
 
     def _run_identifier(self, seed) -> str:
         ident = self.result_related_configs
@@ -182,7 +183,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             "runs",
             self.model_type,
             self.dataset_type,
-            f"w{self.windows}h{self.horizon}s{self.pred_len}",
+            f"w{self.windows}",
             self._run_identifier(seed),
         )
 
@@ -201,11 +202,8 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     def _process_one_batch(
         self,
         batch_x,
-        batch_y,
         batch_origin_x,
-        batch_origin_y,
-        batch_x_date_enc,
-        batch_y_date_enc,
+        batch_y,
     ):
         # inputs:
         # batch_x:  (B, T, N)
@@ -220,68 +218,100 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         # for multiple steps you should output (B, O, N)
         raise NotImplementedError()
 
-    def _evaluate(self, dataloader):
-        self.model.eval()
-        self.metrics.reset()
-
-        length = 0
+    def _anoamly_energy(self, dataloader, anomaly_criterion):
+        attens_energy = []
         if dataloader is self.train_loader:
-            length = self.dataloader.train_size
-        elif dataloader is self.val_loader:
-            length = self.dataloader.val_size
+            with torch.no_grad():
+                for i, (scaled_x, x) in enumerate(dataloader):
+                    outputs, trues = self._process_one_batch(scaled_x, x, None)
+                    score = torch.mean(anomaly_criterion(outputs, trues), dim=-1)
+                    score = score.detach().cpu().numpy()
+                    attens_energy.append(score)
+            attens_energy = np.concatenate(attens_energy, axis=0).reshape(-1)
+            energy = np.array(attens_energy)
+            return energy
         elif dataloader is self.test_loader:
-            length = self.dataloader.test_size
-
-        with torch.no_grad():
-            with tqdm(total=length) as progress_bar:
-                for (
-                    batch_x,
-                    batch_y,
-                    batch_origin_x,
-                    batch_origin_y,
-                    batch_x_date_enc,
-                    batch_y_date_enc,
-                ) in dataloader:
-                    batch_size = batch_x.size(0)
-                    preds, truths = self._process_one_batch(
-                        batch_x, batch_y, batch_x_date_enc, batch_y_date_enc
-                    )
-                    batch_origin_y = batch_origin_y.to(self.device)
-                    if self.invtrans_loss:
-                        preds = self.scaler.inverse_transform(preds)
-                        truths = batch_origin_y
-                    if self.pred_len == 1:
-                        self.metrics.update(
-                            preds.contiguous().reshape(batch_size, -1),
-                            truths.contiguous().reshape(batch_size, -1),
-                        )
-                    else:
-                        self.metrics.update(preds.contiguous(), truths.contiguous())
-
-                    progress_bar.update(batch_x.shape[0])
-
-            result = {
-                name: float(metric.compute()) for name, metric in self.metrics.items()
-            }
-        return result
+            test_labels = []
+            with torch.no_grad():
+                for i, (scaled_x, x, batch_y) in enumerate(dataloader):
+                    outputs, trues = self._process_one_batch(scaled_x, x, None)
+                    score = torch.mean(anomaly_criterion(outputs, trues), dim=-1)
+                    score = score.detach().cpu().numpy()
+                    attens_energy.append(score)
+                    test_labels.append(batch_y)
+            attens_energy = np.concatenate(attens_energy, axis=0).reshape(-1)
+            energy = np.array(attens_energy)
+            return energy, test_labels
 
     def _test(self) -> Dict[str, float]:
         print("Testing .... ")
-        test_result = self._evaluate(self.test_loader)
+        self.model.eval()
+        anomaly_criterion = torch.nn.MSELoss(reduce=False)
+
+        # (1) stastic on the train set
+        train_energy = self._anoamly_energy(self.train_loader, anomaly_criterion)
+
+        # (2) find the threshold
+        test_energy, test_labels = self._anoamly_energy(
+            self.test_loader, anomaly_criterion
+        )
+        combined_energy = np.concatenate([train_energy, test_energy], axis=0)
+        threshold = np.percentile(combined_energy, 100 - self.anomaly_ratio)
+        self._run_print("Threshold :", threshold)
+
+        # (3) evaluation on the test set
+        pred = (test_energy > threshold).astype(int)
+        test_labels = np.concatenate(test_labels, axis=0).reshape(-1)
+        test_labels = np.array(test_labels)
+        gt = test_labels.astype(int)
+
+        # (4) detection adjustment
+        gt, pred = adjustment(gt, pred)
+        pred = np.array(pred)
+        gt = np.array(gt)
+
+        accuracy = accuracy_score(gt, pred)
+        precision, recall, f_score, support = precision_recall_fscore_support(
+            gt, pred, average="binary"
+        )
+
+        test_results = {}
+        test_results["Accuracy"] = accuracy
+        test_results["Precision"] = precision
+        test_results["Recall"] = recall
+        test_results["F-score"] = f_score
 
         if self._use_wandb():
             result = {}
-            for name, metric_value in test_result.items():
+            for name, metric_value in test_results.items():
                 wandb.run.summary["test_" + name] = metric_value
                 result["test_" + name] = metric_value
             wandb.log(result, step=self.current_epoch)
 
-        self.run_print(f"test_results: {test_result}")
-        return test_result
+        self._run_print(f"test_results: {test_results}")
+        return test_results
 
     def _val(self):
         print("Validating .... ")
-        val_result = self._evaluate(self.val_loader)
+        self.model.eval()
+        with torch.no_grad():
+            with tqdm(total=len(self.val_loader.dataset)) as progress_bar:
+                for scaled_x, x in self.val_loader:
+                    batch_size = scaled_x.shape[0]
+                    preds, trues = self._process_one_batch(scaled_x, x, None)
+                    # loss = self.loss_func(preds, trues)
+                    if self.invtrans_loss:
+                        preds = self.scaler.inverse_transform(preds)
+                        trues = x
+
+                    self.metrics.update(preds.contiguous(), trues.contiguous())
+
+                    progress_bar.update(batch_size)
+
+        val_result = {
+            name: float(metric.compute())
+            for name, metric in self.metrics.items()
+        }
 
         # log to wandb
         if self._use_wandb():
@@ -291,30 +321,23 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 result["val_" + name] = metric_value
             wandb.log(result, step=self.current_epoch)
 
-        self.run_print(f"vali_results: {val_result}")
+        self._run_print(f"vali_results: {val_result}")
         return val_result
 
     def _train(self):
-        with torch.enable_grad(), tqdm(total=self.train_steps) as progress_bar:
-            self.model.train()
+        self.model.train()
+        with torch.enable_grad(), tqdm(total=len(self.train_loader.dataset)) as progress_bar:
             train_loss = []
             for i, (
                 batch_x,
-                batch_y,
                 origin_x,
-                origin_y,
-                batch_x_date_enc,
-                batch_y_date_enc,
             ) in enumerate(self.train_loader):
                 start = time.time()
-                origin_y = origin_y.to(self.device)
-                self.model_optim.zero_grad()
-                pred, true = self._process_one_batch(
-                    batch_x, batch_y, batch_x_date_enc, batch_y_date_enc
-                )
+                self.optimizer.zero_grad()
+                pred, true = self._process_one_batch(batch_x, None, None)
                 if self.invtrans_loss:
                     pred = self.scaler.inverse_transform(pred)
-                    true = origin_y
+                    true = origin_x
                 loss = self.loss_func(pred, true)
                 loss.backward()
 
@@ -325,11 +348,11 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 train_loss.append(loss.item())
                 progress_bar.set_postfix(
                     loss=loss.item(),
-                    lr=self.model_optim.param_groups[0]["lr"],
+                    lr=self.optimizer.param_groups[0]["lr"],
                     epoch=self.current_epoch,
                     refresh=True,
                 )
-                self.model_optim.step()
+                self.optimizer.step()
 
             return train_loss
 
@@ -352,7 +375,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             torch.load(self.best_checkpoint_filepath, map_location=self.device)
         )
 
-    def run_print(self, *args, **kwargs):
+    def _run_print(self, *args, **kwargs):
         time = (
             "["
             + str(datetime.datetime.now() + datetime.timedelta(hours=8))[:19]
@@ -370,7 +393,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         check_point = torch.load(run_checkpoint_filepath, map_location=self.device)
 
         self.model.load_state_dict(check_point["model"])
-        self.model_optim.load_state_dict(check_point["optimizer"])
+        self.optimizer.load_state_dict(check_point["optimizer"])
         self.current_epoch = check_point["current_epoch"]
 
         self.early_stopper.set_state(check_point["early_stopping"])
@@ -380,18 +403,18 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
     def run(self, seed=42) -> Dict[str, float]:
         if hasattr(self, "finished") and self.finished is True:
-            self.run_print("Experiment finished!!!")
+            self._run_print("Experiment finished!!!")
             return {}
 
         self._setup_run(seed)
         if self._check_run_exist(seed):
             self._resume_run(seed)
 
-        self.run_print(f"run : {self.current_run} in seed: {seed}")
+        self._run_print(f"run : {self.current_run} in seed: {seed}")
 
         parameter_tables, model_parameters_num = count_parameters(self.model)
-        self.run_print(f"parameter_tables: {parameter_tables}")
-        self.run_print(f"model parameters: {model_parameters_num}")
+        self._run_print(f"parameter_tables: {parameter_tables}")
+        self._run_print(f"model parameters: {model_parameters_num}")
 
         if self._use_wandb():
             wandb.run.summary["parameters"] = self.model_parameters_num
@@ -400,7 +423,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         while self.current_epoch < self.epochs:
             epoch_start_time = time.time()
             if self.early_stopper.early_stop is True:
-                self.run_print(
+                self._run_print(
                     f"val loss no decreased for patience={self.patience} epochs,  early stopping ...."
                 )
                 break
@@ -410,12 +433,12 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             # for resumable reproducibility
             reproducible(seed + self.current_epoch)
             train_losses = self._train()
-            self.run_print(
+            self._run_print(
                 "Epoch: {} cost time: {}".format(
                     self.current_epoch + 1, time.time() - epoch_start_time
                 )
             )
-            self.run_print(f"Traininng loss : {np.mean(train_losses)}")
+            self._run_print(f"Traininng loss : {np.mean(train_losses)}")
             if self._use_wandb():
                 wandb.log(np.mean(train_losses), step=self.current_epoch)
 
@@ -469,10 +492,34 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self.run_state = {
             "model": self.model.state_dict(),
             "current_epoch": self.current_epoch,
-            "optimizer": self.model_optim.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
             "rng_state": torch.get_rng_state(),
             "early_stopping": self.early_stopper.get_state(),
         }
 
         torch.save(self.run_state, f"{self.run_checkpoint_filepath}")
         print("Run state saved ... ")
+
+
+def adjustment(gt, pred):
+    anomaly_state = False
+    for i in range(len(gt)):
+        if gt[i] == 1 and pred[i] == 1 and not anomaly_state:
+            anomaly_state = True
+            for j in range(i, 0, -1):
+                if gt[j] == 0:
+                    break
+                else:
+                    if pred[j] == 0:
+                        pred[j] = 1
+            for j in range(i, len(gt)):
+                if gt[j] == 0:
+                    break
+                else:
+                    if pred[j] == 0:
+                        pred[j] = 1
+        elif gt[i] == 0:
+            anomaly_state = False
+        if anomaly_state:
+            pred[i] = 1
+    return gt, pred

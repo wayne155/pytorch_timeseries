@@ -40,7 +40,7 @@ class ImputationSettings:
 
 @dataclass
 class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
-
+    loss_func_type : str = 'mse'
     def config_wandb(
         self,
         project: str,

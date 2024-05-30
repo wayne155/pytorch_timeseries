@@ -26,14 +26,14 @@ class AnomalySliced(TimeSeriesDataset):
         dataset: AnomalyDataset,
         scaler: Scaler,
         train_ratio: float = 0.8,
-        step=1,
-        window: int = 168,
+        spacing=100,
+        window: int = 100,
         scaler_fit=True,
         flag="train",
     ):
         self.dataset = dataset
         self.window = window
-        self.step = step
+        self.spacing = spacing
         self.scaler = scaler
         self.flag = flag
         self.train_ratio = train_ratio
@@ -55,7 +55,7 @@ class AnomalySliced(TimeSeriesDataset):
             self.scaled_test_data = self.scaler.transform(self.test_data)
 
     def __getitem__(self, index):
-        index = index * self.step
+        index = index * self.spacing
         if self.flag == "train":
             return np.float32(
                 self.scaled_train_data[index : index + self.window]
@@ -76,11 +76,11 @@ class AnomalySliced(TimeSeriesDataset):
 
     def __len__(self):
         if self.flag == "train":
-            return (self.train_data.shape[0] - self.window) // self.step + 1
+            return (self.train_data.shape[0] - self.window) // self.spacing + 1
         elif self.flag == "val":
-            return (self.val_data.shape[0] - self.window) // self.step + 1
+            return (self.val_data.shape[0] - self.window) // self.spacing + 1
         elif self.flag == "test":
-            return (self.test_data.shape[0] - self.window) // self.step + 1
+            return (self.test_data.shape[0] - self.window) // self.spacing + 1
         else:
             raise NotImplementedError("Not implemented!!!")
 
@@ -91,7 +91,8 @@ class AnomalyLoader:
         self,
         dataset: TimeSeriesDataset,
         scaler: Scaler,
-        window: int = 168,
+        window: int = 100,
+        spacing: int = 100,
         shuffle_train=True,
         batch_size: int = 32,
         train_ratio: float = 0.8,
@@ -103,6 +104,7 @@ class AnomalyLoader:
         self.batch_size = batch_size
         self.num_worker = num_worker
         self.dataset = dataset
+        self.spacing = spacing
 
         self.scaler = scaler
         self.window = window
@@ -123,6 +125,7 @@ class AnomalyLoader:
             self.dataset,
             self.scaler,
             self.train_ratio,
+            self.spacing,
             self.window,
             scaler_fit=True,
             flag="train",
@@ -131,6 +134,7 @@ class AnomalyLoader:
             self.dataset,
             self.scaler,
             self.train_ratio,
+            self.spacing,
             self.window,
             scaler_fit=False,
             flag="val",
@@ -139,6 +143,7 @@ class AnomalyLoader:
             self.dataset,
             self.scaler,
             self.train_ratio,
+            self.spacing,
             self.window,
             scaler_fit=False,
             flag="test",

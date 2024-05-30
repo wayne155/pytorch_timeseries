@@ -82,27 +82,24 @@ class DLinearAnomalyDetection(AnomalyDetectionExp, DLinearParameters):
     def _init_model(self):
         self.model = DLinear(
             seq_len=self.windows,
-            pred_len=self.pred_len,
+            pred_len=self.windows,
             enc_in=self.dataset.num_features,
             individual=self.individual,
         )
         self.model = self.model.to(self.device)
 
-    def _process_one_batch(self, batch_x, batch_y, batch_x_date_enc, batch_y_date_enc):
+    def _process_one_batch(self, batch_x, origin_x, batch_y):
         # inputs:
-        # batch_x: (B, T, N)
-        # batch_y: (B, O, N)
+            # batch_x: (B, T, N)
+            # origin_x: (B, T, N)
         # ouputs:
-        # - pred: (B, N)/(B, O, N)
-        # - label: (B, N)/(B, O, N)
+        # - pred: (B, O, N)
+        # - label: (B, O, N)
         batch_x = batch_x.to(self.device, dtype=torch.float32)
-        batch_y = batch_y.to(self.device, dtype=torch.float32)
-        batch_x_date_enc = batch_x_date_enc.to(self.device).float()
-        batch_y_date_enc = batch_y_date_enc.to(self.device).float()
         outputs = self.model(
             batch_x
         )  # torch.Size([batch_size, output_length, num_nodes])
-        return outputs, batch_y
+        return outputs, batch_x
 
 
 @dataclass
