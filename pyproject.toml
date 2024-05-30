@@ -8,17 +8,19 @@ dynamic = ["version"]
 requires-python = ">= 3.8"
 name = "torch_timeseries"
 description = "Timeseries Learning Library for PyTorch."
-authors = [
-    { name = "Wayne Yip", email = "wwye155@gmail.com" },
-]
+authors = [{ name = "Wayne Yip", email = "wwye155@gmail.com" }]
 license = { file = "LICENSE" }
 readme = "README.md"
 keywords = ["deep Learning", "time series", "pytorch"]
 dependencies = [
-"torch",
-"torchvision",
-"numpy",
-"pandas"
+    "torch",
+    "torchvision",
+    "numpy",
+    "pandas",
+    "sktime",
+    "pandas>=0.29.0",
+    "scikit-learn",
+    "tqdm",
 ]
 
 [project.urls]
@@ -26,11 +28,8 @@ Documentation = "https://pytorch-timeseries.readthedocs.io"
 BugTracker = "https://github.com/wayne155/pytorch_timeseries/issues"
 
 
-
 [project.optional-dependencies]
-g = [
-    "pyg",
-]
+g = ["pyg"]
 
 [tool.black]
 line-length = 88
