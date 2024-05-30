@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.1.0.dev3'
+__version__ = '0.1.0a1'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
@@ -11,7 +11,7 @@ install_requires = [
     'torchvision',
     'tqdm',
     'sktime>=0.29.0',
-    "torchmetrics>=1.1.1",
+    "torchmetrics==1.1.1",
     "fire>=0.5.0",
     'scikit-learn',
 ]
@@ -33,7 +33,7 @@ dev_requires = test_requires + [
 ]
 
 setup(
-    name='torch_timeseries',
+    name='torch-timeseries',
     version=__version__,
     description='Timeseries Learning Library for PyTorch',
     author='Weiwei Ye',

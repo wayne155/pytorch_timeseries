@@ -15,7 +15,6 @@ import torch
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 from tqdm import tqdm
 from torch.nn import MSELoss, L1Loss
-import wandb
 from torch.optim import *
 from torch_timeseries.core.dataset import AnomalyDataset
 from torch_timeseries.dataloader import AnomalyLoader
@@ -47,7 +46,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, AnomalyDetectionSettings
         name: str,
         mode: str = "online",
     ):
-
+        import wandb
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
             converted_dict = {}

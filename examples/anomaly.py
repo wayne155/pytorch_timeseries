@@ -41,7 +41,7 @@ dataset = MSL('./data')
 
 scaler = StandardScaler()
 
-dataloader = AnomalyLoader(dataset, scaler, 168, True, 32, 0.8 ,3)
+dataloader = AnomalyLoader(dataset, scaler, 100, 100, True, 32, 0.8 ,3)
 
 model = DLinear(dataloader.window, dataloader.window, dataset.num_features, individual= False)
 

@@ -14,7 +14,6 @@ import torch
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection, Accuracy
 from tqdm import tqdm
 from torch.nn import CrossEntropyLoss
-import wandb
 from torch.optim import *
 from torch_timeseries.dataset import *
 from torch_timeseries.scaler import *
@@ -44,6 +43,7 @@ class UEAClassificationExp(BaseRelevant, BaseIrrelevant, ClassificationSettings)
         name: str,
         mode: str = "online",
     ):
+        import wandb
 
         # TODO: add seeds config parameters
         def convert_dict(dictionary):

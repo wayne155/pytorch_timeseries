@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [project]
 dynamic = ["version"]
 requires-python = ">= 3.8"
-name = "torch_timeseries"
+name = "torch-timeseries"
 description = "Timeseries Learning Library for PyTorch."
 authors = [{ name = "Wayne Yip", email = "wwye155@gmail.com" }]
 license = { file = "LICENSE" }
@@ -22,7 +22,7 @@ dependencies = [
     "scikit-learn",
     "tqdm",
     "prettytable",
-    "torchmetrics>=1.1.1",
+    "torchmetrics==1.1.1",
     "fire>=0.5.0"
 ]
 

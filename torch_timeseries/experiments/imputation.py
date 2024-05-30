@@ -16,7 +16,6 @@ import torch.utils.data
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 from tqdm import tqdm
 from torch.nn import MSELoss, L1Loss
-import wandb
 from torch.optim import *
 from torch_timeseries.dataloader.maskts import MaskTS
 from torch_timeseries.dataset import *
@@ -47,7 +46,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         name: str,
         mode: str='online',
     ):
-
+        import wandb
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
             converted_dict = {}

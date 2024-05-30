@@ -14,7 +14,6 @@ import torch
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 from tqdm import tqdm
 from torch.nn import MSELoss, L1Loss
-import wandb
 from torch.optim import *
 from torch_timeseries.dataset import *
 from torch_timeseries.scaler import *
@@ -46,7 +45,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         name: str,
         mode: str='online',
     ):
-
+        import wandb
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
             converted_dict = {}
