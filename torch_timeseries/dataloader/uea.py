@@ -6,7 +6,7 @@ import torch
 from torch_timeseries.dataset import UEA
 from torch_timeseries.utils.timefeatures import time_features
 from ..scaler import Scaler
-from ..dataset import (
+from torch_timeseries.core import (
     TimeSeriesDataset,
     TimeseriesSubset,
 )
@@ -24,17 +24,18 @@ class UEADataset(Dataset):
         self.window = window
         self.scaler = scaler
         self.flag = flag
-        if scaler_fit:
-            self.scaler.fit(self.dataset.train_features_data)
         if self.flag == 'test':
             self.scaled_feature_df = self.scaler.transform(self.dataset.test_df)
             self.feature_df = self.dataset.test_df
             self.labels = self.dataset.test_labels
         elif self.flag == 'train':
+            if scaler_fit:
+                self.scaler.fit(self.dataset.train_features_data)
+
             self.scaled_feature_df = self.scaler.transform(self.dataset.train_df)
             self.feature_df = self.dataset.train_df
             self.labels = self.dataset.train_labels
-        
+
         self.indexes = self.feature_df.index.unique()
         
     def __getitem__(self, ind):

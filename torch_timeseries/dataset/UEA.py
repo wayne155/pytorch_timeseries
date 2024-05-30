@@ -3,7 +3,7 @@ from sktime.datasets import load_from_tsfile_to_dataframe
 
 import os
 import resource
-from .dataset import Dataset, TimeSeriesDataset
+from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 from typing import Any, Callable, List, Optional
 import torch
 from torchvision.datasets.utils import (

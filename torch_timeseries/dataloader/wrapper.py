@@ -4,7 +4,7 @@ import pandas as pd
 from ..scaler import Scaler
 
 from torch_timeseries.utils.timefeatures import time_features
-from ..dataset import TimeSeriesDataset, TimeseriesSubset
+from torch_timeseries.core import TimeSeriesDataset, TimeseriesSubset
 from torch.utils.data import Dataset
 import numpy as np
 import torch

@@ -1,6 +1,6 @@
 import os
 import resource
-from .dataset import Dataset, TimeSeriesDataset, AnomalyDataset
+from ..core.dataset import AnomalyDataset
 from typing import Callable, List, Optional
 import torch
 from torchvision.datasets.utils import download_and_extract_archive, check_integrity

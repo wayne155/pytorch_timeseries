@@ -5,7 +5,7 @@ import torch
 from typing import Any, Callable, List, Optional
 import os
 import resource
-from.dataset import Dataset, TimeSeriesDataset
+from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 
 
 class ExchangeRate(TimeSeriesDataset):

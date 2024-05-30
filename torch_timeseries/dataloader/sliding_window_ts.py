@@ -2,7 +2,7 @@ from typing import Sequence, Tuple, Type
 
 import torch
 from ..scaler import Scaler
-from ..dataset import (
+from torch_timeseries.core import (
     TimeSeriesDataset,
     TimeseriesSubset,
 )
@@ -111,7 +111,7 @@ class SlidingWindowTS:
 
             
         if self.scale_in_train:
-            self.scaler.fit(train_subset)
+            self.scaler.fit(train_subset.data)
         else:
             self.scaler.fit(self.dataset.data)
 

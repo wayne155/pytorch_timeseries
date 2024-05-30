@@ -5,7 +5,7 @@ import torch
 
 from torch_timeseries.utils.timefeatures import time_features
 from ..scaler import Scaler
-from ..dataset import (
+from torch_timeseries.core import (
     TimeSeriesDataset,
     TimeseriesSubset,
 )
@@ -96,7 +96,7 @@ class MaskTS:
         time_enc=0,
         window: int = 168,
         mask_rate=0.4,
-        scale_in_train=False,
+        scale_in_train=True,
         shuffle_train=True,
         freq=None,
         batch_size: int = 32,
@@ -161,7 +161,7 @@ class MaskTS:
             test_subset = TimeseriesSubset(self.dataset, indices[-test_size:])
 
         if self.scale_in_train:
-            self.scaler.fit(train_subset)
+            self.scaler.fit(train_subset.data)
         else:
             self.scaler.fit(self.dataset.data)
 

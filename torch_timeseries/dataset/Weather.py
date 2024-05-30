@@ -1,6 +1,6 @@
 import os
 import resource
-from.dataset import Dataset, TimeSeriesDataset
+from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 from typing import Any, Callable, List, Optional
 import torch
 from torchvision.datasets.utils import download_url, download_and_extract_archive, check_integrity

@@ -51,6 +51,14 @@ class Dataset(torch.utils.data.Dataset):
 StoreTypes = np.ndarray
 
 
+
+from abc import abstractmethod
+import os
+from typing import Optional
+
+import pandas as pd
+from .dataset import Dataset, StoreTypes
+
 class TimeSeriesDataset(Dataset):
     def __init__(self, root: str='./data'):
         """_summary_
@@ -81,7 +89,7 @@ class TimeSeriesDataset(Dataset):
     
     
     @abstractmethod
-    def _load(self) -> StoreTypes:
+    def _load(self):
         """Loads the dataset to the :attr:`self.data` .
 
         Raises:
@@ -93,14 +101,6 @@ class TimeSeriesDataset(Dataset):
 
         raise NotImplementedError
 
-
-
-class AnomalyDataset(TimeSeriesDataset):
-    train_data : Optional[np.array]
-    test_data : Optional[np.array]
-    test_labels : Optional[np.array]
-        
-        
 
 class TimeSeriesStaticGraphDataset(TimeSeriesDataset):
     adj : np.ndarray 

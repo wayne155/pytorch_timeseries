@@ -5,7 +5,7 @@ from typing import Callable, List, Optional
 import os
 import resource
 import numpy as np
-from .dataset import Dataset, TimeSeriesDataset
+from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 
 
 class SolarEnergy(TimeSeriesDataset):

@@ -21,6 +21,7 @@ dependencies = [
     "pandas>=0.29.0",
     "scikit-learn",
     "tqdm",
+    "prettytable"
 ]
 
 [project.urls]

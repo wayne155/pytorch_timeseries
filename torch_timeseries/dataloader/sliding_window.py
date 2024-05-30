@@ -2,7 +2,7 @@ from typing import Sequence, Tuple, Type
 
 import torch
 from ..scaler import Scaler
-from torch_timeseries.dataset import (
+from torch_timeseries.core import (
     TimeSeriesDataset,
     TimeseriesSubset,
 )

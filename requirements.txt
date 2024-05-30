@@ -5,3 +5,4 @@ torchvision
 tqdm
 sktime>=0.29.0
 scikit-learn
+prettytable

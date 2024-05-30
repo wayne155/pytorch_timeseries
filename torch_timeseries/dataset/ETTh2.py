@@ -1,6 +1,6 @@
 import os
 import resource
-from .dataset import Dataset, Freq, TimeSeriesDataset
+from ..core.dataset.dataset import Dataset, TimeSeriesDataset, Freq
 from typing import Any, Callable, List, Optional
 import torch
 from torchvision.datasets.utils import (

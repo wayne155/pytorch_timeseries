@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from torch_timeseries.dataset.dataset import Freq, TimeSeriesDataset, TimeSeriesStaticGraphDataset
+from torch_timeseries.core import Freq, TimeSeriesDataset, TimeSeriesStaticGraphDataset
 
 
 class Dummy(TimeSeriesDataset):

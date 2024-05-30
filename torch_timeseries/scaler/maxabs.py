@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 from typing import Generic, TypeVar, Union
-from .base import Scaler, StoreType
+from ..core.scaler import Scaler, StoreType
 import pandas as pd
 import numpy as np
 import torch
