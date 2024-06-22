@@ -26,7 +26,10 @@ from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
 from ..dataloader import SlidingWindowTS
 from ..utils import asdict_exc
 
-
+try:
+    import wandb
+except:
+    print("Warning: wandb is not installed, some funtionality may not work.")
 @dataclass
 class ForecastSettings:
     horizon: int = 1
@@ -43,8 +46,9 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self,
         project: str,
         name: str,
-        mode: str='online',
     ):
+        mode = 'online'
+        
         import wandb
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
@@ -55,7 +59,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
         # check wether this experiment had runned and reported on wandb
         api = wandb.Api()
-        config_filter = convert_dict(self.result_related_config)
+        config_filter = convert_dict(asdict_exc(self, BaseIrrelevant))
         runs = api.runs(path=project, filters=config_filter)
         
         try:
@@ -262,6 +266,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         test_result = self._evaluate(self.test_loader)
 
         if self._use_wandb():
+            import wandb
             result = {}
             for name, metric_value in test_result.items():
                 wandb.run.summary["test_" + name] = metric_value
@@ -277,6 +282,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
         # log to wandb
         if self._use_wandb():
+            import wandb
             result = {}
             for name, metric_value in val_result.items():
                 wandb.run.summary["val_" + name] = metric_value
@@ -385,8 +391,8 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self._run_print(f"parameter_tables: {parameter_tables}")
         self._run_print(f"model parameters: {model_parameters_num}")
 
-        if self._use_wandb():
-            wandb.run.summary["parameters"] = self.model_parameters_num
+        # if self._use_wandb():
+        #     wandb.run.summary["parameters"] = self.model_parameters_num
 
         # for resumable reproducibility
         while self.current_epoch < self.epochs:

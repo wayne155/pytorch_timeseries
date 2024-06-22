@@ -103,6 +103,7 @@ Full list of datasets can be found at [Documentation](https://pytorch-timeseries
 | [Autoformer (2021)](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)   | ✅ |✅ |✅ |✅ |
 | [FEDformer (2022)](https://proceedings.mlr.press/v162/zhou22g.html)   | ✅ |✅ |✅ |✅ |
 | [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |✅ |✅ |
+| [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol&trk=public_post_comment-text)   | ✅ |✅ |✅ |✅ |
 
 <!-- ## Implemented Datasets
 Currently we have implemented all popular datasets, including

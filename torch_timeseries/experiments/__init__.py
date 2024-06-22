@@ -22,3 +22,17 @@ from .FEDformer import (
     FEDformerImputation,
     FEDformerUEAClassification,
 )
+
+from .Informer import (
+    InformerAnomalyDetection,
+    InformerForecast,
+    InformerImputation,
+    InformerUEAClassification,
+)
+
+from .PatchTST import (
+    PatchTSTAnomalyDetection,
+    PatchTSTForecast,
+    PatchTSTImputation,
+    PatchTSTUEAClassification,
+)
