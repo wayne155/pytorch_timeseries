@@ -26,7 +26,7 @@ anomaly_loaders = [
 ]
 
 scalers = [
-    "StandardScalar",
+    "StandardScaler",
     "MaxAbsScaler",
     "MinMaxScaler",
 ]

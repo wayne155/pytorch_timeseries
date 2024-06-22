@@ -18,9 +18,9 @@ def exp():
             try:
                 model_exp = f"{model_name}{task_name}"
                 exp_class = eval(model_exp)
-                fire.Fire(exp_class)
             except NameError:
-                print(f"Unknown experiment: {model_name}{task_name}")
+                raise NotImplementedError(f"Unknown experiment: {model_name}{task_name}")
+            fire.Fire(exp_class)
         else:
             print("No model or task specified after --model or --task")
     else:

@@ -11,13 +11,14 @@ import torch
 
 
 class MultiStepTimeFeatureSet(Dataset):
-    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, freq=None, scaler_fit=True):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True):
         self.dataset = dataset
         self.window = window
         self.horizon = horizon
         self.steps = steps
         self.time_enc = time_enc
         self.scaler = scaler
+        self.single_variate = single_variate
         
         self.num_features = self.dataset.num_features
         self.length = self.dataset.length
@@ -47,26 +48,51 @@ class MultiStepTimeFeatureSet(Dataset):
         # x_date_enc : (B, T, D)
         # y_date_eDc : (B, O, D)
         if isinstance(index, int):
-            scaled_x = self.scaled_data[index:index+self.window]
+            total_len  =  len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1
+            fea_dim= index // total_len
+            index = index % total_len
+            if self.single_variate:
+                scaled_x = self.scaled_data[index:index+self.window, fea_dim:fea_dim+1]
 
-            scaled_y = self.scaled_data[self.window + self.horizon - 1 +
-                                 index:self.window + self.horizon - 1 + index+self.steps]
+                scaled_y = self.scaled_data[self.window + self.horizon - 1 +
+                                    index:self.window + self.horizon - 1 + index+self.steps, fea_dim:fea_dim+1]
+                
+                x = self.dataset.data[index:index+self.window, fea_dim:fea_dim+1]
+                
+                y = self.dataset.data[self.window + self.horizon - 1 +
+                                    index:self.window + self.horizon - 1 + index+self.steps, fea_dim:fea_dim+1]
+
+                x_date_enc = self.date_enc_data[index:index+self.window]
+
+                y_date_enc = self.date_enc_data[self.window + self.horizon -
+                                                1 + index:self.window + self.horizon - 1 + index+self.steps]
             
-            x = self.dataset.data[index:index+self.window]
+            else:
+                scaled_x = self.scaled_data[index:index+self.window]
+
+                scaled_y = self.scaled_data[self.window + self.horizon - 1 +
+                                    index:self.window + self.horizon - 1 + index+self.steps]
+                
+                x = self.dataset.data[index:index+self.window]
+                
+                y = self.dataset.data[self.window + self.horizon - 1 +
+                                    index:self.window + self.horizon - 1 + index+self.steps]
+
+                x_date_enc = self.date_enc_data[index:index+self.window]
+
+                y_date_enc = self.date_enc_data[self.window + self.horizon -
+                                                1 + index:self.window + self.horizon - 1 + index+self.steps]
             
-            y = self.dataset.data[self.window + self.horizon - 1 +
-                                 index:self.window + self.horizon - 1 + index+self.steps]
-
-            x_date_enc = self.date_enc_data[index:index+self.window]
-
-            y_date_enc = self.date_enc_data[self.window + self.horizon -
-                                            1 + index:self.window + self.horizon - 1 + index+self.steps]
             return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
         else:
             raise TypeError('Not surpported index type!!!')
 
     def __len__(self):
-        return len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1
+        if self.single_variate:
+            return (len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1)*self.num_features
+        else:
+            return len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1
+
 
 
 

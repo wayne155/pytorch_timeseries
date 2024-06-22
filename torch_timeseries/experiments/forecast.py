@@ -124,7 +124,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         return ident
 
     def _init_data_loader(self):
-        self.dataset: TimeSeriesDataset = parse_type(self.dataset_type, globals=globals())(
+        self.dataset: TimeSeriesDataset = parse_type(self.dataset_type, globals())(
             root=self.data_path
         )
         self.scaler = parse_type(self.scaler_type, globals=globals())()
@@ -351,7 +351,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             + "] -"
         )
         print(*args, **kwargs)
-        with open(os.path.join(self.run_save_dir, "output.log"), "w+") as f:
+        with open(os.path.join(self.run_save_dir, "output.log"), "a+") as f:
             print(time, *args, flush=True, file=f)
 
     def _resume_run(self, seed):
@@ -440,12 +440,13 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
         df = pd.DataFrame(results)
         self.metric_mean_std = df.agg(["mean", "std"]).T
-        print(
+        self._run_print(
             self.metric_mean_std.apply(
                 lambda x: f"{x['mean']:.4f} ± {x['std']:.4f}", axis=1
             )
         )
         if self._use_wandb():
+            import wandb
             for index, row in self.metric_mean_std.iterrows():
                 wandb.run.summary[f"{index}_mean"] = row["mean"]
                 wandb.run.summary[f"{index}_std"] = row["std"]

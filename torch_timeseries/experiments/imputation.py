@@ -235,6 +235,8 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
                     preds, truths = self._process_one_batch(
                         batch_masked_x, batch_x, batch_origin_x, batch_mask, batch_x_date_enc
                     )
+                    
+                    batch_mask = batch_mask.to(self.device)
                     batch_origin_x = batch_origin_x.to(self.device)
                     if self.invtrans_loss:
                         preds = self.scaler.inverse_transform(preds)
@@ -300,6 +302,8 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
                 pred, true = self._process_one_batch(
                     batch_masked_x, batch_x, batch_origin_x, batch_mask , batch_x_date_enc
                 )
+                batch_mask = batch_mask.to(self.device)
+                
                 if self.invtrans_loss:
                     pred = self.scaler.inverse_transform(pred)
                     true = batch_origin_x
@@ -348,7 +352,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
             + "] -"
         )
         print(*args, **kwargs)
-        with open(os.path.join(self.run_save_dir, "output.log"), "w+") as f:
+        with open(os.path.join(self.run_save_dir, "output.log"), "a+") as f:
             print(time, *args, flush=True, file=f)
 
     def _resume_run(self, seed):

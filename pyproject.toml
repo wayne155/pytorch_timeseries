@@ -13,8 +13,6 @@ license = { file = "LICENSE" }
 readme = "README.md"
 keywords = ["deep Learning", "time series", "pytorch"]
 dependencies = [
-    "torch",
-    "torchvision",
     "numpy",
     "pandas",
     "sktime",

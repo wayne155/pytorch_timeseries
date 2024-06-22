@@ -8,3 +8,17 @@ from .DLinear import (
     DLinearImputation,
     DLinearUEAClassification,
 )
+
+from .Autoformer import (
+    AutoformerAnomalyDetection,
+    AutoformerForecast,
+    AutoformerImputation,
+    AutoformerUEAClassification,
+)
+
+from .FEDformer import (
+    FEDformerAnomalyDetection,
+    FEDformerForecast,
+    FEDformerImputation,
+    FEDformerUEAClassification,
+)

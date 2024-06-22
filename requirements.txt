@@ -1,7 +1,5 @@
 numpy 
 pandas
-torch
-torchvision
 tqdm
 fire>=0.5.0
 sktime>=0.29.0

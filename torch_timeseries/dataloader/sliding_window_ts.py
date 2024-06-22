@@ -28,7 +28,7 @@ class SlidingWindowTS:
         val_ratio: float = 0.2,
         num_worker: int = 3,
         uniform_eval=True,
-        dtype=torch.float32,
+        single_variate=False,
     ) -> None:
         """
         Class for splitting the dataset sequentially and then randomly sampling from each subset.
@@ -49,7 +49,6 @@ class SlidingWindowTS:
             test_ratio (float): Ratio of the dataset to be used for testing.
             num_worker (int): Number of worker threads for data loading.
             uniform_eval (bool): Whether to use uniform evaluation.
-            dtype (torch.dtype): Data type for the tensors.
             train_loader (DataLoader): DataLoader for the training data.
             val_loader (DataLoader): DataLoader for the validation data.
             test_loader (DataLoader): DataLoader for the test data.
@@ -58,6 +57,7 @@ class SlidingWindowTS:
         self.val_ratio = val_ratio
         self.test_ratio = 1 - self.train_ratio - self.val_ratio
         self.uniform_eval = uniform_eval
+        self.single_variate = single_variate
 
         assert (
             self.train_ratio + self.val_ratio + self.test_ratio == 1.0
@@ -120,6 +120,7 @@ class SlidingWindowTS:
             scaler=self.scaler,
             time_enc=self.time_enc,
             window=self.window,
+            single_variate=self.single_variate,
             horizon=self.horizon,
             steps=self.steps,
             freq=self.freq,
@@ -133,6 +134,7 @@ class SlidingWindowTS:
             horizon=self.horizon,
             steps=self.steps,
             freq=self.freq,
+            single_variate=self.single_variate,
             scaler_fit=False,
         )
         self.test_dataset = MultiStepTimeFeatureSet(
@@ -141,6 +143,7 @@ class SlidingWindowTS:
             time_enc=self.time_enc,
             window=self.window,
             horizon=self.horizon,
+            single_variate=self.single_variate,
             steps=self.steps,
             freq=self.freq,
             scaler_fit=False,

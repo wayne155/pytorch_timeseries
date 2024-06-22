@@ -57,14 +57,14 @@ pytexp --model DLinear --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
 # running DLinear Imputation on dataset ETTh1 with seed = 3 
 pytexp --model DLinear --task Imputation --dataset_type ETTh1 run 3
 # running DLinear Imputation on dataset ETTh1 with seed = [1,2,3] 
-pytexp --model DLinear --task Imputation --dataset_type ETTh1 run '[1,2,3]'
+pytexp --model DLinear --task Imputation --dataset_type ETTh1 runs '[1,2,3]'
 ```
 ### UEAClassification
 ```python
 # running DLinear UEAClassification on dataset EthanolConcentration with seed = 3 
 pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run 3
 # running DLinear UEAClassification on dataset EthanolConcentration with seed = [1,2,3] 
-pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run '[1,2,3]'
+pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration runs '[1,2,3]'
 ```
 
 ### AnomalyDetection
@@ -72,7 +72,7 @@ pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentrat
 # running DLinear AnomalyDetection on dataset MSL with seed = [1,2,3] 
 pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
 # running DLinear AnomalyDetection on dataset MSL with seed = [1,2,3] 
-pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
+pytexp --model DLinear --task AnomalyDetection --dataset_type MSL runs 3
 ```
 
 

@@ -381,7 +381,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, AnomalyDetectionSettings
             + "] -"
         )
         print(*args, **kwargs)
-        with open(os.path.join(self.run_save_dir, "output.log"), "w+") as f:
+        with open(os.path.join(self.run_save_dir, "output.log"), "a+") as f:
             print(time, *args, flush=True, file=f)
 
     def _resume_run(self, seed):
