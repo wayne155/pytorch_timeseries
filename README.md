@@ -104,6 +104,7 @@ Full list of datasets can be found at [Documentation](https://pytorch-timeseries
 | [FEDformer (2022)](https://proceedings.mlr.press/v162/zhou22g.html)   | ✅ |✅ |✅ |✅ |
 | [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |✅ |✅ |
 | [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol&trk=public_post_comment-text)   | ✅ |✅ |✅ |✅ |
+| [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah)   | ✅ |✅ |✅ |✅ |
 
 <!-- ## Implemented Datasets
 Currently we have implemented all popular datasets, including

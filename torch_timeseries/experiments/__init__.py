@@ -36,3 +36,6 @@ from .PatchTST import (
     PatchTSTImputation,
     PatchTSTUEAClassification,
 )
+
+from .iTransformer import (iTransformerAnomalyDetection, iTransformerForecast, iTransformerImputation, iTransformerUEAClassification)
+
