@@ -29,7 +29,7 @@ class ExchangeRate(TimeSeriesDataset):
 
     name: str = 'ExchangeRate'
     num_features: int = 8
-    freq: str = 'd' # daily data
+    freq: str = 'yd' # daily data
     length : int = 7588
     
     

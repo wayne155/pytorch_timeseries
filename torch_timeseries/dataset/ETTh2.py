@@ -35,7 +35,7 @@ class ETTh2(TimeSeriesDataset):
     """
 
     name: str = "ETTh2"
-    freq: Freq = "h"
+    freq: Freq = "yh"
     num_features: int = 7
     length: int = 17420
 

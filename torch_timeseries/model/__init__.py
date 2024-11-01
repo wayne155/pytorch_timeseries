@@ -4,3 +4,7 @@ from .FEDformer import FEDformer
 from .Informer import Informer
 from .PatchTST import PatchTST
 from .iTransformer import iTransformer
+from .TSMixer import TSMixer
+from .Crossformer import Crossformer
+from .SCINet import SCINet
+from .TimesNet import TimesNet

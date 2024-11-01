@@ -32,7 +32,7 @@ class ETTm1(TimeSeriesDataset):
     """
     name:str= 'ETTm1'
     num_features: int = 7
-    freq : Freq = 't'
+    freq : Freq = 'yt'
     length : int  = 69680
     
     def download(self):

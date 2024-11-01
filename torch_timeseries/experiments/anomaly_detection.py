@@ -439,7 +439,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, AnomalyDetectionSettings
             )
             self._run_print(f"Traininng loss : {np.mean(train_losses)}")
             if self._use_wandb():
-                wandb.log(np.mean(train_losses), step=self.current_epoch)
+                wandb.log({'training_loss':np.mean(train_losses)}, step=self.current_epoch)
 
             val_result = self._val()
             test_result = self._test()

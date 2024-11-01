@@ -3,9 +3,7 @@ import sys
 
 import torch
 
-from torch_timeseries.dataloader.sliding_window_ts import SlidingWindowTS
-from torch_timeseries.utils.parse_type import parse_type
-from ..model import iTransformer
+from ..model import SCINet
 from . import (
     ForecastExp,
     ImputationExp,
@@ -15,39 +13,45 @@ from . import (
 
 
 @dataclass
-class iTransformerParameters:
-    factor: int = 1
-    d_model: int = 512
-    n_heads: int = 8
-    e_layers: int = 4
-    d_layer: int = 1
-    d_ff: int = 512
-    dropout: float = 0.1
-    embed: str = "timeF"
-    activation:str= "gelu"
-    use_norm : bool = True
-    class_strategy : str = 'projection'
-
+class SCINetParameters:
+    hid_size : int = 1
+    num_stacks : int = 1
+    num_levels : int = 3
+    num_decoder_layer : int = 1
+    concat_len : int = 0
+    groups : int = 1
+    kernel : int = 5
+    dropout : float = 0.5
+    single_step_output_One : int = 0
+    input_len_seg : int = 1
+    positionalE : bool = False
+    modified : bool = True
+    RIN : bool = True
+    
 @dataclass
-class iTransformerForecast(ForecastExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class SCINetForecast(ForecastExp, SCINetParameters):
+    model_type: str = "SCINet"
         
     def _init_model(self):
         self.label_len = int(self.windows / 2)
         
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.pred_len,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
-            factor=self.factor,
-            freq=self.dataset.freq,
-            d_model=self.d_model,
-            n_heads=self.n_heads,
-            e_layers=self.e_layers,
-            dropout=self.dropout,
-            embed=self.embed,
-            activation=self.activation,
+        self.model = SCINet(
+            output_len=self.pred_len, 
+            input_len=self.windows, 
+            input_dim = self.dataset.num_features,
+            hid_size = self.hid_size, 
+            num_stacks = self.num_stacks,
+            num_levels = self.num_levels, 
+            num_decoder_layer = self.num_decoder_layer, 
+            concat_len = self.concat_len, 
+            groups = self.groups, 
+            kernel = self.kernel, 
+            dropout = self.dropout,
+            single_step_output_One = self.single_step_output_One, 
+            input_len_seg = self.input_len_seg, 
+            positionalE =self.positionalE, 
+            modified = self.modified, 
+            RIN=self.RIN
         )
         self.model = self.model.to(self.device)
 
@@ -63,59 +67,61 @@ class iTransformerForecast(ForecastExp, iTransformerParameters):
         batch_x_date_enc = batch_x_date_enc.to(self.device).float()
         batch_y_date_enc = batch_y_date_enc.to(self.device).float()
         
-        dec_inp_pred = torch.zeros(
-            [batch_x.size(0), self.pred_len, self.dataset.num_features]
-        ).to(self.device)
-        dec_inp_label = batch_x[:, -self.label_len :, :].to(self.device)
-
-        dec_inp = torch.cat([dec_inp_label, dec_inp_pred], dim=1)
-        dec_inp_date_enc = torch.cat(
-            [batch_x_date_enc[:, -self.label_len :, :], batch_y_date_enc], dim=1
-        )
-        outputs = self.model(batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc)  # torch.Size([batch_size, output_length, num_nodes])
+        pred = self.model(batch_x)
+        
             
-        return outputs, batch_y
+        return pred, batch_y
 
 
 
-class iTransformerClassModel(iTransformer):
+class SCINetClassModel(SCINet):
     def __init__(self, num_classes, **kwargs):
         super().__init__(**kwargs)
         self.num_classes = num_classes
+        self.t_projection = torch.nn.Linear(
+           int(  self.out_len/2), self.out_len)
 
         self.projection = torch.nn.Linear(
-           int( kwargs.get("d_model") * kwargs.get("c_in")), self.num_classes)
+           int( kwargs.get("d_model") * self.out_len), self.num_classes)
 
-    def forward(self, x_enc):
-        _, T, N = x_enc.shape # B L N
-        
-        enc_out = self.enc_embedding(x_enc, None) # covariates (e.g timestamp) can be also embedded as tokens
+    def forward(self, x_enc, x_mark_enc):
+        enc_out = self.enc_embedding(x_enc, None)
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
+        enc_out = self.t_projection(enc_out.transpose(1,2)).transpose(1,2)
+        
+        # Output
+        # the output transformer encoder/decoder embeddings don't include non-linearity
         output = torch.relu(enc_out)
+        # # zero-out padding embeddings
+        output = output * x_mark_enc.unsqueeze(-1)
+        # # (batch_size, seq_length * d_model)
         output = output.reshape(output.shape[0], -1)
         output = self.projection(torch.relu(output))
         return output
 
 @dataclass
-class iTransformerUEAClassification(UEAClassificationExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class SCINetUEAClassification(UEAClassificationExp, SCINetParameters):
+    model_type: str = "SCINet"
 
     def _init_model(self):
-        self.model = iTransformerClassModel(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.label_len = self.windows/2
+        self.model = SCINetClassModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
-            freq='h',
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
-            num_classes=self.dataset.num_classes,
-            c_in=self.dataset.num_features
+            distil=self.distil,
+            mix=self.mix,
+            
+            num_classes=self.dataset.num_classes
         )
         self.model = self.model.to(self.device)
 
@@ -131,45 +137,47 @@ class iTransformerUEAClassification(UEAClassificationExp, iTransformerParameters
         batch_y = batch_y.to(self.device, dtype=torch.float32)
         padding_masks = padding_masks.to(self.device, dtype=torch.float32)
         
-        outputs = self.model(batch_x)  # torch.Size([batch_size, output_length, num_nodes])
+        outputs = self.model(batch_x, padding_masks)  # torch.Size([batch_size, output_length, num_nodes])
         return outputs, batch_y.long().squeeze(-1)
 
 
-# class AnomalyModel(iTransformer):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
-#         self.projection = torch.nn.Linear(
-#             kwargs.get('d_model') , kwargs.get('c_out'))
+class AnomalyModel(SCINet):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.projection = torch.nn.Linear(
+            kwargs.get('d_model') , kwargs.get('c_out'))
+        self.t_projection = torch.nn.Linear(
+        int(self.out_len/2) ,self.out_len)
 
-#     def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
-        
-#         B,T,N = batch_x.size()
-        
-#         enc_out = self.enc_embedding(batch_x, None)
-#         enc_out, attns = self.encoder(enc_out, attn_mask=None)
-#         # final
-#         dec_out = self.projection(enc_out)
-#         return dec_out[:, :, :N]
+    def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
+        enc_out = self.enc_embedding(batch_x, None)
+        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+        # final
+        dec_out = self.projection(enc_out)
+        dec_out = self.t_projection(dec_out.transpose(1,2)).transpose(1,2)
+        return dec_out
     
 @dataclass
-class iTransformerAnomalyDetection(AnomalyDetectionExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class SCINetAnomalyDetection(AnomalyDetectionExp, SCINetParameters):
+    model_type: str = "SCINet"
 
     def _init_model(self):
         self.label_len = self.windows/2
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.model = AnomalyModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
-            freq='h',
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
+            distil=self.distil,
+            mix=self.mix,
         )
         self.model = self.model.to(self.device)
 
@@ -187,39 +195,45 @@ class iTransformerAnomalyDetection(AnomalyDetectionExp, iTransformerParameters):
 
 
 
-class ImputationModel(iTransformer):
+class ImputationModel(SCINet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.projection = torch.nn.Linear(
-            kwargs.get('d_model') , kwargs.get('pred_len'))
+            kwargs.get('d_model') , kwargs.get('c_out'))
+        self.t_projection = torch.nn.Linear(
+        int(self.out_len/2) ,self.out_len)
 
     def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
         enc_out = self.enc_embedding(batch_x, batch_x_date_enc)
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
         # final
         dec_out = self.projection(enc_out)
+        dec_out = self.t_projection(dec_out.transpose(1,2)).transpose(1,2)
         return dec_out
     
     
 @dataclass
-class iTransformerImputation(ImputationExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class SCINetImputation(ImputationExp, SCINetParameters):
+    model_type: str = "SCINet"
 
     def _init_model(self):
         self.label_len = self.windows/2
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.model = ImputationModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
             freq=self.dataset.freq,
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
+            distil=self.distil,
+            mix=self.mix,
         )
         self.model = self.model.to(self.device)
 

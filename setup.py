@@ -1,12 +1,13 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
     'tqdm',
     'numpy' ,
     'pandas',
+    "einops",
     'tqdm',
     'sktime>=0.29.0',
     "torchmetrics==1.1.1",

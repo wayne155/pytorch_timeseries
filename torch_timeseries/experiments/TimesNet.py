@@ -3,9 +3,7 @@ import sys
 
 import torch
 
-from torch_timeseries.dataloader.sliding_window_ts import SlidingWindowTS
-from torch_timeseries.utils.parse_type import parse_type
-from ..model import iTransformer
+from ..model import TimesNet
 from . import (
     ForecastExp,
     ImputationExp,
@@ -15,40 +13,52 @@ from . import (
 
 
 @dataclass
-class iTransformerParameters:
-    factor: int = 1
+class TimesNetParameters:
+    factor: int = 5
     d_model: int = 512
     n_heads: int = 8
-    e_layers: int = 4
+    e_layers: int = 2
     d_layer: int = 1
     d_ff: int = 512
-    dropout: float = 0.1
+    dropout: float = 0.0
+    attn: str = "prob"
     embed: str = "timeF"
-    activation:str= "gelu"
-    use_norm : bool = True
-    class_strategy : str = 'projection'
+    activation = "gelu"
+    distil: bool = True
+    mix: bool = True
 
 @dataclass
-class iTransformerForecast(ForecastExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class TimesNetForecast(ForecastExp, TimesNetParameters):
+    model_type: str = "TimesNet"
         
+    label_len: int = 48
+    d_model: int = 512
+    e_layers: int = 2
+    d_ff: int = 512  # out of memoery with d_ff = 2048
+    num_kernels: int = 6
+    top_k: int = 5
+    dropout: float = 0.0
+    embed: str = "timeF"
+    freq: str = 'h'
+    
+    
     def _init_model(self):
-        self.label_len = int(self.windows / 2)
-        
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.pred_len,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
-            factor=self.factor,
-            freq=self.dataset.freq,
+        self.model = TimesNet(
+            seq_len=self.windows, 
+            label_len=self.label_len,
+            pred_len=self.pred_len, 
+            e_layers=self.e_layers, 
+            d_ff=self.d_ff,
+            num_kernels=self.num_kernels,
+            top_k=self.top_k,
             d_model=self.d_model,
-            n_heads=self.n_heads,
-            e_layers=self.e_layers,
-            dropout=self.dropout,
             embed=self.embed,
-            activation=self.activation,
-        )
+            enc_in=self.dataset.num_features,
+            freq=self.freq,
+            dropout=self.dropout,
+            c_out=self.dataset.num_features,
+            task_name="long_term_forecast",
+            )
         self.model = self.model.to(self.device)
 
     def _process_one_batch(self, batch_x, batch_y, batch_x_date_enc, batch_y_date_enc):
@@ -78,44 +88,54 @@ class iTransformerForecast(ForecastExp, iTransformerParameters):
 
 
 
-class iTransformerClassModel(iTransformer):
+class TimesNetClassModel(TimesNet):
     def __init__(self, num_classes, **kwargs):
         super().__init__(**kwargs)
         self.num_classes = num_classes
+        self.t_projection = torch.nn.Linear(
+           int(  self.out_len/2), self.out_len)
 
         self.projection = torch.nn.Linear(
-           int( kwargs.get("d_model") * kwargs.get("c_in")), self.num_classes)
+           int( kwargs.get("d_model") * self.out_len), self.num_classes)
 
-    def forward(self, x_enc):
-        _, T, N = x_enc.shape # B L N
-        
-        enc_out = self.enc_embedding(x_enc, None) # covariates (e.g timestamp) can be also embedded as tokens
+    def forward(self, x_enc, x_mark_enc):
+        enc_out = self.enc_embedding(x_enc, None)
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
+        enc_out = self.t_projection(enc_out.transpose(1,2)).transpose(1,2)
+        
+        # Output
+        # the output transformer encoder/decoder embeddings don't include non-linearity
         output = torch.relu(enc_out)
+        # # zero-out padding embeddings
+        output = output * x_mark_enc.unsqueeze(-1)
+        # # (batch_size, seq_length * d_model)
         output = output.reshape(output.shape[0], -1)
         output = self.projection(torch.relu(output))
         return output
 
 @dataclass
-class iTransformerUEAClassification(UEAClassificationExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class TimesNetUEAClassification(UEAClassificationExp, TimesNetParameters):
+    model_type: str = "TimesNet"
 
     def _init_model(self):
-        self.model = iTransformerClassModel(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.label_len = self.windows/2
+        self.model = TimesNetClassModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
-            freq='h',
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
-            num_classes=self.dataset.num_classes,
-            c_in=self.dataset.num_features
+            distil=self.distil,
+            mix=self.mix,
+            
+            num_classes=self.dataset.num_classes
         )
         self.model = self.model.to(self.device)
 
@@ -131,45 +151,47 @@ class iTransformerUEAClassification(UEAClassificationExp, iTransformerParameters
         batch_y = batch_y.to(self.device, dtype=torch.float32)
         padding_masks = padding_masks.to(self.device, dtype=torch.float32)
         
-        outputs = self.model(batch_x)  # torch.Size([batch_size, output_length, num_nodes])
+        outputs = self.model(batch_x, padding_masks)  # torch.Size([batch_size, output_length, num_nodes])
         return outputs, batch_y.long().squeeze(-1)
 
 
-# class AnomalyModel(iTransformer):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
-#         self.projection = torch.nn.Linear(
-#             kwargs.get('d_model') , kwargs.get('c_out'))
+class AnomalyModel(TimesNet):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.projection = torch.nn.Linear(
+            kwargs.get('d_model') , kwargs.get('c_out'))
+        self.t_projection = torch.nn.Linear(
+        int(self.out_len/2) ,self.out_len)
 
-#     def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
-        
-#         B,T,N = batch_x.size()
-        
-#         enc_out = self.enc_embedding(batch_x, None)
-#         enc_out, attns = self.encoder(enc_out, attn_mask=None)
-#         # final
-#         dec_out = self.projection(enc_out)
-#         return dec_out[:, :, :N]
+    def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
+        enc_out = self.enc_embedding(batch_x, None)
+        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+        # final
+        dec_out = self.projection(enc_out)
+        dec_out = self.t_projection(dec_out.transpose(1,2)).transpose(1,2)
+        return dec_out
     
 @dataclass
-class iTransformerAnomalyDetection(AnomalyDetectionExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class TimesNetAnomalyDetection(AnomalyDetectionExp, TimesNetParameters):
+    model_type: str = "TimesNet"
 
     def _init_model(self):
         self.label_len = self.windows/2
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.model = AnomalyModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
-            freq='h',
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
+            distil=self.distil,
+            mix=self.mix,
         )
         self.model = self.model.to(self.device)
 
@@ -187,39 +209,45 @@ class iTransformerAnomalyDetection(AnomalyDetectionExp, iTransformerParameters):
 
 
 
-class ImputationModel(iTransformer):
+class ImputationModel(TimesNet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.projection = torch.nn.Linear(
-            kwargs.get('d_model') , kwargs.get('pred_len'))
+            kwargs.get('d_model') , kwargs.get('c_out'))
+        self.t_projection = torch.nn.Linear(
+        int(self.out_len/2) ,self.out_len)
 
     def forward(self, batch_x, batch_x_date_enc, dec_inp, dec_inp_date_enc):
         enc_out = self.enc_embedding(batch_x, batch_x_date_enc)
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
         # final
         dec_out = self.projection(enc_out)
+        dec_out = self.t_projection(dec_out.transpose(1,2)).transpose(1,2)
         return dec_out
     
     
 @dataclass
-class iTransformerImputation(ImputationExp, iTransformerParameters):
-    model_type: str = "iTransformer"
+class TimesNetImputation(ImputationExp, TimesNetParameters):
+    model_type: str = "TimesNet"
 
     def _init_model(self):
         self.label_len = self.windows/2
-        self.model = iTransformer(
-            seq_len=self.windows,
-            pred_len=self.windows,
-            use_norm=self.use_norm,
-            class_strategy=self.class_strategy,
+        self.model = ImputationModel(
+            enc_in=self.dataset.num_features,
+            dec_in=self.dataset.num_features,
+            c_out=self.dataset.num_features,
+            out_len=self.windows,
             factor=self.factor,
             freq=self.dataset.freq,
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
+            attn=self.attn,
             embed=self.embed,
             activation=self.activation,
+            distil=self.distil,
+            mix=self.mix,
         )
         self.model = self.model.to(self.device)
 

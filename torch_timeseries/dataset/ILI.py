@@ -40,7 +40,7 @@ class ILI(TimeSeriesDataset):
     name:str= 'ILI'
     num_features: int = 7
     length : int  = 966
-    freq:str = 'h'
+    freq:str = 'yh'
     
     def download(self):
         download_and_extract_archive(

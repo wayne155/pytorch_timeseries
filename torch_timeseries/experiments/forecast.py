@@ -41,55 +41,59 @@ class ForecastSettings:
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     loss_func_type : str = 'mse'
-
+    
     def config_wandb(
         self,
         project: str,
-        name: str,
     ):
-        mode = 'online'
-        
-        import wandb
+        self.project = project
+        self.wandb = True
+        return self
+
+    def _init_wandb(
+        self,
+        project: str,
+        seed : int
+    ):
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
             converted_dict = {}
             for key, value in dictionary.items():
                 converted_dict[f"config.{key}"] = value
             return converted_dict
-
         # check wether this experiment had runned and reported on wandb
         api = wandb.Api()
-        config_filter = convert_dict(asdict_exc(self, BaseIrrelevant))
+        dic = dict(self.result_related_configs)
+        dic.update({'seed': seed})
+        config_filter = convert_dict(dic)
         runs = api.runs(path=project, filters=config_filter)
-        
         try:
-            if runs[0].state == "finished" or runs[0].state == "running":
-                print(f"{self.model_type} {self.dataset_type} w{self.windows} w{self.horizon}  Experiment already reported, quiting...")
-                self.finished = True
-                return 
+            for run in runs:
+                if run.state == "finished" or run.state == "running":
+                    print(f"seed-{seed} {self.model_type} {self.dataset_type} w{self.windows} p{self.pred_len}  Experiment already reported, quiting...")
+                    self.finished = True
+                    return False 
         except:
             pass
-        m = self.model_type
-        run = wandb.init(
-            mode=mode,
+        wandb.init(
+            mode="online",
             project=project,
-            name=name,
-            tags=[m, self.dataset_type, f"horizon-{self.horizon}", f"window-{self.windows}", f"pred-{self.pred_len}"],
+            name=f"{self.model_type}-{self.dataset_type}-w{self.windows} p{self.pred_len}",
+            tags=[self.dataset_type, f"horizon-{self.horizon}", f"window-{self.windows}", f"pred-{self.pred_len}"],
         )
         wandb.config.update(asdict(self))
-        self.wandb = True
-        print(f"using wandb , running in config: {asdict(self)}")
-        return self
-
-
+        wandb.config.update({'seed': seed})
+        print(f" wandb config , running in config: {asdict(self)}")
+        return True
+    
 
     def _init_optimizer(self):
         self.model_optim = parse_type(self.optm_type, globals=globals())(
             self.model.parameters(), lr=self.lr, weight_decay=self.l2_weight_decay
         )
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.model_optim, T_max=self.epochs
-        )
+        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     self.model_optim, T_max=self.patience-1
+        # )
 
     def _setup(self):
         # init data loader
@@ -265,13 +269,13 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         print("Testing .... ")
         test_result = self._evaluate(self.test_loader)
 
-        if self._use_wandb():
-            import wandb
-            result = {}
-            for name, metric_value in test_result.items():
-                wandb.run.summary["test_" + name] = metric_value
-                result["test_" + name] = metric_value
-            wandb.log(result, step=self.current_epoch)
+        # if self._use_wandb():
+        #     import wandb
+        #     result = {}
+        #     for name, metric_value in test_result.items():
+        #         wandb.run.summary["test_" + name] = metric_value
+        #         result["test_" + name] = metric_value
+        #     wandb.log(result, step=self.current_epoch)
 
         self._run_print(f"test_results: {test_result}")
         return test_result
@@ -280,14 +284,14 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         print("Validating .... ")
         val_result = self._evaluate(self.val_loader)
 
-        # log to wandb
-        if self._use_wandb():
-            import wandb
-            result = {}
-            for name, metric_value in val_result.items():
-                wandb.run.summary["val_" + name] = metric_value
-                result["val_" + name] = metric_value
-            wandb.log(result, step=self.current_epoch)
+        # # log to wandb
+        # if self._use_wandb():
+        #     import wandb
+        #     result = {}
+        #     for name, metric_value in val_result.items():
+        #         wandb.run.summary["val_" + name] = metric_value
+        #         result["val_" + name] = metric_value
+        #     wandb.log(result, step=self.current_epoch)
 
         self._run_print(f"vali_results: {val_result}")
         return val_result
@@ -377,10 +381,9 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         return hasattr(self, "wandb")
 
     def run(self, seed=42) -> Dict[str, float]:
-        if hasattr(self, "finished") and self.finished is True:
-            self._run_print("Experiment finished!!!")
-            return {}
 
+        if self._use_wandb() and not self._init_wandb(self.project, seed): return {}
+        
         self._setup_run(seed)
         if self._check_run_exist(seed):
             self._resume_run(seed)
@@ -391,8 +394,8 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self._run_print(f"parameter_tables: {parameter_tables}")
         self._run_print(f"model parameters: {model_parameters_num}")
 
-        # if self._use_wandb():
-        #     wandb.run.summary["parameters"] = self.model_parameters_num
+        if self._use_wandb():
+            wandb.run.summary["parameters"] = model_parameters_num
 
         # for resumable reproducibility
         while self.current_epoch < self.epochs:
@@ -403,19 +406,15 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 )
                 break
 
-            if self._use_wandb():
-                wandb.run.summary["at_epoch"] = self.current_epoch
             # for resumable reproducibility
             reproducible(seed + self.current_epoch)
             train_losses = self._train()
             self._run_print(
-                "Epoch: {} cost time: {}".format(
+                "Epoch: {} cost time: {}s".format(
                     self.current_epoch + 1, time.time() - epoch_start_time
                 )
             )
             self._run_print(f"Traininng loss : {np.mean(train_losses)}")
-            if self._use_wandb():
-                wandb.log(np.mean(train_losses), step=self.current_epoch)
 
             val_result = self._val()
             test_result = self._test()
@@ -425,40 +424,28 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
             self._save_run_check_point(seed)
 
-            self.scheduler.step()
+            if self._use_wandb():
+                wandb.log({'training_loss' : np.mean(train_losses)}, step=self.current_epoch)
+                wandb.log( {f"val_{k}": v for k, v in val_result.items()}, step=self.current_epoch)
+                wandb.log( {f"test_{k}": v for k, v in test_result.items()}, step=self.current_epoch)
+
+            # self.scheduler.step()
 
         self._load_best_model()
         best_test_result = self._test()
+        if self._use_wandb():
+            for k, v in best_test_result.items(): wandb.run.summary[f"best_test_{k}"] = v 
+        
+        if self._use_wandb():  wandb.finish()
         return best_test_result
 
     def runs(self, seeds: List[int] = [1, 2, 3, 4, 5]):
-        if hasattr(self, "finished") and self.finished is True:
-            print("Experiment finished!!!")
-            return
-        # if self._use_wandb():
-        #     wandb.config.update({"seeds": seeds})
-
         results = []
         for i, seed in enumerate(seeds):
-            self.current_run = i
             result = self.run(seed=seed)
             results.append(result)
 
-        df = pd.DataFrame(results)
-        self.metric_mean_std = df.agg(["mean", "std"]).T
-        self._run_print(
-            self.metric_mean_std.apply(
-                lambda x: f"{x['mean']:.4f} ± {x['std']:.4f}", axis=1
-            )
-        )
-        if self._use_wandb():
-            import wandb
-            for index, row in self.metric_mean_std.iterrows():
-                wandb.run.summary[f"{index}_mean"] = row["mean"]
-                wandb.run.summary[f"{index}_std"] = row["std"]
-                wandb.run.summary[index] = f"{row['mean']:.4f}±{row['std']:.4f}"
-                wandb.finish()
-        return self.metric_mean_std
+        return results
 
     def _save_run_check_point(self, seed):
         if not os.path.exists(self.run_save_dir):
