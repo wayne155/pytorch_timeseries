@@ -14,23 +14,8 @@ from . import (
 
 @dataclass
 class TimesNetParameters:
-    factor: int = 5
-    d_model: int = 512
     n_heads: int = 8
     e_layers: int = 2
-    d_layer: int = 1
-    d_ff: int = 512
-    dropout: float = 0.0
-    attn: str = "prob"
-    embed: str = "timeF"
-    activation = "gelu"
-    distil: bool = True
-    mix: bool = True
-
-@dataclass
-class TimesNetForecast(ForecastExp, TimesNetParameters):
-    model_type: str = "TimesNet"
-        
     label_len: int = 48
     d_model: int = 512
     e_layers: int = 2
@@ -39,7 +24,12 @@ class TimesNetForecast(ForecastExp, TimesNetParameters):
     top_k: int = 5
     dropout: float = 0.0
     embed: str = "timeF"
-    freq: str = 'h'
+
+@dataclass
+class TimesNetForecast(ForecastExp, TimesNetParameters):
+    model_type: str = "TimesNet"
+        
+
     
     
     def _init_model(self):
@@ -54,7 +44,7 @@ class TimesNetForecast(ForecastExp, TimesNetParameters):
             d_model=self.d_model,
             embed=self.embed,
             enc_in=self.dataset.num_features,
-            freq=self.freq,
+            freq=self.dataset.freq,
             dropout=self.dropout,
             c_out=self.dataset.num_features,
             task_name="long_term_forecast",
@@ -124,17 +114,11 @@ class TimesNetUEAClassification(UEAClassificationExp, TimesNetParameters):
             dec_in=self.dataset.num_features,
             c_out=self.dataset.num_features,
             out_len=self.windows,
-            factor=self.factor,
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,
             dropout=self.dropout,
-            attn=self.attn,
             embed=self.embed,
-            activation=self.activation,
-            distil=self.distil,
-            mix=self.mix,
-            
             num_classes=self.dataset.num_classes
         )
         self.model = self.model.to(self.device)
