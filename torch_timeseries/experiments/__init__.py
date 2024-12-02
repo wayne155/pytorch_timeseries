@@ -43,6 +43,7 @@ from .PatchTST import (
 )
 
 
+from .CATS import CATSForecast
 
 model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer']
 

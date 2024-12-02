@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
@@ -8,9 +8,10 @@ install_requires = [
     'numpy' ,
     'pandas',
     "einops",
-    'tqdm',
+    "torch_scatter",
+    "torch",
     'sktime>=0.29.0',
-    "torchmetrics==1.1.1",
+    "torchmetrics>=1.1.1",
     "fire>=0.5.0",
     'scikit-learn',
 ]

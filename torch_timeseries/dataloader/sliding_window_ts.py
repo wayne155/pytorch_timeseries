@@ -20,7 +20,7 @@ class SlidingWindowTS:
         window: int = 168,
         horizon: int = 3,
         steps: int = 2,
-        scale_in_train=False,
+        scale_in_train=True,
         shuffle_train=True,
         freq=None,
         batch_size: int = 32,

@@ -3,6 +3,7 @@ from .sliding_window import SlidingWindow
 from .sliding_window_ts import SlidingWindowTS
 from .maskts import MaskTimeFeatureSet, MaskTS
 from .uea import UEAClassification
+from .ETT import ETTHLoader, ETTMLoader
 from .anomaly import AnomalyLoader
 
 

@@ -23,7 +23,7 @@ from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
 from ..utils.reproduce import reproducible
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
-from ..dataloader import SlidingWindowTS
+from ..dataloader import SlidingWindowTS, ETTHLoader, ETTMLoader
 from ..utils import asdict_exc
 
 try:
@@ -36,7 +36,7 @@ class ForecastSettings:
     windows: int = 336
     pred_len: int = 96
     train_ratio: float = 0.7
-    val_ratio: float = 0.2
+    val_ratio: float = 0.1
     
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
@@ -131,33 +131,65 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         ident = asdict_exc(self, BaseIrrelevant)
         return ident
 
-    def _init_data_loader(self):
+    def _init_dataset(self):
         self.dataset: TimeSeriesDataset = parse_type(self.dataset_type, globals())(
             root=self.data_path
         )
+
+    
+    def _init_data_loader(self):
+        
+        self._init_dataset()
+        
         self.scaler = parse_type(self.scaler_type, globals=globals())()
-        self.dataloader = SlidingWindowTS(
-            self.dataset,
-            self.scaler,
-            window=self.windows,
-            horizon=self.horizon,
-            steps=self.pred_len,
-            scale_in_train=True,
-            shuffle_train=True,
-            freq=self.dataset.freq,
-            batch_size=self.batch_size,
-            train_ratio=self.train_ratio,
-            val_ratio=self.val_ratio,
-            num_worker=self.num_worker,
-        )
-        self.train_loader, self.val_loader, self.test_loader = (
-            self.dataloader.train_loader,
-            self.dataloader.val_loader,
-            self.dataloader.test_loader,
-        )
-        self.train_steps = self.dataloader.train_size
-        self.val_steps = self.dataloader.val_size
-        self.test_steps = self.dataloader.test_size
+        if self.dataset_type[0:3] == "ETT":
+            if self.dataset_type[0:4] == "ETTh":
+                self.dataloader = ETTHLoader(
+                    self.dataset,
+                    self.scaler,
+                    window=self.windows,
+                    horizon=self.horizon,
+                    steps=self.pred_len,
+                    shuffle_train=True,
+                    freq=self.dataset.freq,
+                    batch_size=self.batch_size,
+                    num_worker=self.num_worker,
+                )
+            elif  self.dataset_type[0:4] == "ETTm":
+                self.dataloader = ETTMLoader(
+                    self.dataset,
+                    self.scaler,
+                    window=self.windows,
+                    horizon=self.horizon,
+                    steps=self.pred_len,
+                    shuffle_train=True,
+                    freq=self.dataset.freq,
+                    batch_size=self.batch_size,
+                    num_worker=self.num_worker,
+                )
+        else:
+            self.dataloader = SlidingWindowTS(
+                self.dataset,
+                self.scaler,
+                window=self.windows,
+                horizon=self.horizon,
+                steps=self.pred_len,
+                scale_in_train=True,
+                shuffle_train=True,
+                freq=self.dataset.freq,
+                batch_size=self.batch_size,
+                train_ratio=self.train_ratio,
+                val_ratio=self.val_ratio,
+                num_worker=self.num_worker,
+            )
+            self.train_loader, self.val_loader, self.test_loader = (
+                self.dataloader.train_loader,
+                self.dataloader.val_loader,
+                self.dataloader.test_loader,
+            )
+        self.train_steps = len(self.train_loader.dataset)
+        self.val_steps = len(self.val_loader.dataset)
+        self.test_steps = len(self.test_loader.dataset)
 
         print(f"train steps: {self.train_steps}")
         print(f"val steps: {self.val_steps}")

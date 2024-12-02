@@ -4,6 +4,9 @@ import torch.nn.functional as F
 
 import math
 
+freq_map = {'h': 4, 't': 5, 's': 6,
+            'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
+            'yd':4, 'yh':5, 'yt':6, 'yb':4}
 
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
@@ -102,9 +105,6 @@ class TimeFeatureEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='timeF', freq='h'):
         super(TimeFeatureEmbedding, self).__init__()
 
-        freq_map = {'h': 4, 't': 5, 's': 6,
-                    'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
-                    'yd':4, 'yh':5, 'yt':6, 'yb':4}
         d_inp = freq_map[freq]
         self.embed = nn.Linear(d_inp, d_model)
 

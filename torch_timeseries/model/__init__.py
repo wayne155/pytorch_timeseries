@@ -8,3 +8,4 @@ from .TSMixer import TSMixer
 from .Crossformer import Crossformer
 from .SCINet import SCINet
 from .TimesNet import TimesNet
+from .CATS import CATS
