@@ -25,7 +25,7 @@ class SlidingWindowTS:
         freq=None,
         batch_size: int = 32,
         train_ratio: float = 0.7,
-        val_ratio: float = 0.2,
+        test_ratio: float = 0.2,
         num_worker: int = 3,
         uniform_eval=True,
         single_variate=False,
@@ -54,8 +54,8 @@ class SlidingWindowTS:
             test_loader (DataLoader): DataLoader for the test data.
         """
         self.train_ratio = train_ratio
-        self.val_ratio = val_ratio
-        self.test_ratio = 1 - self.train_ratio - self.val_ratio
+        self.test_ratio =test_ratio
+        self.val_ratio = 1-  test_ratio - train_ratio
         self.uniform_eval = uniform_eval
         self.single_variate = single_variate
 
@@ -91,8 +91,8 @@ class SlidingWindowTS:
         indices = range(0, len(self.dataset))
 
         train_size = int(self.train_ratio * len(self.dataset))
-        val_size = int(self.val_ratio * len(self.dataset))
-        test_size = len(self.dataset) - val_size - train_size
+        test_size = int(self.test_ratio * len(self.dataset))
+        val_size = len(self.dataset) - train_size - test_size
         train_subset = TimeseriesSubset(self.dataset, indices[0:train_size])
         
         if self.uniform_eval:

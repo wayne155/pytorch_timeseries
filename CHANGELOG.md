@@ -30,3 +30,8 @@ func: adding a new model CATS
 func: adding year into time features
 func: add popular and set as default split, ETT for 6:2:2, others for 7:1:2
 fix: default using only train data to scale 
+
+
+## 0.1.7
+
+func: we make the default dataloader settings identical with Time-Series-Libary

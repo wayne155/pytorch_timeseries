@@ -36,7 +36,7 @@ class ForecastSettings:
     windows: int = 336
     pred_len: int = 96
     train_ratio: float = 0.7
-    val_ratio: float = 0.1
+    test_ratio: float = 0.2
     
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
@@ -179,14 +179,14 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 freq=self.dataset.freq,
                 batch_size=self.batch_size,
                 train_ratio=self.train_ratio,
-                val_ratio=self.val_ratio,
+                test_ratio=self.test_ratio,
                 num_worker=self.num_worker,
             )
-            self.train_loader, self.val_loader, self.test_loader = (
-                self.dataloader.train_loader,
-                self.dataloader.val_loader,
-                self.dataloader.test_loader,
-            )
+        self.train_loader, self.val_loader, self.test_loader = (
+            self.dataloader.train_loader,
+            self.dataloader.val_loader,
+            self.dataloader.test_loader,
+        )
         self.train_steps = len(self.train_loader.dataset)
         self.val_steps = len(self.val_loader.dataset)
         self.test_steps = len(self.test_loader.dataset)

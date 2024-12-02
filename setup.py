@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
