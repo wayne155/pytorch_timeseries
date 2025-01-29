@@ -96,6 +96,82 @@ class MultiStepTimeFeatureSet(Dataset):
 
 
 
+class MultivariateFast(Dataset):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler = None, time_enc=0, window: int = 168, horizon: int = 3, single_variate=False, steps: int = 2, freq=None, scaler_transform=True, scaler_fit=False):
+        self.dataset = dataset
+        self.window = window
+        self.horizon = horizon
+        self.steps = steps
+        self.time_enc = time_enc
+        self.scaler = scaler
+        assert len(dataset) != 0, "Empty dataset!!!"
+        
+        self.num_features = self.dataset.num_features
+        self.length = self.dataset.length
+        if freq is None:
+            self.freq = self.dataset.freq
+        else:
+            self.freq = freq
+        if scaler_fit and scaler:
+            self.scaler.fit(self.dataset.data)
+        
+        if scaler_transform:
+            self.scaled_data = self.scaler.transform(self.dataset.data)
+        else:
+            self.scaled_data = self.dataset.data
+        self.date_enc_data = time_features(
+            self.dataset.dates, self.time_enc, self.freq)
+        total_len = window + horizon + steps - 1
+        self.total_len = total_len
+        
+        self.window_split_data = self.dataset.data[:(len(self.dataset.data)//(total_len)*(total_len)), :].reshape(-1, total_len, self.num_features)
+        # self.window_split_data = np.concatenate([self.window_split_data, self.dataset.data[-(window+horizon+steps - 1):, :][np.newaxis, ...]], axis=0)
+        
+        self.window_split_scaled_data = self.scaled_data[:(len(self.scaled_data)//(total_len)*(total_len)), :].reshape(-1, total_len, self.num_features)
+        # self.window_split_scaled_data = np.concatenate([self.window_split_scaled_data, self.scaled_data[-(window+horizon+steps - 1):, :][np.newaxis, ...]], axis=0)
+        
+        self.window_split_date = self.date_enc_data[:(len(self.scaled_data)//(total_len)*(total_len)), :].reshape(-1, total_len, self.date_enc_data.shape[-1])
+        # self.window_split_date = np.concatenate([self.window_split_date, self.date_enc_data[-(window+horizon+steps - 1):, :][np.newaxis, ...]], axis=0)
+        assert len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1 > 0, "Dataset is not long enough!!!"
+
+
+    def transform(self, values):
+        return self.scaler.transform(values)
+
+    def inverse_transform(self, values):
+        return self.scaler.inverse_transform(values)
+
+    # @staticmethod
+    # def get_length(self, dataset):
+    #     (len(self.dataset.data)//(total_len)*(total_len))
+        
+    
+    def __getitem__(self, index):
+        # scaled_x : (B, T, N)
+        # scaled_y : (B, O, N)
+        # x : (B, T, N)
+        # y : (B, O, N)
+        # x_date_enc : (B, T, D)
+        # y_date_eDc : (B, O, D)
+        if isinstance(index, int):
+            scaled_x = self.window_split_scaled_data[index][:self.window]
+            scaled_y = self.window_split_scaled_data[index][-(self.horizon + self.steps - 1):]
+
+            x = self.window_split_data[index][:self.window]
+            y = self.window_split_data[index][-(self.horizon + self.steps - 1):]
+
+            x_date_enc = self.window_split_date[index][:self.window]
+            y_date_enc = self.window_split_date[index][-(self.horizon + self.steps - 1):]
+            
+            return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
+        else:
+            raise TypeError('Not surpported index type!!!')
+
+    def __len__(self):
+        return len(self.window_split_data) 
+
+
+
 
 
 

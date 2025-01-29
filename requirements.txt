@@ -7,3 +7,4 @@ scikit-learn
 prettytable
 einops
 torchmetrics>=1.0.0
+yaml

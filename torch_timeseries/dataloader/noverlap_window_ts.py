@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 from .wrapper import MultiStepTimeFeatureSet, MultivariateFast
 
 
-class SlidingWindowTS:
+class NoneOverlapWindowTS:
     def __init__(
         self,
         dataset: TimeSeriesDataset,
@@ -29,8 +29,6 @@ class SlidingWindowTS:
         num_worker: int = 3,
         uniform_eval=True,
         single_variate=False,
-        fast_val=False,
-        fast_test=False
     ) -> None:
         """
         Class for splitting the dataset sequentially and then randomly sampling from each subset.
@@ -60,8 +58,6 @@ class SlidingWindowTS:
         self.val_ratio = 1-  test_ratio - train_ratio
         self.uniform_eval = uniform_eval
         self.single_variate = single_variate
-        self.fast_val = fast_val
-        self.fast_test = fast_test
         assert (
             self.train_ratio + self.val_ratio + self.test_ratio == 1.0
         ), "Split ratio must sum up to 1.0"
@@ -77,6 +73,8 @@ class SlidingWindowTS:
         self.horizon = horizon
         self.shuffle_train = shuffle_train
         self.scale_in_train = scale_in_train
+        
+        self.total_len = window + horizon + steps
 
         self._load()
 
@@ -99,8 +97,7 @@ class SlidingWindowTS:
         #     scaler_fit=False,
         # )
         
-
-        self.train_dataset = MultiStepTimeFeatureSet(
+        self.train_dataset = MultivariateFast(
             self.train_subset,
             scaler=self.scaler,
             time_enc=self.time_enc,
@@ -111,55 +108,30 @@ class SlidingWindowTS:
             single_variate=self.single_variate,
             scaler_fit=False,
         )
+        
+        self.val_dataset = MultivariateFast(
+            self.val_subset,
+            scaler=self.scaler,
+            time_enc=self.time_enc,
+            window=self.window,
+            horizon=self.horizon,
+            steps=self.steps,
+            freq=self.freq,
+            single_variate=self.single_variate,
+            scaler_fit=False,
+        )
 
-        if self.fast_val:
-            self.val_dataset = MultivariateFast(
-                self.val_subset,
-                scaler=self.scaler,
-                time_enc=self.time_enc,
-                window=self.window,
-                horizon=self.horizon,
-                steps=self.steps,
-                freq=self.freq,
-                single_variate=self.single_variate,
-                scaler_fit=False,
-            )
-        else:
-            self.val_dataset = MultiStepTimeFeatureSet(
-                self.val_subset,
-                scaler=self.scaler,
-                time_enc=self.time_enc,
-                window=self.window,
-                horizon=self.horizon,
-                steps=self.steps,
-                freq=self.freq,
-                single_variate=self.single_variate,
-                scaler_fit=False,
-            )
-        if  self.fast_test:
-            self.test_dataset = MultivariateFast(
-                self.test_subset,
-                scaler=self.scaler,
-                time_enc=self.time_enc,
-                window=self.window,
-                horizon=self.horizon,
-                single_variate=self.single_variate,
-                steps=self.steps,
-                freq=self.freq,
-                scaler_fit=False,
-            )
-        else:
-            self.test_dataset = MultiStepTimeFeatureSet(
-                self.test_subset,
-                scaler=self.scaler,
-                time_enc=self.time_enc,
-                window=self.window,
-                horizon=self.horizon,
-                single_variate=self.single_variate,
-                steps=self.steps,
-                freq=self.freq,
-                scaler_fit=False,
-            )
+        self.test_dataset = MultivariateFast(
+            self.test_subset,
+            scaler=self.scaler,
+            time_enc=self.time_enc,
+            window=self.window,
+            horizon=self.horizon,
+            single_variate=self.single_variate,
+            steps=self.steps,
+            freq=self.freq,
+            scaler_fit=False,
+        )
 
 
     
@@ -170,26 +142,22 @@ class SlidingWindowTS:
         :return: a tuple of train_dataloader, test_dataloader and val_dataloader
         """
         # fixed suquence dataset
+        
+        
+        nol_dataset = MultivariateFast(self.dataset,
+                                       window=self.window,
+                                       steps=self.steps,
+                                       horizon=self.horizon,
+                                       time_enc=self.time_enc, scaler_transform=False, scaler_fit=False)
+        
         indices = range(0, len(self.dataset))
 
-        train_size = int(self.train_ratio * len(self.dataset))
-        test_size = int(self.test_ratio * len(self.dataset))
-        val_size = len(self.dataset) - train_size - test_size
-        self.train_subset = TimeseriesSubset(self.dataset, indices[0:train_size])
-        if self.uniform_eval:
-            self.val_subset = TimeseriesSubset( # self.window + self.horizon - 1
-                self.dataset, indices[train_size - self.window - self.horizon + 1: (val_size + train_size)]
-            )
-        else:
-            self.val_subset = TimeseriesSubset(
-                self.dataset,indices[train_size: (val_size + train_size)]
-            )
-
-        if self.uniform_eval:
-            self.test_subset = TimeseriesSubset(self.dataset, indices[-test_size - self.window - self.horizon + 1:])
-        else:
-            self.test_subset = TimeseriesSubset(self.dataset, indices[-test_size:])
-            
+        train_size = int(self.train_ratio * len(nol_dataset))
+        test_size = int(self.test_ratio * len(nol_dataset))
+        val_size = len(nol_dataset) - train_size - test_size
+        self.train_subset = TimeseriesSubset(self.dataset, indices[0:train_size*self.total_len])
+        self.val_subset = TimeseriesSubset(self.dataset, indices[train_size*self.total_len:(train_size+val_size)*self.total_len])
+        self.test_subset = TimeseriesSubset(self.dataset, indices[(train_size+val_size)*self.total_len:(train_size+val_size+test_size)*self.total_len])
         if self.scale_in_train:
             self.scaler.fit(self.train_subset.data)
         else:

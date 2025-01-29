@@ -5,11 +5,13 @@ from .maskts import MaskTimeFeatureSet, MaskTS
 from .uea import UEAClassification
 from .ETT import ETTHLoader, ETTMLoader
 from .anomaly import AnomalyLoader
-
+from .wrapper import MultivariateFast
+from .noverlap_window_ts import NoneOverlapWindowTS
 
 forecast_loaders = [
     "SlidingWindowTS",
     "SlidingWindow",
+    "NoneOverlapWindowTS",
 ]
 
 imputation_loaders = [

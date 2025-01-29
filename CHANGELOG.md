@@ -35,3 +35,19 @@ fix: default using only train data to scale
 ## 0.1.7
 
 func: we make the default dataloader settings identical with Time-Series-Libary
+
+
+
+## 0.1.8
+
+func: add new dataset wrapper, MultivariateFast, to split by window not by steps.
+
+## 0.1.9
+
+func: add a nonoverlap dataloader
+fix: change default time encoding to 3, for stable data range in 0~1. We found that data like 30, 2024 will cause unstable training or even corrupted training process.
+
+
+## 0.1.10
+
+fix: fix data loading bugs

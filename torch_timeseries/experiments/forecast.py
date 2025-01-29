@@ -225,15 +225,16 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             f"w{self.windows}h{self.horizon}s{self.pred_len}",
             self._run_identifier(seed),
         )
-
-        self.best_checkpoint_filepath = os.path.join(
-            self.run_save_dir, "best_model.pth"
-        )
-
         self.run_checkpoint_filepath = os.path.join(
             self.run_save_dir, "run_checkpoint.pth"
         )
-
+        self._setup_early_stopper()
+        
+        
+    def _setup_early_stopper(self):
+        self.best_checkpoint_filepath = os.path.join(
+            self.run_save_dir, "best_model.pth"
+        )
         self.early_stopper = EarlyStopping(
             self.patience, verbose=True, path=self.best_checkpoint_filepath
         )
@@ -276,7 +277,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 ) in dataloader:
                     batch_size = batch_x.size(0)
                     preds, truths = self._process_one_batch(
-                        batch_x, batch_y, batch_x_date_enc, batch_y_date_enc
+                        batch_x, batch_y, batch_origin_x, batch_origin_y, batch_x_date_enc, batch_y_date_enc
                     )
                     batch_origin_y = batch_origin_y.to(self.device)
                     if self.invtrans_loss:
@@ -344,7 +345,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 origin_y = origin_y.to(self.device)
                 self.model_optim.zero_grad()
                 pred, true = self._process_one_batch(
-                    batch_x, batch_y, batch_x_date_enc, batch_y_date_enc
+                    batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc
                 )
                 if self.invtrans_loss:
                     pred = self.scaler.inverse_transform(pred)
@@ -482,6 +483,8 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     def _save_run_check_point(self, seed):
         if not os.path.exists(self.run_save_dir):
             os.makedirs(self.run_save_dir)
+
+
         print(f"Saving run checkpoint to '{self.run_save_dir}'.")
 
         self.run_state = {
