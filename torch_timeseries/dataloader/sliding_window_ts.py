@@ -18,7 +18,7 @@ class SlidingWindowTS:
         scaler: Scaler,
         time_enc=3,
         window: int = 168,
-        horizon: int = 3,
+        horizon: int = 1,
         steps: int = 2,
         scale_in_train=True,
         shuffle_train=True,
@@ -30,7 +30,8 @@ class SlidingWindowTS:
         uniform_eval=True,
         single_variate=False,
         fast_val=False,
-        fast_test=False
+        fast_test=False,
+        include_raw=True,
     ) -> None:
         """
         Class for splitting the dataset sequentially and then randomly sampling from each subset.
@@ -77,7 +78,7 @@ class SlidingWindowTS:
         self.horizon = horizon
         self.shuffle_train = shuffle_train
         self.scale_in_train = scale_in_train
-
+        self.include_raw = include_raw
         self._load()
 
     def _load(self):
@@ -123,6 +124,7 @@ class SlidingWindowTS:
                 freq=self.freq,
                 single_variate=self.single_variate,
                 scaler_fit=False,
+                include_raw=self.include_raw
             )
         else:
             self.val_dataset = MultiStepTimeFeatureSet(
@@ -135,6 +137,7 @@ class SlidingWindowTS:
                 freq=self.freq,
                 single_variate=self.single_variate,
                 scaler_fit=False,
+                include_raw=self.include_raw
             )
         if  self.fast_test:
             self.test_dataset = MultivariateFast(
@@ -147,6 +150,7 @@ class SlidingWindowTS:
                 steps=self.steps,
                 freq=self.freq,
                 scaler_fit=False,
+                include_raw=self.include_raw
             )
         else:
             self.test_dataset = MultiStepTimeFeatureSet(
@@ -159,6 +163,7 @@ class SlidingWindowTS:
                 steps=self.steps,
                 freq=self.freq,
                 scaler_fit=False,
+                include_raw=self.include_raw
             )
 
 

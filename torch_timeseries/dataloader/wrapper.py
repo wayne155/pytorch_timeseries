@@ -11,7 +11,7 @@ import torch
 
 
 class MultiStepTimeFeatureSet(Dataset):
-    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True, include_raw=False):
         self.dataset = dataset
         self.window = window
         self.horizon = horizon
@@ -19,6 +19,7 @@ class MultiStepTimeFeatureSet(Dataset):
         self.time_enc = time_enc
         self.scaler = scaler
         self.single_variate = single_variate
+        self.include_raw = include_raw
         
         self.num_features = self.dataset.num_features
         self.length = self.dataset.length
@@ -82,8 +83,11 @@ class MultiStepTimeFeatureSet(Dataset):
 
                 y_date_enc = self.date_enc_data[self.window + self.horizon -
                                                 1 + index:self.window + self.horizon - 1 + index+self.steps]
-            
-            return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
+            if self.include_raw:
+                return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
+            else:
+                return scaled_x, scaled_y, x_date_enc, y_date_enc
+                
         else:
             raise TypeError('Not surpported index type!!!')
 
@@ -97,13 +101,14 @@ class MultiStepTimeFeatureSet(Dataset):
 
 
 class MultivariateFast(Dataset):
-    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler = None, time_enc=0, window: int = 168, horizon: int = 3, single_variate=False, steps: int = 2, freq=None, scaler_transform=True, scaler_fit=False):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler = None, time_enc=0, window: int = 168, horizon: int = 3, single_variate=False, steps: int = 2, freq=None, scaler_transform=True, scaler_fit=False, include_raw=False):
         self.dataset = dataset
         self.window = window
         self.horizon = horizon
         self.steps = steps
         self.time_enc = time_enc
         self.scaler = scaler
+        self.include_raw = include_raw
         assert len(dataset) != 0, "Empty dataset!!!"
         
         self.num_features = self.dataset.num_features
@@ -162,8 +167,11 @@ class MultivariateFast(Dataset):
 
             x_date_enc = self.window_split_date[index][:self.window]
             y_date_enc = self.window_split_date[index][-(self.horizon + self.steps - 1):]
-            
-            return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
+
+            if self.include_raw:
+                return scaled_x, scaled_y, x , y, x_date_enc, y_date_enc
+            else:
+                return scaled_x, scaled_y, x_date_enc, y_date_enc
         else:
             raise TypeError('Not surpported index type!!!')
 
@@ -176,11 +184,12 @@ class MultivariateFast(Dataset):
 
 
 class MultiStepSet(Dataset):
-    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, window: int = 168, horizon: int = 3, steps: int = 2, scaler_fit=True):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, window: int = 168, horizon: int = 3, steps: int = 2, scaler_fit=True, include_raw=False):
         self.dataset = dataset
         self.window = window
         self.horizon = horizon
         self.steps = steps
+        self.include_raw = include_raw
         self.scaler = scaler
         
         self.num_features = self.dataset.num_features
@@ -213,7 +222,10 @@ class MultiStepSet(Dataset):
             y = self.dataset.data[self.window + self.horizon - 1 +
                                  index:self.window + self.horizon - 1 + index+self.steps]
 
-            return scaled_x, scaled_y, x , y
+            if self.include_raw:
+                return scaled_x, scaled_y, x , y
+            else:
+                return scaled_x, scaled_y
         else:
             raise TypeError('Not surpported index type!!!')
 
