@@ -23,8 +23,8 @@ class BaseRelevant:
     scaler_type:  Union[str, Scaler] = "StandardScaler"
     loss_func_type: Union[str, Module] = ""
     batch_size: int = 32
-    lr: float = 0.001
-    l2_weight_decay: float = 0.0005
+    lr: float = 0.0001
+    l2_weight_decay: float = 0.0000
     epochs: int = 20
     patience: int = 5
     max_grad_norm: float = 5.0

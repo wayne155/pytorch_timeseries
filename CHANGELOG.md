@@ -51,3 +51,10 @@ fix: change default time encoding to 3, for stable data range in 0~1. We found t
 ## 0.1.10
 
 fix: fix data loading bugs
+
+
+## 0.1.12
+
+update: update iTransformer default configurations
+update: update Forecast default parameter (l2_decay=0, lr=0.0001)
+update: update timeenc config (timeenc=0)

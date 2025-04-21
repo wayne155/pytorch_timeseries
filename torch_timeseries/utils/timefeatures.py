@@ -111,7 +111,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     raise RuntimeError(supported_freq_msg)
 
-def time_features(dates:pd.DataFrame, timeenc=3, freq='h') -> np.ndarray:
+def time_features(dates:pd.DataFrame, timeenc=0, freq='h') -> np.ndarray:
     """
     encode time features based on data sample freqency
     > `time_features` takes in a `dates` dataframe with a 'dates' column and extracts the date down to `freq` where freq can be any of the following if `timeenc` is 0: 

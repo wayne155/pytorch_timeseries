@@ -181,6 +181,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 train_ratio=self.train_ratio,
                 test_ratio=self.test_ratio,
                 num_worker=self.num_worker,
+                time_enc=0
             )
         self.train_loader, self.val_loader, self.test_loader = (
             self.dataloader.train_loader,

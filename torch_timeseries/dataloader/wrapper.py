@@ -11,7 +11,7 @@ import torch
 
 
 class MultiStepTimeFeatureSet(Dataset):
-    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True, include_raw=False):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True, include_raw=True):
         self.dataset = dataset
         self.window = window
         self.horizon = horizon

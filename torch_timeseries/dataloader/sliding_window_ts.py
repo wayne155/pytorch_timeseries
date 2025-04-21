@@ -16,7 +16,7 @@ class SlidingWindowTS:
         self,
         dataset: TimeSeriesDataset,
         scaler: Scaler,
-        time_enc=3,
+        time_enc=0,
         window: int = 168,
         horizon: int = 1,
         steps: int = 2,
@@ -111,6 +111,7 @@ class SlidingWindowTS:
             freq=self.freq,
             single_variate=self.single_variate,
             scaler_fit=False,
+            include_raw=self.include_raw,
         )
 
         if self.fast_val:

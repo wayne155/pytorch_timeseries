@@ -5,8 +5,8 @@ import torch
 
 from torch_timeseries.dataloader.sliding_window_ts import SlidingWindowTS
 from torch_timeseries.utils.parse_type import parse_type
-from ..model import iTransformer
-from . import (
+from torch_timeseries.model import iTransformer
+from torch_timeseries.experiments import (
     ForecastExp,
     ImputationExp,
     UEAClassificationExp,
@@ -19,9 +19,9 @@ class iTransformerParameters:
     factor: int = 1
     d_model: int = 512
     n_heads: int = 8
-    e_layers: int = 4
+    e_layers: int = 2
     d_layer: int = 1
-    d_ff: int = 512
+    d_ff: int = 2048
     dropout: float = 0.1
     embed: str = "timeF"
     activation:str= "gelu"
@@ -51,7 +51,7 @@ class iTransformerForecast(ForecastExp, iTransformerParameters):
         )
         self.model = self.model.to(self.device)
 
-    def _process_one_batch(self, batch_x, batch_y, batch_x_date_enc, batch_y_date_enc):
+    def _process_one_batch(self, batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc):
         # inputs:
         # batch_x: (B, T, N)
         # batch_y: (B, O, N)
@@ -249,3 +249,9 @@ class iTransformerImputation(ImputationExp, iTransformerParameters):
         return outputs, batch_x
 
 
+
+
+
+if __name__ == "__main__":
+    import fire
+    fire.Fire(iTransformerForecast)
