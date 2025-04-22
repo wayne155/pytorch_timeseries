@@ -58,3 +58,9 @@ fix: fix data loading bugs
 update: update iTransformer default configurations
 update: update Forecast default parameter (l2_decay=0, lr=0.0001)
 update: update timeenc config (timeenc=0)
+
+## 0.1.13
+bug fixed
+## 0.1.14
+
+update: change ident to seed+md5

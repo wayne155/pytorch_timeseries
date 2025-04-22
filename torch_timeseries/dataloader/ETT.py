@@ -13,39 +13,40 @@ from .sliding_window_ts import SlidingWindowTS
 
 
 class ETTHLoader(SlidingWindowTS):
-    def __init__(
-        self,
-        dataset: TimeSeriesDataset,
-        scaler: Scaler,
-        time_enc=3,
-        window: int = 168,
-        horizon: int = 3,
-        steps: int = 2,
-        shuffle_train=True,
-        freq=None,
-        batch_size: int = 32,
-        num_worker: int = 3,
-        single_variate=False,
-        fast_test=True,
-        fast_val=True,
-    ) -> None:
+    # def __init__(
+    #     self,
+    #     dataset: TimeSeriesDataset,
+    #     scaler: Scaler,
+    #     time_enc=0,
+    #     window: int = 168,
+    #     horizon: int = 3,
+    #     steps: int = 2,
+    #     shuffle_train=True,
+    #     freq=None,
+    #     batch_size: int = 32,
+    #     num_worker: int = 3,
+    #     single_variate=False,
+    #     fast_test=True,
+    #     fast_val=True,
+    #     include_raw=True,
+    # ) -> None:
 
-        self.fast_test = fast_test
-        self.fast_val = fast_val
-        self.batch_size = batch_size
-        self.num_worker = num_worker
-        self.dataset = dataset
-        self.single_variate = single_variate
+    #     self.fast_test = fast_test
+    #     self.fast_val = fast_val
+    #     self.batch_size = batch_size
+    #     self.num_worker = num_worker
+    #     self.dataset = dataset
+    #     self.single_variate = single_variate
 
-        self.scaler = scaler
-        self.window = window
-        self.freq = freq
-        self.time_enc = time_enc
-        self.steps = steps
-        self.horizon = horizon
-        self.shuffle_train = shuffle_train
+    #     self.scaler = scaler
+    #     self.window = window
+    #     self.freq = freq
+    #     self.time_enc = time_enc
+    #     self.steps = steps
+    #     self.horizon = horizon
+    #     self.shuffle_train = shuffle_train
 
-        self._load()
+    #     self._load()
 
     def _load_subset(self):
         """
@@ -74,39 +75,39 @@ class ETTHLoader(SlidingWindowTS):
 
 
 class ETTMLoader(SlidingWindowTS):
-    def __init__(
-        self,
-        dataset: TimeSeriesDataset,
-        scaler: Scaler,
-        time_enc=3,
-        window: int = 168,
-        horizon: int = 3,
-        steps: int = 2,
-        shuffle_train=True,
-        freq=None,
-        batch_size: int = 32,
-        num_worker: int = 3,
-        single_variate=False,
-        fast_test=False,
-        fast_val=False,
-    ) -> None:
+    # def __init__(
+    #     self,
+    #     dataset: TimeSeriesDataset,
+    #     scaler: Scaler,
+    #     time_enc=3,
+    #     window: int = 168,
+    #     horizon: int = 3,
+    #     steps: int = 2,
+    #     shuffle_train=True,
+    #     freq=None,
+    #     batch_size: int = 32,
+    #     num_worker: int = 3,
+    #     single_variate=False,
+    #     fast_test=False,
+    #     fast_val=False,
+    # ) -> None:
 
-        self.fast_test = fast_test
-        self.fast_val = fast_val
-        self.single_variate = single_variate
-        self.batch_size = batch_size
-        self.num_worker = num_worker
-        self.dataset = dataset
+    #     self.fast_test = fast_test
+    #     self.fast_val = fast_val
+    #     self.single_variate = single_variate
+    #     self.batch_size = batch_size
+    #     self.num_worker = num_worker
+    #     self.dataset = dataset
 
-        self.scaler = scaler
-        self.window = window
-        self.freq = freq
-        self.time_enc = time_enc
-        self.steps = steps
-        self.horizon = horizon
-        self.shuffle_train = shuffle_train
+    #     self.scaler = scaler
+    #     self.window = window
+    #     self.freq = freq
+    #     self.time_enc = time_enc
+    #     self.steps = steps
+    #     self.horizon = horizon
+    #     self.shuffle_train = shuffle_train
 
-        self._load()
+    #     self._load()
 
     def _load_subset(self):
         """

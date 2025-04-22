@@ -198,13 +198,13 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
     def _run_identifier(self, seed) -> str:
         ident = self.result_related_configs
-        ident["seed"] = seed
+        # ident["seed"] = seed
         # only influence the evluation result, not included here
         # ident['invtrans_loss'] = False
         ident_md5 = hashlib.md5(
             json.dumps(ident, sort_keys=True).encode("utf-8")
         ).hexdigest()
-        return str(ident_md5)
+        return f"{seed}-{str(ident_md5)}"
 
     def _setup_run(self, seed):
         # setup experiment  only once
