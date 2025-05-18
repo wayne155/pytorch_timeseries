@@ -77,6 +77,7 @@ class TimeSeriesDataset(Dataset):
         self._load()
         
         self.dates: Optional[pd.DataFrame]
+        self.time_index = np.arange(len(self.df))
         
 
     @abstractmethod
@@ -119,3 +120,4 @@ class TimeseriesSubset(torch.utils.data.Subset):
         self.name = dataset.name
         self.length = len(self.indices)
         self.freq = dataset.freq
+        self.time_index = self.dataset.time_index[indices]

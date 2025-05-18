@@ -99,6 +99,22 @@ class MultiStepTimeFeatureSet(Dataset):
 
 
 
+class MultiStepTimeFeatureIndexSet(MultiStepTimeFeatureSet):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True, include_raw=True):
+        super().__init__(
+            dataset, scaler, time_enc, window,
+            horizon, steps, single_variate, freq, scaler_fit, include_raw
+        )
+        self.time_index = self.dataset.time_index
+
+    def __getitem__(self, index):
+        x_index = self.time_index[index:index+self.window]
+        y_index = self.time_index[self.window + self.horizon -
+                                                1 + index:self.window + self.horizon - 1 + index+self.steps]
+        return *(super().__getitem__(index)), x_index, y_index
+
+
+
 
 class MultivariateFast(Dataset):
     def __init__(self, dataset: TimeseriesSubset, scaler: Scaler = None, time_enc=0, window: int = 168, horizon: int = 3, single_variate=False, steps: int = 2, freq=None, scaler_transform=True, scaler_fit=False, include_raw=False):
@@ -131,6 +147,9 @@ class MultivariateFast(Dataset):
         
         self.window_split_data = self.dataset.data[:(len(self.dataset.data)//(total_len)*(total_len)), :].reshape(-1, total_len, self.num_features)
         # self.window_split_data = np.concatenate([self.window_split_data, self.dataset.data[-(window+horizon+steps - 1):, :][np.newaxis, ...]], axis=0)
+        
+        self.window_split_index = self.dataset.time_index[:(len(self.dataset.data)//(total_len)*(total_len)), :].reshape(-1, total_len, 1)
+        
         
         self.window_split_scaled_data = self.scaled_data[:(len(self.scaled_data)//(total_len)*(total_len)), :].reshape(-1, total_len, self.num_features)
         # self.window_split_scaled_data = np.concatenate([self.window_split_scaled_data, self.scaled_data[-(window+horizon+steps - 1):, :][np.newaxis, ...]], axis=0)
@@ -178,6 +197,22 @@ class MultivariateFast(Dataset):
     def __len__(self):
         return len(self.window_split_data) 
 
+
+
+
+
+class MultivariateFastIndex(MultivariateFast):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, time_enc=0, window: int = 168, horizon: int = 3, steps: int = 2, single_variate=False, freq=None, scaler_fit=True, include_raw=True):
+        super().__init__(
+            dataset, scaler, time_enc, window,
+            horizon, steps, single_variate, freq, scaler_fit, include_raw
+        )
+        self.time_index = self.dataset.time_index
+
+    def __getitem__(self, index):
+        return *(super().__getitem__(index)),  \
+                self.window_split_index[index][:self.window],  \
+                self.window_split_index[index][-(self.horizon + self.steps - 1):]
 
 
 

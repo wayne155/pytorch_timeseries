@@ -64,3 +64,7 @@ bug fixed
 ## 0.1.14
 
 update: change ident to seed+md5
+
+## 0.1.15
+
+update: new dataloader, sliding window with time index

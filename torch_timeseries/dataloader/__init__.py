@@ -1,6 +1,7 @@
 from ..scaler import StandardScaler, Scaler, MaxAbsScaler
 from .sliding_window import SlidingWindow
 from .sliding_window_ts import SlidingWindowTS
+from .sliding_window_t_index import SlidingWindowTimeIndex
 from .maskts import MaskTimeFeatureSet, MaskTS
 from .uea import UEAClassification
 from .ETT import ETTHLoader, ETTMLoader
