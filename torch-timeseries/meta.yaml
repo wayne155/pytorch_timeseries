@@ -1,0 +1,47 @@
+{% set name = "torch-timeseries" %}
+{% set version = "0.0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/torch_timeseries-{{ version }}.tar.gz
+  sha256: 0409c19a7d56ba17752b15112ef63e741a9fdae9fdcf17e7be02db27eb496b16
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python >=3.8
+    - setuptools >=42
+    - wheel
+    - pip
+  run:
+    - python >=3.8
+    - pytorch
+    - torchvision
+    - numpy
+    - pandas
+    - tqdm
+
+test:
+  imports:
+    - torch_timeseries
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/wayne155/pytorch_timeseries
+  summary: Timeseries Learning Library for PyTorch.
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - AddYourGitHubIdHere

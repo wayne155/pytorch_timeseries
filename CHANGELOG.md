@@ -68,3 +68,8 @@ update: change ident to seed+md5
 ## 0.1.15
 
 update: new dataloader, sliding window with time index
+
+
+## 0.1.16
+
+update: deprecate slidingWindowTimeIndex class, include a extra argument timeindex in the SlidingWindowTS class

@@ -30,7 +30,17 @@ def test_single_variate_dataloader():
     
 
 def test_sliding_timeindex_dataloader():
-    dataloader = SlidingWindowTimeIndex(
+    # dataloader = SlidingWindowTimeIndex(
+    #     ETTh1(),
+    #     batch_size=32,
+    #     window=96,
+    #     scaler=StandardScaler(),
+    #     steps=12,
+    #     freq='h',
+    #     num_worker=1,
+    # )
+    
+    dataloader = SlidingWindowTS(
         ETTh1(),
         batch_size=32,
         window=96,
@@ -38,15 +48,17 @@ def test_sliding_timeindex_dataloader():
         steps=12,
         freq='h',
         num_worker=1,
+        time_index=True,
     )
+    
     
     for x, y, origin_x, origin_y, x_enc_date, y_enc_date, x_index, y_index in dataloader.train_loader:
         continue
     
-    for x, y, origin_x, origin_y, x_enc_date, y_enc_date in dataloader.val_loader:
+    for x, y, origin_x, origin_y, x_enc_date, y_enc_date, x_index, y_index in dataloader.val_loader:
         continue
     
-    for x, y, origin_x, origin_y, x_enc_date, y_enc_date in dataloader.test_loader:
+    for x, y, origin_x, origin_y, x_enc_date, y_enc_date, x_index, y_index in dataloader.test_loader:
         continue
     
 def test_multi_variate_dataloader():

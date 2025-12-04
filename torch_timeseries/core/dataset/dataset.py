@@ -60,7 +60,7 @@ import pandas as pd
 from .dataset import Dataset, StoreTypes
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, root: str='./data'):
+    def __init__(self, root: str='./data', columns=[]):
         """_summary_
 
         Args:
@@ -69,13 +69,16 @@ class TimeSeriesDataset(Dataset):
         """
         super().__init__(root)
         self.root = root
+        self.columns = []
         self.dir = os.path.join(root, self.name)
         os.makedirs(self.dir, exist_ok=True)
         
         self.download()
         self._process()
         self._load()
-        
+        if columns:
+            self.data = self.df.drop("date", axis=1).values[:, columns]
+            self.num_features = len(columns)
         self.dates: Optional[pd.DataFrame]
         self.time_index = np.arange(len(self.df))
         

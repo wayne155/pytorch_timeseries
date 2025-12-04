@@ -29,12 +29,16 @@ class SlidingWindowTS:
         num_worker: int = 3,
         uniform_eval=True,
         single_variate=False,
+        fast_train=False,
         fast_val=False,
         fast_test=False,
         include_raw=True,
+        time_index=False,
     ) -> None:
         """
         Class for splitting the dataset sequentially and then randomly sampling from each subset.
+        
+        time_index: with two addtional values of time index, (..., x_index, y_index)
 
         Attributes:
             dataset (TimeSeriesDataset): Time series dataset to be used.
@@ -55,12 +59,14 @@ class SlidingWindowTS:
             train_loader (DataLoader): DataLoader for the training data.
             val_loader (DataLoader): DataLoader for the validation data.
             test_loader (DataLoader): DataLoader for the test data.
+            
         """
         self.train_ratio = train_ratio
         self.test_ratio =test_ratio
         self.val_ratio = 1-  test_ratio - train_ratio
         self.uniform_eval = uniform_eval
         self.single_variate = single_variate
+        self.fast_train = fast_train
         self.fast_val = fast_val
         self.fast_test = fast_test
         assert (
@@ -79,6 +85,7 @@ class SlidingWindowTS:
         self.shuffle_train = shuffle_train
         self.scale_in_train = scale_in_train
         self.include_raw = include_raw
+        self.time_index = time_index
         self._load()
 
     def _load(self):
@@ -101,18 +108,47 @@ class SlidingWindowTS:
         # )
         
 
-        self.train_dataset = MultiStepTimeFeatureSet(
-            self.train_subset,
-            scaler=self.scaler,
-            time_enc=self.time_enc,
-            window=self.window,
-            horizon=self.horizon,
-            steps=self.steps,
-            freq=self.freq,
-            single_variate=self.single_variate,
-            scaler_fit=False,
-            include_raw=self.include_raw,
-        )
+        # self.train_dataset = MultiStepTimeFeatureSet(
+        #     self.train_subset,
+        #     scaler=self.scaler,
+        #     time_enc=self.time_enc,
+        #     window=self.window,
+        #     horizon=self.horizon,
+        #     steps=self.steps,
+        #     freq=self.freq,
+        #     single_variate=self.single_variate,
+        #     scaler_fit=False,
+        #     include_raw=self.include_raw,
+        #     time_index=self.time_index,
+        # )
+        if self.fast_train:
+            self.train_dataset = MultivariateFast(
+                self.train_subset,
+                scaler=self.scaler,
+                time_enc=self.time_enc,
+                window=self.window,
+                horizon=self.horizon,
+                steps=self.steps,
+                freq=self.freq,
+                single_variate=self.single_variate,
+                scaler_fit=False,
+                include_raw=self.include_raw,
+                time_index=self.time_index,
+            )
+        else:
+            self.train_dataset = MultiStepTimeFeatureSet(
+                self.train_subset,
+                scaler=self.scaler,
+                time_enc=self.time_enc,
+                window=self.window,
+                horizon=self.horizon,
+                steps=self.steps,
+                freq=self.freq,
+                single_variate=self.single_variate,
+                scaler_fit=False,
+                include_raw=self.include_raw,
+                time_index=self.time_index,
+            )
 
         if self.fast_val:
             self.val_dataset = MultivariateFast(
@@ -125,7 +161,8 @@ class SlidingWindowTS:
                 freq=self.freq,
                 single_variate=self.single_variate,
                 scaler_fit=False,
-                include_raw=self.include_raw
+                include_raw=self.include_raw,
+                time_index=self.time_index,
             )
         else:
             self.val_dataset = MultiStepTimeFeatureSet(
@@ -138,7 +175,8 @@ class SlidingWindowTS:
                 freq=self.freq,
                 single_variate=self.single_variate,
                 scaler_fit=False,
-                include_raw=self.include_raw
+                include_raw=self.include_raw,
+                time_index=self.time_index,
             )
         if  self.fast_test:
             self.test_dataset = MultivariateFast(
@@ -151,7 +189,8 @@ class SlidingWindowTS:
                 steps=self.steps,
                 freq=self.freq,
                 scaler_fit=False,
-                include_raw=self.include_raw
+                include_raw=self.include_raw,
+                time_index=self.time_index,
             )
         else:
             self.test_dataset = MultiStepTimeFeatureSet(
@@ -164,7 +203,8 @@ class SlidingWindowTS:
                 steps=self.steps,
                 freq=self.freq,
                 scaler_fit=False,
-                include_raw=self.include_raw
+                include_raw=self.include_raw,
+                time_index=self.time_index,
             )
 
 
