@@ -69,7 +69,20 @@ update: change ident to seed+md5
 
 update: new dataloader, sliding window with time index
 
-
 ## 0.1.16
 
 update: deprecate slidingWindowTimeIndex class, include a extra argument timeindex in the SlidingWindowTS class
+
+## 0.1.17
+update: adding ReConstruct Dataset and Dataloader
+
+
+## 0.1.18
+update: remove the function config_wandb name parameters in UEAClassification
+
+## 0.1.19
+add: add model FITS, UEAClassification and Forecast
+
+
+## 0.1.20
+fix some bugs

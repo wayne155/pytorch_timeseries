@@ -19,9 +19,8 @@ from .wrapper import MultiStepTimeFeatureSet
 
 
 class UEADataset(Dataset):
-    def __init__(self, dataset: UEA, scaler: Scaler, flag: str ='train', window: int = 168, scaler_fit=True):
+    def __init__(self, dataset: UEA, scaler: Scaler, flag: str ='train', scaler_fit=True):
         self.dataset = dataset
-        self.window = window
         self.scaler = scaler
         self.flag = flag
         if self.flag == 'test':
@@ -93,9 +92,9 @@ class UEAClassification:
         :return: a tuple of train_dataloader, test_dataloader and val_dataloader
         """
         # fixed suquence dataset
-        self.train_dataset = UEADataset(self.dataset, self.scaler, 'train', self.window, scaler_fit=True)
-        self.val_dataset = UEADataset(self.dataset, self.scaler, 'test', self.window, scaler_fit=False)
-        self.test_dataset = UEADataset(self.dataset, self.scaler, 'test', self.window, scaler_fit=False)
+        self.train_dataset = UEADataset(self.dataset, self.scaler, 'train', scaler_fit=True)
+        self.val_dataset = UEADataset(self.dataset, self.scaler, 'test', scaler_fit=False)
+        self.test_dataset = UEADataset(self.dataset, self.scaler, 'test', scaler_fit=False)
 
     def _load_dataloader(self):
         self.train_size = len(self.train_dataset)

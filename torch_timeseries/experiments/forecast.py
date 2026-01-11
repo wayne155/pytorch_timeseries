@@ -1,5 +1,5 @@
 # import codecs
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import datetime
 import hashlib
 import json
@@ -33,7 +33,7 @@ except:
 @dataclass
 class ForecastSettings:
     horizon: int = 1
-    windows: int = 336
+    windows: int = 96
     pred_len: int = 96
     train_ratio: float = 0.7
     test_ratio: float = 0.2
@@ -41,6 +41,7 @@ class ForecastSettings:
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     loss_func_type : str = 'mse'
+    columns : List[int] = field(default_factory=lambda : [])
     
     def config_wandb(
         self,
@@ -133,13 +134,16 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
     def _init_dataset(self):
         self.dataset: TimeSeriesDataset = parse_type(self.dataset_type, globals())(
-            root=self.data_path
+            root=self.data_path, columns=self.columns
         )
 
     
     def _init_data_loader(self):
         
         self._init_dataset()
+
+        embed = 'timeF'
+        timeenc = 0 if embed != 'timeF' else 1
         
         self.scaler = parse_type(self.scaler_type, globals=globals())()
         if self.dataset_type[0:3] == "ETT":
@@ -154,6 +158,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                     freq=self.dataset.freq,
                     batch_size=self.batch_size,
                     num_worker=self.num_worker,
+                    time_enc=timeenc,
                 )
             elif  self.dataset_type[0:4] == "ETTm":
                 self.dataloader = ETTMLoader(
@@ -166,6 +171,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                     freq=self.dataset.freq,
                     batch_size=self.batch_size,
                     num_worker=self.num_worker,
+                    time_enc=timeenc,
                 )
         else:
             self.dataloader = SlidingWindowTS(
@@ -181,7 +187,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 train_ratio=self.train_ratio,
                 test_ratio=self.test_ratio,
                 num_worker=self.num_worker,
-                time_enc=0
+                time_enc=timeenc
             )
         self.train_loader, self.val_loader, self.test_loader = (
             self.dataloader.train_loader,

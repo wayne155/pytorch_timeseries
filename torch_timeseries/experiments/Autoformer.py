@@ -19,11 +19,11 @@ class AutoformerParameters:
     e_layers : int = 2
     d_layers : int = 1
     output_attention : bool = True
-    moving_avg : list = field(default_factory=lambda : [24])
+    moving_avg : int = 25
     n_heads : int = 8
     d_model : int = 512
     embed : str = 'timeF'
-    dropout : float = 0.0
+    dropout : float = 0.1
 
 @dataclass
 class AutoformerForecast(ForecastExp, AutoformerParameters):
@@ -31,7 +31,6 @@ class AutoformerForecast(ForecastExp, AutoformerParameters):
 
     def _init_model(self):
         self.label_len = int(self.windows / 2)
-        
         self.model = Autoformer(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -54,7 +53,7 @@ class AutoformerForecast(ForecastExp, AutoformerParameters):
         )
         self.model = self.model.to(self.device)
 
-    def _process_one_batch(self, batch_x, batch_y, batch_x_date_enc, batch_y_date_enc):
+    def _process_one_batch(self, batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc):
         # inputs:
         # batch_x: (B, T, N)
         # batch_y: (B, O, N)

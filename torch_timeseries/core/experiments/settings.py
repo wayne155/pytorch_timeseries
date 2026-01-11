@@ -21,7 +21,7 @@ class BaseRelevant:
     dataset_type: Union[str, TimeSeriesDataset] = ""
     optm_type: Union[str, Optimizer] = "Adam"
     scaler_type:  Union[str, Scaler] = "StandardScaler"
-    loss_func_type: Union[str, Module] = ""
+    loss_func_type: Union[str, Module] = "mse"
     batch_size: int = 32
     lr: float = 0.0001
     l2_weight_decay: float = 0.0000

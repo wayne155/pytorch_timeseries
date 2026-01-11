@@ -4,9 +4,12 @@ import torch.nn.functional as F
 
 import math
 
+# freq_map = {'h': 4, 't': 5, 's': 6,
+#             'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
+#             'yd':4, 'yh':5, 'yt':6, 'yb':4}
 freq_map = {'h': 4, 't': 5, 's': 6,
-            'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
-            'yd':4, 'yh':5, 'yt':6, 'yb':4}
+            'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, }
+
 
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
@@ -41,7 +44,7 @@ class TokenEmbedding(nn.Module):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model,
-                                   kernel_size=3, padding=padding, padding_mode='circular')
+                                   kernel_size=3, padding=padding, padding_mode='circular', bias=False)
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(
@@ -106,7 +109,7 @@ class TimeFeatureEmbedding(nn.Module):
         super(TimeFeatureEmbedding, self).__init__()
 
         d_inp = freq_map[freq]
-        self.embed = nn.Linear(d_inp, d_model)
+        self.embed = nn.Linear(d_inp, d_model, bias=False)
 
     def forward(self, x):
         return self.embed(x)

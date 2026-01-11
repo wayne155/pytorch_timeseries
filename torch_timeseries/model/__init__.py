@@ -9,3 +9,5 @@ from .Crossformer import Crossformer
 from .SCINet import SCINet
 from .TimesNet import TimesNet
 from .CATS import CATS
+from .FITS import FITS
+from .FreTS import FreTS

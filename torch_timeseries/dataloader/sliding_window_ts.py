@@ -16,7 +16,7 @@ class SlidingWindowTS:
         self,
         dataset: TimeSeriesDataset,
         scaler: Scaler,
-        time_enc=0,
+        time_enc=1,
         window: int = 168,
         horizon: int = 1,
         steps: int = 2,

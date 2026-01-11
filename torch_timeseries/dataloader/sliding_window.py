@@ -19,7 +19,7 @@ class SlidingWindow:
         window: int = 168,
         horizon: int = 3,
         steps: int = 2,
-        scale_in_train=False,
+        scale_in_train=True,
         shuffle_train=True,
         batch_size: int = 32,
         train_ratio: float = 0.7,
@@ -36,7 +36,7 @@ class SlidingWindow:
             window (int): Window size for the time series data.
             horizon (int): Forecast horizon.
             steps (int): Step size between windows.
-            scale_in_train (bool): Whether to scale data during training.
+            scale_in_train (bool): Whether to scale data in training.
             shuffle_train (bool): Whether to shuffle the training data.
             batch_size (int): Number of samples per batch.
             train_ratio (float): Ratio of the dataset to be used for training.

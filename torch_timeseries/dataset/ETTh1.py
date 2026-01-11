@@ -33,7 +33,7 @@ class ETTh1(TimeSeriesDataset):
     name:str= 'ETTh1'
     num_features: int = 7
     length : int  = 17420
-    freq : Freq = 'yh'
+    freq : Freq = 'h'
     
     def download(self):
         download_url(

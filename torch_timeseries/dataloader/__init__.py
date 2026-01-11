@@ -8,6 +8,7 @@ from .ETT import ETTHLoader, ETTMLoader
 from .anomaly import AnomalyLoader
 from .wrapper import MultivariateFast
 from .noverlap_window_ts import NoneOverlapWindowTS
+from .reconstruct import Reconstruct
 
 forecast_loaders = [
     "SlidingWindowTS",
@@ -35,7 +36,11 @@ scalers = [
     "MinMaxScaler",
 ]
 
+others = [
+    "Reconstruct"
+]
+
 data_loaders = (
-    forecast_loaders + anomaly_loaders + classification_loaders + imputation_loaders
+    forecast_loaders + anomaly_loaders + classification_loaders + imputation_loaders + others
 )
 __all__ = data_loaders + scalers

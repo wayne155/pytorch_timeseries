@@ -24,7 +24,7 @@ def exp():
         else:
             print("No model or task specified after --model or --task")
     else:
-        print("Usage: --model [DLinear] --task [Forecast|Imputation|Classification|AnomalyDetection]")
+        print("Usage: --model [DLinear] --task [Forecast|Imputation|UEAClassification|AnomalyDetection]")
 
 if __name__ == '__main__':
     exp()

@@ -124,6 +124,3 @@ class UEA(TimeSeriesDataset):
         self.num_classes = len(self.class_names)
                 
         
-        
-        
-        

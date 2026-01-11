@@ -37,10 +37,6 @@ class EncoderLayer(nn.Module):
 
     def forward(self, x, attn_mask=None):
         # x [B, L, D]
-        # x = x + self.dropout(self.attention(
-        #     x, x, x,
-        #     attn_mask = attn_mask
-        # ))
         new_x, attn = self.attention(
             x, x, x,
             attn_mask = attn_mask

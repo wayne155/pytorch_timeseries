@@ -42,13 +42,16 @@ from .PatchTST import (
     PatchTSTUEAClassification,
 )
 
+from .FITS import (
+    FITSForecast,
+    FITSUEAClassification,
+)
 
 from .CATS import CATSForecast
 
-model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer']
+model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']
-
 for model_prefix in model_list:
     for suffix in class_suffixes:
         module_name = f"{model_prefix}{suffix}"

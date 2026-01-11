@@ -359,3 +359,44 @@ class MultiStepFlattenWrapper(Dataset):
 
     def __len__(self):
         return len(self.dataset) - self.window - self.horizon + 1 - self.steps + 1
+
+
+class ReconstructSet(Dataset):
+    def __init__(self, dataset: TimeseriesSubset, scaler: Scaler, include_raw=False):
+        self.dataset = dataset
+        self.include_raw = include_raw
+        self.scaler = scaler
+        
+        self.num_features = self.dataset.num_features
+        self.length = self.dataset.length
+        self.scaled_data = self.scaler.transform(self.dataset.data)
+        assert len(self.dataset)  > 0, "Dataset is not long enough!!!"
+
+    def transform(self, values):
+        return self.scaler.transform(values)
+
+    def inverse_transform(self, values):
+        return self.scaler.inverse_transform(values)
+
+    def __getitem__(self, index):
+        # scaled_x : (B, T, N)
+        # scaled_y : (B, O, N)
+        # x : (B, T, N)
+        # y : (B, O, N)
+        if isinstance(index, int):
+            if self.include_raw:
+                return index, self.scaled_data[index], self.dataset.data[index]
+            else:
+                return index, self.scaled_data[index]
+        else:
+            raise TypeError('Not surpported index type!!!')
+
+    def __len__(self):
+        return len(self.dataset) 
+
+
+
+
+
+
+
