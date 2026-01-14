@@ -86,3 +86,8 @@ add: add model FITS, UEAClassification and Forecast
 
 ## 0.1.20
 fix some bugs
+
+
+
+## 0.1.22
+fix bug in Electricity

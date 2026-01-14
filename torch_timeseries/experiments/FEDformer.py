@@ -22,7 +22,7 @@ class FEDformerParameters:
     version : str = 'Fourier'
     n_heads : int = 8
     L : int = 3
-    moving_avg : list = field(default_factory=lambda : [24])
+    moving_avg : int = 25
     e_layers  : int = 2
     d_layers  : int = 1
     modes  : int = 64

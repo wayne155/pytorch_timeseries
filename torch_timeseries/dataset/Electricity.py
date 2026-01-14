@@ -33,7 +33,7 @@ class Electricity(TimeSeriesDataset):
 
     name:str= 'electricity'
     num_features: int = 321
-    freq: str = 'yt' # in minutes
+    freq: str = 't' # in minutes
     length :int = 26304
     
     def download(self):
