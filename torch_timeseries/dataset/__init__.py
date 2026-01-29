@@ -17,6 +17,7 @@ from .MSL import MSL
 from .PSM import PSM
 from .SMAP import SMAP
 from .SimFreqCF import SimFreqCF
+from .SimFreq import SimFreq
 
 forecast_datasets = [
     'Traffic',
@@ -50,7 +51,8 @@ anomaly_datasets = [
 synthetic_datasets = [
     'Dummy',
     'DummyGraph',
-    'SimFreqCF'
+    'SimFreqCF',
+    'SimFreq'
 ]
 
 __all__ = forecast_datasets + classify_datasets + anomaly_datasets + synthetic_datasets

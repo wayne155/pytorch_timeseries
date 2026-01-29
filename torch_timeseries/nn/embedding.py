@@ -4,11 +4,11 @@ import torch.nn.functional as F
 
 import math
 
-# freq_map = {'h': 4, 't': 5, 's': 6,
-#             'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
-#             'yd':4, 'yh':5, 'yt':6, 'yb':4}
 freq_map = {'h': 4, 't': 5, 's': 6,
-            'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, }
+            'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, 
+            'yd':4, 'yh':5, 'yt':6, 'yb':4}
+# freq_map = {'h': 4, 't': 5, 's': 6,
+#             'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3, }
 
 
 class PositionalEmbedding(nn.Module):
