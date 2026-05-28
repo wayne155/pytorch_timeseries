@@ -5,7 +5,7 @@ import os
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import asdict
-from typing import List
+from typing import List, Optional
 
 from .schema import RunResult
 
@@ -58,7 +58,7 @@ class LocalBackend(ResultBackend):
 class WandbBackend(ResultBackend):
     """Save results to Weights & Biases. Requires ``pip install wandb``."""
 
-    def __init__(self, project: str, entity: str = None):
+    def __init__(self, project: str, entity: Optional[str] = None):
         try:
             import wandb as _w
             self._wandb = _w
@@ -87,4 +87,4 @@ class WandbBackend(ResultBackend):
         run.finish()
 
     def load_all(self, **filters) -> List[RunResult]:
-        return []
+        raise NotImplementedError("WandbBackend.load_all is not supported; use LocalBackend for reads.")
