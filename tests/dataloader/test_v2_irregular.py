@@ -121,3 +121,80 @@ def test_collate_irregular_t_query_time():
     assert batch.t_query_time.shape == (3, 4, C)
     # sample 0 (Tq=2): positions 2-3 padded → zero
     assert (batch.t_query_time[0, 2:, :] == 0).all()
+
+
+import numpy as np
+
+
+class _ToyIrregular:
+    """In-memory irregular dataset — no file I/O."""
+    num_features = 3
+    num_classes = 2
+
+    def __init__(self, n=40, seed=0):
+        rng = np.random.default_rng(seed)
+        self.samples, self.times, self.masks, self.labels = [], [], [], []
+        for i in range(n):
+            T = rng.integers(5, 15)
+            x = rng.normal(size=(T, self.num_features)).astype(np.float32)
+            t = np.sort(rng.uniform(0, 48, size=T)).astype(np.float32)
+            mask = (rng.random((T, self.num_features)) > 0.3).astype(np.float32)
+            self.samples.append(x)
+            self.times.append(t)
+            self.masks.append(mask)
+            self.labels.append(i % self.num_classes)
+        self.labels = np.array(self.labels, dtype=np.int64)
+
+    def __len__(self):
+        return len(self.samples)
+
+
+def _toy_irreg_cls_dm(**kw):
+    from torch_timeseries.dataloader.v2.irregular_classification import (
+        IrregularClassificationDataModule, IrregularClassificationConfig,
+    )
+    from torch_timeseries.dataloader.v2.forecast import SplitConfig, LoaderConfig
+    from torch_timeseries.scaler import StandardScaler
+    return IrregularClassificationDataModule(
+        dataset=_ToyIrregular(n=40),
+        scaler=StandardScaler(),
+        window=IrregularClassificationConfig(**kw),
+        split=SplitConfig(train=0.7, val=0.1, test=0.2),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+
+
+def test_irregular_classification_dm_returns_batch():
+    dm = _toy_irreg_cls_dm()
+    batch = next(iter(dm.train_loader))
+    from torch_timeseries.dataloader.v2.irregular_batch import IrregularTSBatch
+    assert isinstance(batch, IrregularTSBatch)
+
+
+def test_irregular_classification_dm_batch_shapes():
+    dm = _toy_irreg_cls_dm()
+    batch = next(iter(dm.train_loader))
+    B = batch.x.shape[0]
+    T = batch.x.shape[1]
+    assert batch.x.shape == (B, T, 3)
+    assert batch.t.shape == (B, T)
+    assert batch.mask.shape == (B, T, 3)
+    assert batch.y.shape == (B,)
+    assert batch.y.dtype == torch.long
+
+
+def test_irregular_classification_dm_t_normalized():
+    """All t values should be in [0, 1] (padded positions use 1.0 sentinel)."""
+    dm = _toy_irreg_cls_dm()
+    batch = next(iter(dm.train_loader))
+    assert batch.t.min() >= 0.0
+    assert batch.t.max() <= 1.0
+
+
+def test_irregular_classification_dm_properties():
+    dm = _toy_irreg_cls_dm()
+    assert dm.num_features == 3
+    assert dm.num_classes == 2
+    assert hasattr(dm, "train_loader")
+    assert hasattr(dm, "val_loader")
+    assert hasattr(dm, "test_loader")
