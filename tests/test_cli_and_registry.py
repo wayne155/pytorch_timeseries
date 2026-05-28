@@ -65,3 +65,24 @@ def test_time_encoding_enum_values_match_int_behaviour():
     out_int1  = time_features(dates, timeenc=1, freq="h")
     out_enum1 = time_features(dates, timeenc=TimeEncoding.FOURIER, freq="h")
     np.testing.assert_array_equal(out_int1, out_enum1)
+
+
+def test_cli_compare_subcommand(tmp_path):
+    """pytexp compare --save_dir <dir> should exit 0 and print DLinear."""
+    import subprocess, sys, json
+
+    result_file = tmp_path / "DLinear_Forecast_ETTh1_seed1.json"
+    result_file.write_text(json.dumps({
+        "model": "DLinear", "task": "Forecast", "dataset": "ETTh1", "seed": 1,
+        "timestamp": "2026-01-01T00:00:00", "hparams": {}, "metrics": {"mse": 0.38},
+        "num_params": 22000, "train_time_sec": 10.0, "git_commit": "abc",
+        "history": None,
+    }))
+
+    result = subprocess.run(
+        [sys.executable, "-m", "torch_timeseries.cli.exp", "compare",
+         "--save_dir", str(tmp_path)],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr}"
+    assert "DLinear" in result.stdout
