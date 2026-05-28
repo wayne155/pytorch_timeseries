@@ -35,8 +35,8 @@ class WindowConfig:
     single_variate: bool = False
     time_enc: int = 0
     freq: Optional[str] = None
-    input_columns: list = None
-    target_columns: list = None
+    input_columns: Optional[list] = None
+    target_columns: Optional[list] = None
 
 
 @dataclass
@@ -176,4 +176,6 @@ class ForecastDataModule:
         wc = self.window_cfg
         if wc.target_columns is not None:
             return len(wc.target_columns)
+        if wc.single_variate:
+            return 1
         return self.dataset.num_features

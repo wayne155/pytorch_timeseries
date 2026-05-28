@@ -27,6 +27,8 @@ def _resolve_columns(col_spec, df) -> list:
     """
     if col_spec is None:
         return None
+    if len(col_spec) == 0:
+        raise ValueError("col_spec must not be empty; use None to include all columns")
     resolved = []
     cols = list(df.columns) if df is not None else []
     for c in col_spec:
@@ -35,7 +37,12 @@ def _resolve_columns(col_spec, df) -> list:
                 raise ValueError(f"Column '{c}' not found. Available: {cols}")
             resolved.append(cols.index(c))
         else:
-            resolved.append(int(c))
+            idx = int(c)
+            if cols and not (0 <= idx < len(cols)):
+                raise ValueError(
+                    f"Column index {idx} is out of range for dataset with {len(cols)} features"
+                )
+            resolved.append(idx)
     return resolved
 
 
@@ -106,6 +113,12 @@ class WindowedDataset(Dataset):
         _feat_df = subset.dataset.df.drop("date", axis=1, errors="ignore") if subset.dataset.df is not None else None
         self.input_columns  = _resolve_columns(input_columns,  _feat_df)
         self.target_columns = _resolve_columns(target_columns, _feat_df)
+
+        if self.single_variate and (self.input_columns is not None or self.target_columns is not None):
+            raise ValueError(
+                "single_variate mode and input_columns/target_columns are mutually exclusive"
+            )
+
         if self.input_columns is not None:
             self.num_features = len(self.input_columns)
 
@@ -160,11 +173,11 @@ class WindowedDataset(Dataset):
             if self.target_columns is not None:
                 y = y[:, self.target_columns]
 
-        def _slice(arr, x_cols=None, y_cols=None):
+        def _slice(arr, x_cols=None, y_cols=None, is_data=True):
             if arr is None:
                 return None, None
             xv, yv = arr[x_slice], arr[y_slice]
-            if ch is not None and arr.ndim == 2:
+            if is_data and ch is not None and arr.ndim == 2:
                 xv, yv = xv[:, ch:ch + 1], yv[:, ch:ch + 1]
             else:
                 if x_cols is not None and arr.ndim == 2:
@@ -173,9 +186,9 @@ class WindowedDataset(Dataset):
                     yv = yv[:, y_cols]
             return xv, yv
 
-        x_raw, y_raw = _slice(self._raw,  self.input_columns, self.target_columns)
-        x_time, y_time = _slice(self._time)
-        x_index, y_index = _slice(self._index)
+        x_raw, y_raw = _slice(self._raw, self.input_columns, self.target_columns, is_data=True)
+        x_time, y_time = _slice(self._time, is_data=False)
+        x_index, y_index = _slice(self._index, is_data=False)
 
         return TSBatch(
             x=x, y=y,
