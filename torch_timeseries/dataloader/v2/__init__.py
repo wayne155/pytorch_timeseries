@@ -25,6 +25,7 @@ from .batch import TSBatch, collate_tsbatch
 from .windowed import WindowedDataset
 from .forecast import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 from .imputation import ImputationDataModule, ImputationWindowConfig
+from .anomaly import AnomalyDataModule, AnomalyWindowConfig
 from torch_timeseries.utils.timefeatures import TimeEncoding
 
 __all__ = [
@@ -38,4 +39,6 @@ __all__ = [
     "TimeEncoding",
     "ImputationDataModule",
     "ImputationWindowConfig",
+    "AnomalyDataModule",
+    "AnomalyWindowConfig",
 ]

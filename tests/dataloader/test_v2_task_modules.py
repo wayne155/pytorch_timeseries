@@ -102,3 +102,55 @@ def test_imputation_dm_empty_val_split():
     assert len(dm.val_dataset) == 0
     batches = list(dm.val_loader)
     assert len(batches) == 0
+
+
+from torch_timeseries.dataloader.v2.anomaly import AnomalyDataModule, AnomalyWindowConfig
+
+
+class _ToyAnomaly:
+    """Minimal stand-in for torch_timeseries anomaly dataset."""
+    name = "toy_anomaly"
+    num_features = 3
+
+    def __init__(self, root=None):
+        rng = np.random.default_rng(42)
+        self.train_data = rng.normal(size=(400, 3)).astype(np.float32)
+        self.test_data = rng.normal(size=(200, 3)).astype(np.float32)
+        self.test_labels = (rng.random(200) > 0.8).astype(np.float32)
+
+
+def test_anomaly_dm_train_batch_y_is_none():
+    dm = AnomalyDataModule(
+        dataset=_ToyAnomaly(),
+        scaler=StandardScaler(),
+        window=AnomalyWindowConfig(window=20, stride=10),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    batch = next(iter(dm.train_loader))
+    assert isinstance(batch, TSBatch)
+    assert batch.y is None
+
+
+def test_anomaly_dm_train_batch_x_shape():
+    dm = AnomalyDataModule(
+        dataset=_ToyAnomaly(),
+        scaler=StandardScaler(),
+        window=AnomalyWindowConfig(window=20, stride=10),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    batch = next(iter(dm.train_loader))
+    B = min(8, len(dm.train_dataset))
+    assert batch.x.shape == (B, 20, 3)
+
+
+def test_anomaly_dm_test_batch_y_is_labels():
+    dm = AnomalyDataModule(
+        dataset=_ToyAnomaly(),
+        scaler=StandardScaler(),
+        window=AnomalyWindowConfig(window=20, stride=10),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    batch = next(iter(dm.test_loader))
+    assert batch.y is not None
+    B = min(8, len(dm.test_dataset))
+    assert batch.y.shape == (B, 20)   # per-timestep labels in window
