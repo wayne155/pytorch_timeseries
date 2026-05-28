@@ -21,15 +21,17 @@ from torch_timeseries.scaler import *
 from torch_timeseries.utils.model_stats import count_parameters
 from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
-from ..utils.reproduce import reproducible
+from ..utils.reproduce import get_rng_state, reproducible, set_rng_state
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
 from ..dataloader import SlidingWindowTS, ETTHLoader, ETTMLoader
+from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 from ..utils import asdict_exc
 
 try:
     import wandb
-except:
-    print("Warning: wandb is not installed, some funtionality may not work.")
+except ImportError:
+    wandb = None
+    print("Warning: wandb is not installed, some functionality may not work.")
 @dataclass
 class ForecastSettings:
     horizon: int = 1
@@ -37,6 +39,9 @@ class ForecastSettings:
     pred_len: int = 96
     train_ratio: float = 0.7
     test_ratio: float = 0.2
+    time_enc: int = 1
+    input_columns: List[int] = field(default_factory=list)
+    target_columns: List[int] = field(default_factory=list)
     
 @dataclass
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
@@ -139,68 +144,45 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
     
     def _init_data_loader(self):
-        
         self._init_dataset()
 
-        embed = 'timeF'
-        timeenc = 0 if embed != 'timeF' else 1
-        
         self.scaler = parse_type(self.scaler_type, globals=globals())()
-        if self.dataset_type[0:3] == "ETT":
-            if self.dataset_type[0:4] == "ETTh":
-                self.dataloader = ETTHLoader(
-                    self.dataset,
-                    self.scaler,
-                    window=self.windows,
-                    horizon=self.horizon,
-                    steps=self.pred_len,
-                    shuffle_train=True,
-                    freq=self.dataset.freq,
-                    batch_size=self.batch_size,
-                    num_worker=self.num_worker,
-                    time_enc=timeenc,
-                )
-            elif  self.dataset_type[0:4] == "ETTm":
-                self.dataloader = ETTMLoader(
-                    self.dataset,
-                    self.scaler,
-                    window=self.windows,
-                    horizon=self.horizon,
-                    steps=self.pred_len,
-                    shuffle_train=True,
-                    freq=self.dataset.freq,
-                    batch_size=self.batch_size,
-                    num_worker=self.num_worker,
-                    time_enc=timeenc,
-                )
-        else:
-            self.dataloader = SlidingWindowTS(
-                self.dataset,
-                self.scaler,
-                window=self.windows,
-                horizon=self.horizon,
-                steps=self.pred_len,
-                scale_in_train=True,
-                shuffle_train=True,
-                freq=self.dataset.freq,
-                batch_size=self.batch_size,
-                train_ratio=self.train_ratio,
-                test_ratio=self.test_ratio,
-                num_worker=self.num_worker,
-                time_enc=timeenc
-            )
-        self.train_loader, self.val_loader, self.test_loader = (
-            self.dataloader.train_loader,
-            self.dataloader.val_loader,
-            self.dataloader.test_loader,
+
+        window_cfg = WindowConfig(
+            window=self.windows,
+            horizon=self.horizon,
+            steps=self.pred_len,
+            time_enc=self.time_enc,
+            freq=self.dataset.freq,
+            input_columns=self.input_columns or None,
+            target_columns=self.target_columns or None,
         )
-        self.train_steps = len(self.train_loader.dataset)
-        self.val_steps = len(self.val_loader.dataset)
-        self.test_steps = len(self.test_loader.dataset)
+        split_cfg = SplitConfig(
+            train=self.train_ratio,
+            test=self.test_ratio,
+        )
+        loader_cfg = LoaderConfig(
+            batch_size=self.batch_size,
+            num_workers=self.num_worker,
+            shuffle_train=True,
+        )
+        self.datamodule = ForecastDataModule(
+            dataset=self.dataset,
+            scaler=self.scaler,
+            window=window_cfg,
+            split=split_cfg,
+            loader=loader_cfg,
+        )
+        self.train_loader = self.datamodule.train_loader
+        self.val_loader   = self.datamodule.val_loader
+        self.test_loader  = self.datamodule.test_loader
+        self.train_steps  = len(self.train_loader.dataset)
+        self.val_steps    = len(self.val_loader.dataset)
+        self.test_steps   = len(self.test_loader.dataset)
 
         print(f"train steps: {self.train_steps}")
-        print(f"val steps: {self.val_steps}")
-        print(f"test steps: {self.test_steps}")
+        print(f"val steps:   {self.val_steps}")
+        print(f"test steps:  {self.test_steps}")
 
     def _run_identifier(self, seed) -> str:
         ident = self.result_related_configs
@@ -391,7 +373,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
     def _load_best_model(self):
         self.model.load_state_dict(
-            torch.load(self.best_checkpoint_filepath, map_location=self.device)
+            torch.load(self.best_checkpoint_filepath, map_location=self.device, weights_only=False)
         )
 
     def _run_print(self, *args, **kwargs):
@@ -409,11 +391,20 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         run_checkpoint_filepath = os.path.join(self.run_save_dir, f"run_checkpoint.pth")
         print(f"resuming from {run_checkpoint_filepath}")
 
-        check_point = torch.load(run_checkpoint_filepath, map_location=self.device)
+        check_point = torch.load(run_checkpoint_filepath, map_location=self.device, weights_only=False)
 
         self.model.load_state_dict(check_point["model"])
         self.model_optim.load_state_dict(check_point["optimizer"])
         self.current_epoch = check_point["current_epoch"]
+
+        if "rng_state" in check_point:
+            rng_state = check_point["rng_state"]
+            if isinstance(rng_state, dict):
+                set_rng_state(rng_state)
+            elif isinstance(rng_state, torch.Tensor):
+                torch.set_rng_state(rng_state.cpu())
+            else:
+                torch.set_rng_state(rng_state)
 
         self.early_stopper.set_state(check_point["early_stopping"])
 
@@ -498,7 +489,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             "model": self.model.state_dict(),
             "current_epoch": self.current_epoch,
             "optimizer": self.model_optim.state_dict(),
-            "rng_state": torch.get_rng_state(),
+            "rng_state": get_rng_state(),
             "early_stopping": self.early_stopper.get_state(),
         }
 
