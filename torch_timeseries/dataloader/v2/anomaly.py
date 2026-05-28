@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Optional
 
@@ -37,16 +38,18 @@ class AnomalyWindowedDataset(Dataset):
         window: int = 96,
         stride: int = 1,
         labels: Optional[np.ndarray] = None,
-        scaler_fit: bool = False,
     ) -> None:
+        # Fix 1: validate labels length against data length
+        if labels is not None and len(labels) != len(data):
+            raise ValueError(
+                f"labels length {len(labels)} does not match data length {len(data)}."
+            )
         if len(data) > 0 and len(data) < window:
             raise ValueError(
                 f"Data length {len(data)} is shorter than window {window}."
             )
         self.window = window
         self.labels = labels
-        if scaler_fit:
-            scaler.fit(data)
         self.scaled = scaler.transform(data).astype(np.float32)
         self._starts = list(range(0, len(data) - window + 1, stride))
 
@@ -78,19 +81,25 @@ class AnomalyDataModule:
         self.window_cfg = window or AnomalyWindowConfig()
         self.loader_cfg = loader or LoaderConfig()
 
+        # Fix 2: separate scaler fit from dataset construction
+        wc = self.window_cfg
+        self._train_end = int(len(dataset.train_data) * wc.train_ratio)
+
+        self._fit_scaler()
         self._build_datasets()
         self._build_loaders()
 
+    def _fit_scaler(self) -> None:
+        self.scaler.fit(self.dataset.train_data[:self._train_end])
+
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        train_end = int(len(self.dataset.train_data) * wc.train_ratio)
-
         self.train_dataset = AnomalyWindowedDataset(
-            self.dataset.train_data[:train_end], self.scaler,
-            window=wc.window, stride=wc.stride, scaler_fit=True,
+            self.dataset.train_data[:self._train_end], self.scaler,
+            window=wc.window, stride=wc.stride,
         )
         self.val_dataset = AnomalyWindowedDataset(
-            self.dataset.train_data[train_end:], self.scaler,
+            self.dataset.train_data[self._train_end:], self.scaler,
             window=wc.window, stride=wc.stride,
         )
         self.test_dataset = AnomalyWindowedDataset(
@@ -98,6 +107,13 @@ class AnomalyDataModule:
             window=wc.window, stride=wc.stride,
             labels=self.dataset.test_labels,
         )
+        # Fix 3: warn when test_dataset is empty
+        if len(self.test_dataset) == 0:
+            warnings.warn(
+                "AnomalyDataModule: test_dataset has 0 windows — "
+                "test_data may be shorter than window.",
+                stacklevel=2,
+            )
 
     def _build_loaders(self) -> None:
         lc = self.loader_cfg
@@ -109,6 +125,11 @@ class AnomalyDataModule:
         self.train_loader = DataLoader(self.train_dataset, shuffle=lc.shuffle_train, **kw)
         self.val_loader = DataLoader(self.val_dataset, shuffle=False, **kw)
         self.test_loader = DataLoader(self.test_dataset, shuffle=False, **kw)
+
+    # Fix 4: add window property
+    @property
+    def window(self) -> int:
+        return self.window_cfg.window
 
     @property
     def num_features(self) -> int:
