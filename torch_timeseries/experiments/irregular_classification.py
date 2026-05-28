@@ -49,8 +49,6 @@ class IrregularClassificationExp(BaseRelevant, BaseIrrelevant, IrregularClassifi
     Subclasses must implement _init_model() to instantiate self.model.
     """
 
-    loss_func_type: str = "cross_entropy"
-
     def _init_model(self) -> None:
         raise NotImplementedError
 
@@ -96,7 +94,6 @@ class IrregularClassificationExp(BaseRelevant, BaseIrrelevant, IrregularClassifi
         self._init_data_loader()
         self._init_metrics()
         self._init_loss_func()
-        self.current_epochs = 0
         self._setuped = True
 
     def _process_one_batch(self, batch: IrregularTSBatch):
