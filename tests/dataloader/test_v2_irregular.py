@@ -198,3 +198,6 @@ def test_irregular_classification_dm_properties():
     assert hasattr(dm, "train_loader")
     assert hasattr(dm, "val_loader")
     assert hasattr(dm, "test_loader")
+    assert hasattr(dm, "train_dataset")
+    assert hasattr(dm, "val_dataset")
+    assert hasattr(dm, "test_dataset")

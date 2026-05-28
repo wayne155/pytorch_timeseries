@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from .._seed import seed_worker
+from .._split import resolve_split_ratios
 from .forecast import LoaderConfig, SplitConfig
 from .irregular_batch import IrregularTSBatch, collate_irregular
 
@@ -73,32 +74,38 @@ class IrregularClassificationDataModule:
         self.split_cfg = split or SplitConfig()
         self.loader_cfg = loader or LoaderConfig()
 
+        # Compute split boundaries once
+        n = len(self.dataset)
+        train_r, val_r, _ = resolve_split_ratios(
+            self.split_cfg.train,
+            test_ratio=self.split_cfg.test,
+            val_ratio=self.split_cfg.val,
+        )
+        self._train_end = int(train_r * n)
+        self._val_end = self._train_end + int(val_r * n)
+
         self._fit_scaler()
         self._build_datasets()
         self._build_loaders()
 
     def _fit_scaler(self) -> None:
-        n = len(self.dataset)
-        train_end = int(self.split_cfg.train * n)
-        obs_list = [
-            np.array(self.dataset.samples[i], dtype=np.float32)
-            for i in range(train_end)
-        ]
-        if obs_list:
-            self.scaler.fit(np.vstack(obs_list))
+        obs_parts = []
+        for i in range(self._train_end):
+            x = np.array(self.dataset.samples[i], dtype=np.float32)
+            m = np.array(self.dataset.masks[i], dtype=np.float32)
+            # Zero out unobserved positions so sentinels (e.g. -1) don't skew stats
+            obs_parts.append(x * m)
+        if obs_parts:
+            self.scaler.fit(np.vstack(obs_parts))
 
     def _build_datasets(self) -> None:
         n = len(self.dataset)
-        train_end = int(self.split_cfg.train * n)
-        test_size = int((self.split_cfg.test or 0.2) * n)
-        val_end = n - test_size
-
         self.train_dataset = _IrregularClassificationDataset(
-            self.dataset, self.scaler, list(range(0, train_end)))
+            self.dataset, self.scaler, list(range(0, self._train_end)))
         self.val_dataset = _IrregularClassificationDataset(
-            self.dataset, self.scaler, list(range(train_end, val_end)))
+            self.dataset, self.scaler, list(range(self._train_end, self._val_end)))
         self.test_dataset = _IrregularClassificationDataset(
-            self.dataset, self.scaler, list(range(val_end, n)))
+            self.dataset, self.scaler, list(range(self._val_end, n)))
 
     def _build_loaders(self) -> None:
         lc = self.loader_cfg
