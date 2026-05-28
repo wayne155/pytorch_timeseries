@@ -79,3 +79,26 @@ def test_imputation_dm_has_all_loaders():
 def test_imputation_dm_mask_ratio_accessible():
     dm = _toy_imputation_dm(mask_ratio=0.3)
     assert dm.mask_ratio == pytest.approx(0.3)
+
+
+def test_imputation_window_config_rejects_bad_mask_ratio():
+    with pytest.raises(ValueError, match="mask_ratio"):
+        ImputationWindowConfig(mask_ratio=1.5)
+
+
+def test_imputation_window_config_rejects_bad_window():
+    with pytest.raises(ValueError, match="window"):
+        ImputationWindowConfig(window=0)
+
+
+def test_imputation_dm_empty_val_split():
+    dm = ImputationDataModule(
+        dataset=_ToyTS(root="/tmp"),
+        scaler=StandardScaler(),
+        window=ImputationWindowConfig(window=32),
+        split=SplitConfig(train=0.8, val=0.0, test=0.2),
+        loader=LoaderConfig(batch_size=16, num_workers=0),
+    )
+    assert len(dm.val_dataset) == 0
+    batches = list(dm.val_loader)
+    assert len(batches) == 0

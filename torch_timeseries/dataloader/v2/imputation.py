@@ -25,6 +25,14 @@ class ImputationWindowConfig:
     time_enc: int = 0
     freq: Optional[str] = None
 
+    def __post_init__(self):
+        if self.window <= 0:
+            raise ValueError(f"window must be > 0, got {self.window}")
+        if self.stride <= 0:
+            raise ValueError(f"stride must be > 0, got {self.stride}")
+        if not (0.0 < self.mask_ratio < 1.0):
+            raise ValueError(f"mask_ratio must be in (0, 1), got {self.mask_ratio}")
+
 
 class ImputationWindowedDataset(Dataset):
     """Sliding-window dataset for masked reconstruction.
@@ -42,6 +50,10 @@ class ImputationWindowedDataset(Dataset):
         time_enc: int = 0,
         freq: Optional[str] = None,
     ) -> None:
+        if 0 < len(subset) < window:
+            raise ValueError(
+                f"Subset length {len(subset)} is shorter than window {window}."
+            )
         self.window = window
         freq = freq or subset.freq
         self.scaled = scaler.transform(subset.data).astype(np.float32)
@@ -96,17 +108,25 @@ class ImputationDataModule:
         )
         n = len(self.dataset)
         train_size = int(train * n)
-        test_size = int(test * n)
-        val_size = n - train_size - test_size
+        val_size = int(val * n)
         pad = self.window_cfg.window - 1 if self.split_cfg.uniform_eval else 0
         idx = range(n)
         self.train_subset = TimeseriesSubset(self.dataset, idx[:train_size])
-        self.val_subset = TimeseriesSubset(
-            self.dataset, idx[train_size - pad: train_size + val_size]
+        if val_size == 0:
+            val_indices = idx[train_size:train_size]  # empty
+        else:
+            val_indices = (
+                idx[train_size - pad: train_size + val_size]
+                if self.split_cfg.uniform_eval
+                else idx[train_size: train_size + val_size]
+            )
+        self.val_subset = TimeseriesSubset(self.dataset, val_indices)
+        test_indices = (
+            idx[train_size + val_size - pad:]
+            if (self.split_cfg.uniform_eval and val_size > 0)
+            else idx[train_size + val_size:]
         )
-        self.test_subset = TimeseriesSubset(
-            self.dataset, idx[-(test_size + pad):] if pad else idx[-test_size:]
-        )
+        self.test_subset = TimeseriesSubset(self.dataset, test_indices)
 
     def _fit_scaler(self) -> None:
         data = self.train_subset.data if self.scale_in_train else self.dataset.data
