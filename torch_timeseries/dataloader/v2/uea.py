@@ -22,6 +22,13 @@ class UEAWindowConfig:
             raise ValueError(f"val_ratio must be in (0, 1), got {self.val_ratio}")
 
 
+class _IdentityScaler:
+    """No-op scaler used when normalize=False."""
+
+    def transform(self, x):
+        return x
+
+
 class UEAWindowedDataset(Dataset):
     """One sample per unique sample_id in the multi-index DataFrame."""
 
@@ -31,11 +38,8 @@ class UEAWindowedDataset(Dataset):
         labels: pd.Series,
         scaler,
         sample_ids,
-        scaler_fit: bool = False,
     ) -> None:
         self.sample_ids = list(sample_ids)
-        if scaler_fit and len(self.sample_ids) > 0:
-            scaler.fit(feature_df.loc[self.sample_ids].values)
         self.scaled_df = pd.DataFrame(
             scaler.transform(feature_df.values),
             index=feature_df.index,
@@ -73,6 +77,8 @@ class UEADataModule:
         self._build_loaders()
 
     def _fit_scaler(self) -> None:
+        if not self.window_cfg.normalize:
+            return
         train_ids = list(self.dataset.train_df.index.get_level_values("sample_id").unique())
         val_split = int(len(train_ids) * (1 - self.window_cfg.val_ratio))
         train_ids_tr = train_ids[:val_split]
@@ -88,9 +94,10 @@ class UEADataModule:
         all_df = pd.concat([self.dataset.train_df, self.dataset.test_df])
         all_labels = pd.concat([self.dataset.train_labels, self.dataset.test_labels])
 
-        self.train_dataset = UEAWindowedDataset(all_df, all_labels, self.scaler, train_ids_tr)
-        self.val_dataset = UEAWindowedDataset(all_df, all_labels, self.scaler, train_ids_val)
-        self.test_dataset = UEAWindowedDataset(all_df, all_labels, self.scaler, test_ids)
+        use_scaler = self.scaler if self.window_cfg.normalize else _IdentityScaler()
+        self.train_dataset = UEAWindowedDataset(all_df, all_labels, use_scaler, train_ids_tr)
+        self.val_dataset = UEAWindowedDataset(all_df, all_labels, use_scaler, train_ids_val)
+        self.test_dataset = UEAWindowedDataset(all_df, all_labels, use_scaler, test_ids)
 
     def _build_loaders(self) -> None:
         lc = self.loader_cfg
