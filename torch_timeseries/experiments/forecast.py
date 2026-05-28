@@ -23,7 +23,6 @@ from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
 from ..utils.reproduce import get_rng_state, reproducible, set_rng_state
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
-from ..dataloader import SlidingWindowTS, ETTHLoader, ETTMLoader
 from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 from ..utils import asdict_exc
 
