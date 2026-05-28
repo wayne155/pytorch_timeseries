@@ -96,9 +96,9 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self.model_optim = parse_type(self.optm_type, globals=globals())(
             self.model.parameters(), lr=self.lr, weight_decay=self.l2_weight_decay
         )
-        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        #     self.model_optim, T_max=self.patience-1
-        # )
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.model_optim, T_max=self.epochs
+        )
 
     def _setup(self):
         # init data loader
@@ -459,7 +459,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 wandb.log( {f"val_{k}": v for k, v in val_result.items()}, step=self.current_epoch)
                 wandb.log( {f"test_{k}": v for k, v in test_result.items()}, step=self.current_epoch)
 
-            # self.scheduler.step()
+            self.scheduler.step()
 
         self._load_best_model()
         best_test_result = self._test()
