@@ -15,14 +15,16 @@ keywords = ["deep Learning", "time series", "pytorch"]
 dependencies = [
     "numpy",
     "pandas",
-    "sktime",
-    "pandas>=0.29.0",
+    "torch",
+    "sktime>=0.29.0",
     "scikit-learn",
     "tqdm",
     "einops",
     "prettytable",
-    "torchmetrics==1.1.1",
-    "fire>=0.5.0"
+    "torchmetrics>=1.1.1",
+    "torchvision",
+    "fire>=0.5.0",
+    "PyYAML",
 ]
 
 [project.scripts]
@@ -36,6 +38,13 @@ BugTracker = "https://github.com/wayne155/pytorch_timeseries/issues"
 
 [project.optional-dependencies]
 g = ["pyg"]
+test = ["pytest"]
+dev = ["pytest", "pre-commit"]
+irregular = [
+    "torchdiffeq>=0.2.3",
+    "torchcde>=0.2.5",
+    "torch_geometric>=2.0.0",
+]
 
 [tool.black]
 line-length = 88

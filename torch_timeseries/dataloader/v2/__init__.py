@@ -22,6 +22,8 @@ Rough shape of the new API::
 The legacy ``SlidingWindowTS`` etc. are unchanged in the parent package.
 """
 from .batch import TSBatch, collate_tsbatch
+from .irregular_batch import IrregularTSBatch, collate_irregular
+from .irregular_classification import IrregularClassificationDataModule, IrregularClassificationConfig
 from .windowed import WindowedDataset
 from .forecast import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 from .imputation import ImputationDataModule, ImputationWindowConfig
@@ -44,4 +46,8 @@ __all__ = [
     "AnomalyWindowConfig",
     "UEADataModule",
     "UEAWindowConfig",
+    "IrregularTSBatch",
+    "collate_irregular",
+    "IrregularClassificationDataModule",
+    "IrregularClassificationConfig",
 ]

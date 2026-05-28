@@ -64,3 +64,25 @@ for model_prefix in model_list:
                 globals()[module_name] = model_class
         except ModuleNotFoundError:
             print(f"Module {module_name} not found.")
+
+from .irregular_classification import IrregularClassificationExp
+from .GRUD import GRUDIrregularClassification
+
+from .registry import build_experiment_registry, format_experiment_choices
+
+EXPERIMENT_REGISTRY = build_experiment_registry(globals())
+
+
+def get_experiment_class(model_name: str, task_name: str):
+    try:
+        return EXPERIMENT_REGISTRY[(model_name, task_name)]
+    except KeyError as exc:
+        choices = format_experiment_choices(EXPERIMENT_REGISTRY)
+        raise NotImplementedError(
+            f"Unknown experiment: {model_name}{task_name}. "
+            f"Available experiments: {choices}"
+        ) from exc
+
+
+def list_experiments():
+    return sorted(EXPERIMENT_REGISTRY)
