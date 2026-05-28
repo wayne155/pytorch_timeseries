@@ -109,27 +109,48 @@ exp.runs([1, 2, 3]) # run with multiple seeds
 
 Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
 
+### Leaderboard artifacts
+
+Generate static Markdown, CSV, and JSON leaderboard files from local experiment
+results plus curated YAML entries:
+
+```bash
+pytexp leaderboard \
+  --results_dir ./results \
+  --entries_dir leaderboard/entries \
+  --output_dir results/leaderboard \
+  --docs_dir docs/leaderboard
+```
+
 
 
 ## Custom Models
 
-To plug in your own model, subclass `BaseExp`, define `_build_model`, and pass it to the experiment runner:
+To plug in your own model, subclass the task experiment class, define `_init_model`, and register it:
 
 ```python
 from dataclasses import dataclass
-from torch_timeseries.experiments import BaseExp
+from torch_timeseries.experiments import ForecastExp
+from torch_timeseries import register_model
 import torch.nn as nn
 
 @dataclass
-class MyModel(BaseExp):
+class MyModelParameters:
     hidden_dim: int = 64
 
-    def _build_model(self) -> nn.Module:
-        return MyNet(
+@dataclass
+class MyModelForecast(ForecastExp, MyModelParameters):
+    model_type: str = "MyModel"
+
+    def _init_model(self):
+        self.model = MyNet(
             seq_len=self.windows,
             pred_len=self.pred_len,
             hidden_dim=self.hidden_dim,
         )
+        self.model = self.model.to(self.device)
+
+register_model(MyModelForecast)
 ```
 
 Then run it with any supported task and dataset:

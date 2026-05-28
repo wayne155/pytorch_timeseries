@@ -199,6 +199,10 @@ def register_model(model_cls) -> None:
 
     model_name = model_cls.__name__
     for task_suffix, task_base in task_map.items():
-        combo_name = f"{model_name}{task_suffix}"
-        combo_cls = dataclass(type(combo_name, (model_cls, task_base), {}))
-        EXPERIMENT_REGISTRY[(model_name, task_suffix)] = combo_cls
+        if issubclass(model_cls, task_base):
+            # model_cls already inherits this task base — register as-is
+            EXPERIMENT_REGISTRY[(model_name, task_suffix)] = model_cls
+        else:
+            combo_name = f"{model_name}{task_suffix}"
+            combo_cls = dataclass(type(combo_name, (task_base, model_cls), {}))
+            EXPERIMENT_REGISTRY[(model_name, task_suffix)] = combo_cls
