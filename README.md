@@ -75,6 +75,36 @@ Use this pattern when you need a non-standard training loop, custom loss, or are
 
 Use the built-in experiment runner. Pick a model, task, and dataset — the library handles data loading, training, evaluation, and result saving.
 
+**Experiment builder (Python API):**
+
+```python
+from torch_timeseries import Experiment
+
+# single run — returns a RunResult with metrics, hparams, git commit, timing
+result = Experiment(model="DLinear", task="Forecast", dataset="ETTh1").run(seeds=[1])
+print(result[0].metrics)   # {"mse": 0.382, "mae": 0.271}
+
+# multiple seeds, save results to disk
+results = (
+    Experiment(model="DLinear", task="Forecast", dataset="ETTh1")
+    .set(windows=96, pred_len=96, lr=0.001)
+    .with_local(save_dir="./results")
+    .run(seeds=[1, 2, 3])
+)
+
+# grid search across models and datasets
+Experiment.grid(
+    models=["DLinear", "Autoformer"],
+    tasks=["Forecast"],
+    datasets=["ETTh1", "ETTm1"],
+    seeds=[1, 2, 3],
+    save_dir="./results",
+).run()
+
+# compare saved results
+Experiment.compare(save_dir="./results", task="Forecast")
+```
+
 **CLI:**
 
 ```bash
@@ -90,37 +120,12 @@ pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
 
 # classification
 pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run 3
-```
 
-**Python API:**
-
-```python
-from torch_timeseries.experiments import DLinearForecast
-
-exp = DLinearForecast(
-    dataset_type="ETTh1",
-    windows=96,
-    pred_len=96,
-    lr=0.001,
-)
-exp.run(3)          # run with seed=3
-exp.runs([1, 2, 3]) # run with multiple seeds
+# compare saved results
+pytexp compare --save_dir ./results --task Forecast
 ```
 
 Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
-
-### Leaderboard artifacts
-
-Generate static Markdown, CSV, and JSON leaderboard files from local experiment
-results plus curated YAML entries:
-
-```bash
-pytexp leaderboard \
-  --results_dir ./results \
-  --entries_dir leaderboard/entries \
-  --output_dir results/leaderboard \
-  --docs_dir docs/leaderboard
-```
 
 
 
@@ -153,10 +158,16 @@ class MyModelForecast(ForecastExp, MyModelParameters):
 register_model(MyModelForecast)
 ```
 
-Then run it with any supported task and dataset:
+Then run it with the `Experiment` builder or CLI:
+
+```python
+from torch_timeseries import Experiment
+
+Experiment(model="MyModelForecast", task="Forecast", dataset="ETTh1").run(seeds=[1, 2, 3])
+```
 
 ```bash
-pytexp --model MyModel --task Forecast --dataset_type ETTh1 run 1
+pytexp --model MyModelForecast --task Forecast --dataset_type ETTh1 run 1
 ```
 
 
