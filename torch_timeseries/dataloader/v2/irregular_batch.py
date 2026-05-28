@@ -85,6 +85,8 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
     # ------------------------------------------------------------------
     x_time_batch: Optional[Tensor] = None
     if samples[0].x_time is not None:
+        assert all(s.x_time is not None for s in samples), \
+            "All samples must have x_time if any sample has it"
         C = samples[0].x_time.shape[1]
         x_times = []
         for s in samples:
@@ -152,6 +154,8 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
             query_mask_batch = torch.stack(qms, dim=0)
 
         if samples[0].t_query_time is not None:
+            assert all(s.t_query_time is not None for s in samples), \
+                "All samples must have t_query_time if any sample has it"
             C2 = samples[0].t_query_time.shape[1]
             tqts: List[Tensor] = []
             for s in samples:

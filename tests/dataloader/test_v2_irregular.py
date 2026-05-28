@@ -63,3 +63,61 @@ def test_collate_irregular_1d_y():
         samples.append(IrregularTSBatch(x=x, t=t, mask=mask, y=y))
     batch = collate_irregular(samples)
     assert batch.y.shape == (3, C)
+
+
+def test_collate_irregular_x_time():
+    """x_time calendar features are padded correctly and produce (B, max_T, C) batch."""
+    from torch_timeseries.dataloader.v2.irregular_batch import IrregularTSBatch, collate_irregular
+    F, C = 3, 4
+    samples = []
+    for T in [4, 6, 5]:
+        x = torch.randn(T, F)
+        t = torch.linspace(0.0, 1.0, T)
+        mask = torch.ones(T, F)
+        x_time = torch.randn(T, C)
+        samples.append(IrregularTSBatch(x=x, t=t, mask=mask, x_time=x_time))
+    batch = collate_irregular(samples)
+    assert batch.x_time.shape == (3, 6, C)
+    # padded positions (sample 0: positions 4-5) must be zero
+    assert (batch.x_time[0, 4:, :] == 0).all()
+
+
+def test_collate_irregular_partial_x_time_raises():
+    """collate_irregular raises AssertionError when only some samples have x_time."""
+    import pytest
+    from torch_timeseries.dataloader.v2.irregular_batch import IrregularTSBatch, collate_irregular
+    F, C = 3, 4
+    T = 5
+    s_with = IrregularTSBatch(
+        x=torch.randn(T, F), t=torch.linspace(0.0, 1.0, T),
+        mask=torch.ones(T, F), x_time=torch.randn(T, C),
+    )
+    s_without = IrregularTSBatch(
+        x=torch.randn(T, F), t=torch.linspace(0.0, 1.0, T),
+        mask=torch.ones(T, F), x_time=None,
+    )
+    with pytest.raises(AssertionError, match="x_time"):
+        collate_irregular([s_with, s_without])
+
+
+def test_collate_irregular_t_query_time():
+    """t_query_time calendar features at query times are padded correctly."""
+    from torch_timeseries.dataloader.v2.irregular_batch import IrregularTSBatch, collate_irregular
+    F, C = 2, 3
+    samples = []
+    for T, Tq in [(4, 2), (6, 4), (5, 3)]:
+        x = torch.randn(T, F)
+        t = torch.linspace(0.0, 1.0, T)
+        mask = torch.ones(T, F)
+        t_query = torch.linspace(0.5, 1.0, Tq)
+        query_mask = torch.ones(Tq, F)
+        t_query_time = torch.randn(Tq, C)
+        y = torch.randn(Tq, F)
+        samples.append(IrregularTSBatch(
+            x=x, t=t, mask=mask, y=y,
+            t_query=t_query, query_mask=query_mask, t_query_time=t_query_time,
+        ))
+    batch = collate_irregular(samples)
+    assert batch.t_query_time.shape == (3, 4, C)
+    # sample 0 (Tq=2): positions 2-3 padded → zero
+    assert (batch.t_query_time[0, 2:, :] == 0).all()
