@@ -24,6 +24,7 @@ The legacy ``SlidingWindowTS`` etc. are unchanged in the parent package.
 from .batch import TSBatch, collate_tsbatch
 from .windowed import WindowedDataset
 from .forecast import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
+from .imputation import ImputationDataModule, ImputationWindowConfig
 from torch_timeseries.utils.timefeatures import TimeEncoding
 
 __all__ = [
@@ -35,4 +36,6 @@ __all__ = [
     "SplitConfig",
     "LoaderConfig",
     "TimeEncoding",
+    "ImputationDataModule",
+    "ImputationWindowConfig",
 ]
