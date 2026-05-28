@@ -1,5 +1,4 @@
 import torch
-import pytest
 
 
 def test_irregular_tsbatch_collation():
@@ -49,3 +48,18 @@ def test_collate_irregular_with_query_times():
     # sample 0 and 2 (Tq=2): position 2 padded → query_mask=0
     assert batch.query_mask[0, 2, :].sum() == 0
     assert batch.query_mask[2, 2, :].sum() == 0
+
+
+def test_collate_irregular_1d_y():
+    """1-D y (e.g. multi-label vector) is stacked correctly without IndexError."""
+    from torch_timeseries.dataloader.v2.irregular_batch import IrregularTSBatch, collate_irregular
+    F, C = 3, 4
+    samples = []
+    for T in [4, 6, 5]:
+        x = torch.randn(T, F)
+        t = torch.linspace(0.0, 1.0, T)
+        mask = torch.ones(T, F)
+        y = torch.randn(C)   # 1-D, shape (C,)
+        samples.append(IrregularTSBatch(x=x, t=t, mask=mask, y=y))
+    batch = collate_irregular(samples)
+    assert batch.y.shape == (3, C)

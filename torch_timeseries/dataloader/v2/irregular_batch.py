@@ -48,6 +48,11 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
       - ``x``, ``x_time``, ``y`` (when tensor), ``t_query_time``: padded with 0
       - ``mask``, ``query_mask``:  padded with 0  (marks as unobserved)
       - ``t``, ``t_query``:        padded with 1.0 (sentinel outside [0, 1])
+
+    .. warning::
+        Padded positions use t=1.0 as a sentinel.  Since real normalized times
+        can also be 1.0, always use ``mask`` (not ``t``) to identify padded
+        positions.
     """
     max_T = max(s.x.shape[0] for s in samples)
     F = samples[0].x.shape[1]
@@ -59,15 +64,15 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
     for s in samples:
         T_i = s.x.shape[0]
 
-        x_pad = torch.zeros(max_T, F)
+        x_pad = torch.zeros(max_T, F, dtype=s.x.dtype, device=s.x.device)
         x_pad[:T_i] = s.x
         xs.append(x_pad)
 
-        t_pad = torch.ones(max_T)       # 1.0 sentinel for padded positions
+        t_pad = torch.ones(max_T, dtype=s.t.dtype, device=s.t.device)   # 1.0 sentinel for padded positions
         t_pad[:T_i] = s.t
         ts.append(t_pad)
 
-        m_pad = torch.zeros(max_T, F)  # 0 = unobserved / padded
+        m_pad = torch.zeros(max_T, F, dtype=s.mask.dtype, device=s.mask.device)  # 0 = unobserved / padded
         m_pad[:T_i] = s.mask
         masks.append(m_pad)
 
@@ -84,18 +89,21 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
         x_times = []
         for s in samples:
             T_i = s.x_time.shape[0]
-            xt = torch.zeros(max_T, C)
+            xt = torch.zeros(max_T, C, dtype=s.x_time.dtype, device=s.x_time.device)
             xt[:T_i] = s.x_time
             x_times.append(xt)
         x_time_batch = torch.stack(x_times, dim=0)
 
     # ------------------------------------------------------------------
-    # y  (scalar classification label  OR  variable-length target tensor)
+    # y  (scalar classification label  OR  1-D vector  OR  variable-length target tensor)
     # ------------------------------------------------------------------
     y_batch: Optional[Tensor] = None
     if samples[0].y is not None:
         if samples[0].y.dim() == 0:
             # scalar labels → simple stack → (B,)
+            y_batch = torch.stack([s.y for s in samples], dim=0)
+        elif samples[0].y.dim() == 1:
+            # 1-D vectors (e.g. multi-label, shape (C,)) → stack → (B, C)
             y_batch = torch.stack([s.y for s in samples], dim=0)
         else:
             # variable-length query targets → pad like x → (B, max_Tq_y, Fy)
@@ -104,7 +112,7 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
             ys = []
             for s in samples:
                 Tq_i = s.y.shape[0]
-                yp = torch.zeros(max_Tq_y, Fy)
+                yp = torch.zeros(max_Tq_y, Fy, dtype=s.y.dtype, device=s.y.device)
                 yp[:Tq_i] = s.y
                 ys.append(yp)
             y_batch = torch.stack(ys, dim=0)
@@ -122,15 +130,20 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
 
         tqs: List[Tensor] = []
         qms: List[Tensor] = []
+
+        if samples[0].query_mask is not None:
+            assert all(s.query_mask is not None for s in samples), \
+                "All samples must have query_mask if any sample has it"
+
         for s in samples:
             Tq_i = s.t_query.shape[0]
 
-            tq = torch.ones(max_Tq)    # 1.0 sentinel for padded query times
+            tq = torch.ones(max_Tq, dtype=s.t_query.dtype, device=s.t_query.device)    # 1.0 sentinel for padded query times
             tq[:Tq_i] = s.t_query
             tqs.append(tq)
 
             if s.query_mask is not None:
-                qm = torch.zeros(max_Tq, Fq)
+                qm = torch.zeros(max_Tq, Fq, dtype=s.query_mask.dtype, device=s.query_mask.device)
                 qm[:Tq_i] = s.query_mask
                 qms.append(qm)
 
@@ -143,7 +156,7 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
             tqts: List[Tensor] = []
             for s in samples:
                 Tq_i = s.t_query_time.shape[0]
-                tqt = torch.zeros(max_Tq, C2)
+                tqt = torch.zeros(max_Tq, C2, dtype=s.t_query_time.dtype, device=s.t_query_time.device)
                 tqt[:Tq_i] = s.t_query_time
                 tqts.append(tqt)
             t_query_time_batch = torch.stack(tqts, dim=0)
