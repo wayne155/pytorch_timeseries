@@ -12,6 +12,8 @@ class TimeEncoding(IntEnum):
     CALENDAR   = 0   # raw integer calendar fields (year, month, day, ...)
     FOURIER    = 1   # normalized Fourier-style date features
     NORMALIZED = 3   # normalized calendar scalars
+
+
 class TimeFeature:
     def __init__(self):
         pass
@@ -140,6 +142,9 @@ def time_features(dates: pd.DataFrame, timeenc: "int | TimeEncoding" = TimeEncod
     > * S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year]
 
     *minute returns a number from 0-3 corresponding to the 15 minute period it falls into.
+
+    > If `timeenc` is 3 (TimeEncoding.NORMALIZED), same fields as timeenc=0 but each value
+    > is linearly normalized to roughly [-0.5, 0.5] using fixed reference points.
     """
     freq_map = {
         'y':[],'m':['month'],'w':['month'],'d':['month','day','weekday'],
