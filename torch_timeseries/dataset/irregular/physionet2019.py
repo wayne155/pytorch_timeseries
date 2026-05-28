@@ -25,7 +25,10 @@ class PhysioNet2019(IrregularTimeSeriesDataset):
         "Glucose", "Lactate", "Magnesium", "Phosphate", "Potassium",
         "Bilirubin_total", "TroponinI", "Hct", "Hgb", "PTT", "WBC",
         "Fibrinogen", "Platelets",
-        "Age", "Gender", "Unit1", "Unit2", "HospAdmTime", "ICULOS",
+        "Age", "Gender", "Unit1", "Unit2", "HospAdmTime",
+        # ICULOS (ICU length of stay in hours) is used as the time axis AND
+        # kept as a feature column per the 40-variable spec — this is intentional.
+        "ICULOS",
     ]
     _VAR_IDX = {v: i for i, v in enumerate(VARIABLES)}
 
@@ -34,7 +37,10 @@ class PhysioNet2019(IrregularTimeSeriesDataset):
 
     def download(self) -> None:
         dest = Path(self.root) / "physionet2019"
-        if all((dest / s).exists() for s in self._SETS):
+        if all(
+            (dest / s).is_dir() and any((dest / s).glob("*.psv"))
+            for s in self._SETS
+        ):
             return
         dest.mkdir(parents=True, exist_ok=True)
         for s in self._SETS:
@@ -65,6 +71,15 @@ class PhysioNet2019(IrregularTimeSeriesDataset):
                 all_times.append(t_arr)
                 all_masks.append(mask)
                 all_labels.append(label)
+
+        if not all_samples:
+            import warnings
+            warnings.warn(
+                f"PhysioNet2019: no patient files found under {dest}. "
+                "Pass download=True or check that the data directory is correct.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
 
         self.samples = all_samples
         self.times = all_times
