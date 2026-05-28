@@ -1,10 +1,17 @@
 from typing import List
+from enum import IntEnum
 
 import numpy as np
 import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 pd.options.mode.chained_assignment = None
+
+
+class TimeEncoding(IntEnum):
+    CALENDAR   = 0   # raw integer calendar fields (year, month, day, ...)
+    FOURIER    = 1   # normalized Fourier-style date features
+    NORMALIZED = 3   # normalized calendar scalars
 class TimeFeature:
     def __init__(self):
         pass
@@ -111,7 +118,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     raise RuntimeError(supported_freq_msg)
 
-def time_features(dates:pd.DataFrame, timeenc=0, freq='h') -> np.ndarray:
+def time_features(dates: pd.DataFrame, timeenc: "int | TimeEncoding" = TimeEncoding.CALENDAR, freq: str = "h") -> np.ndarray:
     """
     encode time features based on data sample freqency
     > `time_features` takes in a `dates` dataframe with a 'dates' column and extracts the date down to `freq` where freq can be any of the following if `timeenc` is 0: 
@@ -145,25 +152,25 @@ def time_features(dates:pd.DataFrame, timeenc=0, freq='h') -> np.ndarray:
         'ys':['year'] + ['month','day','weekday','hour','minute','second'], # year wit 't'
     }
     if timeenc==0:
-        dates['year'] = dates.date.apply(lambda row:row.year,1)
-        dates['month'] = dates.date.apply(lambda row:row.month,1)
-        dates['day'] = dates.date.apply(lambda row:row.day,1)
-        dates['weekday'] = dates.date.apply(lambda row:row.weekday(),1)
-        dates['hour'] = dates.date.apply(lambda row:row.hour,1)
-        dates['minute'] = dates.date.apply(lambda row:row.minute,1)
-        # dates['minute'] = dates.minute.map(lambda x:x//15)
-        dates['second'] = dates.date.apply(lambda row:row.second,1)
-        
+        dt = pd.DatetimeIndex(dates.date)
+        dates['year'] = dt.year
+        dates['month'] = dt.month
+        dates['day'] = dt.day
+        dates['weekday'] = dt.dayofweek
+        dates['hour'] = dt.hour
+        dates['minute'] = dt.minute
+        dates['second'] = dt.second
+
         return dates[freq_map[freq.lower()]].values
     elif timeenc == 3:
-        dates['year'] = (dates.date.apply(lambda row:row.year,1)-1012)/2024
-        dates['month'] = (dates.date.apply(lambda row:row.month,1) - 6 ) /12
-        dates['day'] = (dates.date.apply(lambda row:row.day,1) - 15)/30
-        dates['weekday'] = (dates.date.apply(lambda row:row.weekday(),1) - 3.5) / 7
-        dates['hour'] = (dates.date.apply(lambda row:row.hour,1)-12) / 24
-        dates['minute'] = (dates.date.apply(lambda row:row.minute,1)-30)/60
-        # dates['minute'] = dates.minute.map(lambda x:x//15)
-        dates['second'] = (dates.date.apply(lambda row:row.second,1)-30)/60
+        dt = pd.DatetimeIndex(dates.date)
+        dates['year'] = (dt.year - 1012) / 2024
+        dates['month'] = (dt.month - 6) / 12
+        dates['day'] = (dt.day - 15) / 30
+        dates['weekday'] = (dt.dayofweek - 3.5) / 7
+        dates['hour'] = (dt.hour - 12) / 24
+        dates['minute'] = (dt.minute - 30) / 60
+        dates['second'] = (dt.second - 30) / 60
         
         return dates[freq_map[freq.lower()]].values
         
