@@ -15,211 +15,178 @@
 
 
 # pytorch_timeseries
-An all in one deep learning library that boost your timeseries research.
-[Check the documentation for more detail](https://pytorch-timeseries.readthedocs.io/en/latest/).
+
+An all-in-one deep learning library for time series research.
+[Full documentation](https://pytorch-timeseries.readthedocs.io/en/latest/).
+
+- Datasets downloaded automatically
+- Easy to extend with your own model
+- Highly customizable pipeline
+- One-command experiment runner
 
 
 
-Compared to previous libraries, pytorch_timeseries is 
-- dataset automatically downloaded
-- easy to use and extend 
-- clear documentation 
-- highly customizable 
-- install and run! 
-- ..........
+## Installation
 
-
-
-## 1. installation
-
-
-
-```
+```bash
 pip install torch-timeseries
 ```
 
-> ⚠️⚠️⚠️ **Warning: We only support python version >= 3.8+**
+> **Python 3.8+ required.**
 
 
-## 2. Running Implemented Experiments
 
-### Forecast
-```python
-# running DLinear Forecast on dataset ETTh1 with seed = 3 
-pytexp --model DLinear --task Forecast --dataset_type ETTh1 run 3
-# running DLinear Forecast on dataset ETTh1 with seeds=[1,2,3]
-pytexp --model DLinear --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
-```
+## Two Ways to Use
 
+### Way 1 — Custom pipeline (bring your own training loop)
 
-### Imputation
-```python
-# running DLinear Imputation on dataset ETTh1 with seed = 3 
-pytexp --model DLinear --task Imputation --dataset_type ETTh1 run 3
-# running DLinear Imputation on dataset ETTh1 with seed = [1,2,3] 
-pytexp --model DLinear --task Imputation --dataset_type ETTh1 runs '[1,2,3]'
-```
-### UEAClassification
-```python
-# running DLinear UEAClassification on dataset EthanolConcentration with seed = 3 
-pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run 3
-# running DLinear UEAClassification on dataset EthanolConcentration with seed = [1,2,3] 
-pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration runs '[1,2,3]'
-```
+Import a dataset and dataloader, then write your own training logic. Full control over loss, optimizer, and batch handling.
 
-### AnomalyDetection
-```python
-# running DLinear AnomalyDetection on dataset MSL with seed = [1,2,3] 
-pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
-# running DLinear AnomalyDetection on dataset MSL with seed = [1,2,3] 
-pytexp --model DLinear --task AnomalyDetection --dataset_type MSL runs 3
-```
-
-
-# Development Milestones
-## Implemented Datasets
-Full list of datasets can be found at [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html).
-| Datasets | Forecasting | Imputation | Anomaly | Classification|
-| --------- | ------- | ------- | ------- | ------- |
-| [ETTh1](https://ojs.aaai.org/index.php/AAAI/article/view/17325)   | ✅ |✅ |  |  |
-| [ETTh2](https://ojs.aaai.org/index.php/AAAI/article/view/17325)   | ✅ |✅ |  |  |
-| [ETTm1](https://ojs.aaai.org/index.php/AAAI/article/view/17325)   | ✅ |✅ |  |  |
-| [ETTm2](https://ojs.aaai.org/index.php/AAAI/article/view/17325)   | ✅ |✅ |  |  |
-| [......And More](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html)   | ✅ |✅ | ✅ | ✅ |
-
-## Implemented Tasks
-
-- [x] Forecast
-- [x] Classfication (for UEA datasets)
-- [x] Anomaly Detection 
-- [x] Imputation
-- [ ] You can fill this check box! (contribute to develop your own task!)
-
-## Implemented Models
-
-| Models | Forecasting | Imputation | Anomaly | Classification|
-| --------- | ------- | ------- | ------- | ------- |
-| [Informer (2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325)   | ✅ |✅ |✅ |✅ |
-| [Autoformer (2021)](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)   | ✅ |✅ |✅ |✅ |
-| [FEDformer (2022)](https://proceedings.mlr.press/v162/zhou22g.html)   | ✅ |✅ |✅ |✅ |
-| [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |✅ |✅ |
-| [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol&trk=public_post_comment-text)   | ✅ |✅ |✅ |✅ |
-| [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah)   | ✅ |✅ |✅ |✅ |
-
-<!-- ## Implemented Datasets
-Currently we have implemented all popular datasets, including
-
-| Datasets | Forecasting | Imputation | Anomaly | Classification|
-| --------- | ------- | ------- | ------- | ------- |
-| [ETTh1](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |  |  |
-| [ETTh2](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |  |  |
-| [ETTm1](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |  |  |
-| [ETTm2](https://ojs.aaai.org/index.php/AAAI/article/view/26317)   | ✅ |✅ |  |  |
-
-[Check the documentation for more detail](https://pytorch-timeseries.readthedocs.io/en/latest/).
-  -->
-
-#  Customizing Your Own Pipeline
-
-we provide examples of :
-- [forecast](https://github.com/wayne155/pytorch_timeseries/blob/main/examples/forecast.py)
-- [imputation](https://github.com/wayne155/pytorch_timeseries/blob/main/examples/mask.py)
-- [anomaly detection](https://github.com/wayne155/pytorch_timeseries/blob/main/examples/anomaly.py)
-- [UEA classfication](https://github.com/wayne155/pytorch_timeseries/blob/main/examples/ueaclass.py)
-
-Detail of customize forecasting pipeline is as follows:
-
-## 1 Forecasting
-
-### 1.1 download dataset
-The dataset will be downloaded **automatically!!!!**
 ```python
 from torch_timeseries.dataset import ETTh1
-from torch_timeseries.dataloader import StandardScaler, SlidingWindow, SlidingWindowTS
-from torch_timeseries.model import DLinear
-from torch.nn import MSELoss, L1Loss
-from torch.optim import Adam
-dataset = ETTh1('./data')
+from torch_timeseries.scaler import StandardScaler
+from torch_timeseries.dataloader.v2 import (
+    ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
+)
+
+# dataset is downloaded automatically on first use
+dataset = ETTh1("./data")
+
+dm = ForecastDataModule(
+    dataset=dataset,
+    scaler=StandardScaler(),
+    window=WindowConfig(window=96, horizon=1, steps=96),
+    split=SplitConfig(train=0.7, val=0.1, test=0.2),
+    loader=LoaderConfig(batch_size=32),
+)
+
+# each batch is a TSBatch: .x, .y, .x_time, .y_time, .x_raw, .y_raw
+for batch in dm.train_loader:
+    x = batch.x.float()        # (B, 96, num_features)
+    y = batch.y.float()        # (B, 96, num_features)
+    # ... your model, loss, optimizer here
 ```
 
-### 1.2 setup scaler/dataloader
+Use this pattern when you need a non-standard training loop, custom loss, or are prototyping a new architecture.
 
-Once you setup a dataloader and pass a scaler into this dataloader, the scaler will be fitted on the training set.
+---
 
+### Way 2 — Default experiments (one command, results saved automatically)
+
+Use the built-in experiment runner. Pick a model, task, and dataset — the library handles data loading, training, evaluation, and result saving.
+
+**CLI:**
+
+```bash
+# forecast
+pytexp --model DLinear --task Forecast --dataset_type ETTh1 run 3
+pytexp --model DLinear --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
+
+# imputation
+pytexp --model DLinear --task Imputation --dataset_type ETTh1 run 3
+
+# anomaly detection
+pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
+
+# classification
+pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run 3
+```
+
+**Python API:**
 
 ```python
-scaler = StandardScaler()
-dataloader = SlidingWindowTS(dataset, 
-                        window=96,
-                        horizon=1,
-                        steps=336,
-                        batch_size=32, 
-                        train_ratio=0.7, 
-                        val_ratio=0.2, 
-                        scaler=scaler,
-                        )
+from torch_timeseries.experiments import DLinearForecast
 
+exp = DLinearForecast(
+    dataset_type="ETTh1",
+    windows=96,
+    pred_len=96,
+    lr=0.001,
+)
+exp.run(3)          # run with seed=3
+exp.runs([1, 2, 3]) # run with multiple seeds
 ```
-After this, you can access the train/val/test loader by `dataloader.train_loader/val_loader/test_loader` 
 
-### 1.3 training
+Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
 
 
+
+## Custom Models
+
+To plug in your own model, subclass `BaseExp`, define `_build_model`, and pass it to the experiment runner:
 
 ```python
-model = DLinear(dataloader.window, dataloader.steps, dataset.num_features, individual= True)
-optimizer = Adam(model.parameters())
-loss_function = MSELoss()
+from dataclasses import dataclass
+from torch_timeseries.experiments import BaseExp
+import torch.nn as nn
 
-# train
-model.train()
-for scaled_x, scaled_y, x, y, x_date_enc, y_date_enc in dataloader.train_loader:
-    optimizer.zero_grad()
-    
-    scaled_x = scaled_x.float()
-    scaled_y = scaled_y.float()
-    scaled_pred_y = model(scaled_x) 
-    
-    loss = loss_function(scaled_pred_y, scaled_y)
-    loss.backward()
-    optimizer.step()
-    print(loss)
+@dataclass
+class MyModel(BaseExp):
+    hidden_dim: int = 64
+
+    def _build_model(self) -> nn.Module:
+        return MyNet(
+            seq_len=self.windows,
+            pred_len=self.pred_len,
+            hidden_dim=self.hidden_dim,
+        )
 ```
 
-### 1.4 val/test
+Then run it with any supported task and dataset:
 
-```python
-# val
-model.eval()
-for scaled_x, scaled_y, x, y, x_date_enc, y_date_enc in dataloader.val_loader:
-    ....your validation code here...
-
-# test
-model.eval()
-for scaled_x, scaled_y, x, y, x_date_enc, y_date_enc in dataloader.test_loader:
-    ....your test code here...
+```bash
+pytexp --model MyModel --task Forecast --dataset_type ETTh1 run 1
 ```
 
 
-# Dev Install 
 
-## install requirements
-> Note:This library assumes that you've installed Pytorch according to it's official website, the basic dependencies of torch > > related libraries may not be listed in the requirements files:
-https://pytorch.org/get-started/locally/
+## Development Milestones
 
-**The recommended python version is 3.8.1+.**
-1. fork this project 
+### Implemented Datasets
 
-2. clone this project (latest version)
-```
+Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html).
+
+| Datasets | Forecasting | Imputation | Anomaly | Classification |
+| -------- | ----------- | ---------- | ------- | -------------- |
+| [ETTh1](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
+| [ETTh2](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
+| [ETTm1](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
+| [ETTm2](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
+| [......And More](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html) | ✅ | ✅ | ✅ | ✅ |
+
+### Implemented Tasks
+
+- [x] Forecast
+- [x] Imputation
+- [x] Anomaly Detection
+- [x] Classification (UEA datasets)
+- [ ] Contribute your own task!
+
+### Implemented Models
+
+| Models | Forecasting | Imputation | Anomaly | Classification |
+| ------ | ----------- | ---------- | ------- | -------------- |
+| [Informer (2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | ✅ | ✅ |
+| [Autoformer (2021)](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html) | ✅ | ✅ | ✅ | ✅ |
+| [FEDformer (2022)](https://proceedings.mlr.press/v162/zhou22g.html) | ✅ | ✅ | ✅ | ✅ |
+| [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317) | ✅ | ✅ | ✅ | ✅ |
+| [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol) | ✅ | ✅ | ✅ | ✅ |
+| [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah) | ✅ | ✅ | ✅ | ✅ |
+
+
+
+## Dev Install
+
+> This library assumes PyTorch is already installed: https://pytorch.org/get-started/locally/
+>
+> Recommended Python: 3.8.1+
+
+```bash
+# 1. fork and clone
 git clone https://github.com/wayne155/pytorch_timeseries
-```
 
-3.  install requirements.
-```
+# 2. install dependencies
 pip install -r ./requirements.txt
+
+# 3. make changes and open a pull request
 ```
-
-4. change some code and push to the forked repo
-
-5. create a pull request to this repo
