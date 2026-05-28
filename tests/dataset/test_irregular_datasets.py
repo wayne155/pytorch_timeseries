@@ -37,6 +37,7 @@ def test_physionet2012_loads(tmp_path):
     assert ds.num_classes == 2
     assert ds.labels is not None
     assert len(ds.labels) == 3
+    assert ds.labels.tolist() == [0, 1, 0]
     # each sample is (T_i, 41)
     assert ds.samples[0].ndim == 2
     assert ds.samples[0].shape[1] == 41

@@ -35,7 +35,10 @@ class PhysioNet2012(IrregularTimeSeriesDataset):
 
     def download(self) -> None:
         dest = Path(self.root) / "physionet2012"
-        if (dest / "set-a").exists():
+        if all(
+            (dest / f"set-{s}").exists() and (dest / f"Outcomes-{s}.txt").exists()
+            for s in self._SETS
+        ):
             return
         dest.mkdir(parents=True, exist_ok=True)
         for s in self._SETS:
@@ -44,7 +47,7 @@ class PhysioNet2012(IrregularTimeSeriesDataset):
             print(f"Downloading {tar_url} ...")
             urllib.request.urlretrieve(tar_url, tar_path)
             with tarfile.open(tar_path, "r:gz") as tf:
-                tf.extractall(dest)
+                tf.extractall(dest, filter="data")
             tar_path.unlink()
             outcome_url = f"{self._BASE_URL}Outcomes-{s}.txt"
             urllib.request.urlretrieve(outcome_url, dest / f"Outcomes-{s}.txt")
@@ -74,7 +77,8 @@ class PhysioNet2012(IrregularTimeSeriesDataset):
             for txt_file in sorted(set_dir.glob("*.txt")):
                 try:
                     rec_id, x, t_arr, mask = self._parse_patient(txt_file, F)
-                except Exception:
+                except Exception as exc:
+                    print(f"Warning: skipping {txt_file.name}: {exc}")
                     continue
                 if rec_id not in outcomes:
                     continue
