@@ -154,3 +154,78 @@ def test_anomaly_dm_test_batch_y_is_labels():
     assert batch.y is not None
     B = min(8, len(dm.test_dataset))
     assert batch.y.shape == (B, 20)   # per-timestep labels in window
+
+
+from torch_timeseries.dataloader.v2.uea import UEADataModule, UEAWindowConfig
+
+
+class _ToyUEA:
+    """Minimal stand-in for a UEA dataset."""
+    name = "toy_uea"
+    num_features = 5
+    num_classes = 3
+    max_seq_len = 24
+
+    def __init__(self, root=None):
+        rng = np.random.default_rng(7)
+        n_train, n_test, T, F = 60, 20, 24, 5
+        idx_train = pd.MultiIndex.from_product(
+            [range(n_train), range(T)], names=["sample_id", "timestep"]
+        )
+        idx_test = pd.MultiIndex.from_product(
+            [range(n_train, n_train + n_test), range(T)], names=["sample_id", "timestep"]
+        )
+        self.train_df = pd.DataFrame(
+            rng.normal(size=(n_train * T, F)), index=idx_train,
+            columns=[f"c{i}" for i in range(F)]
+        )
+        self.test_df = pd.DataFrame(
+            rng.normal(size=(n_test * T, F)), index=idx_test,
+            columns=[f"c{i}" for i in range(F)]
+        )
+        train_label_idx = pd.Index(range(n_train), name="sample_id")
+        test_label_idx = pd.Index(range(n_train, n_train + n_test), name="sample_id")
+        self.train_labels = pd.Series(
+            rng.integers(0, 3, size=n_train), index=train_label_idx
+        )
+        self.test_labels = pd.Series(
+            rng.integers(0, 3, size=n_test), index=test_label_idx
+        )
+
+
+def test_uea_dm_train_batch_shape():
+    dm = UEADataModule(
+        dataset=_ToyUEA(),
+        scaler=StandardScaler(),
+        window=UEAWindowConfig(val_ratio=0.2),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    batch = next(iter(dm.train_loader))
+    assert isinstance(batch, TSBatch)
+    B = min(8, len(dm.train_dataset))
+    assert batch.x.shape == (B, 24, 5)   # (B, T, F)
+    assert batch.y.shape == (B,)          # integer class labels
+
+
+def test_uea_dm_test_batch_shape():
+    dm = UEADataModule(
+        dataset=_ToyUEA(),
+        scaler=StandardScaler(),
+        window=UEAWindowConfig(val_ratio=0.2),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    batch = next(iter(dm.test_loader))
+    B = min(8, len(dm.test_dataset))
+    assert batch.x.shape == (B, 24, 5)
+    assert batch.y.shape == (B,)
+
+
+def test_uea_dm_has_val_loader():
+    dm = UEADataModule(
+        dataset=_ToyUEA(),
+        scaler=StandardScaler(),
+        window=UEAWindowConfig(val_ratio=0.2),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+    assert hasattr(dm, "val_loader")
+    assert len(dm.val_dataset) > 0
