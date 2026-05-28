@@ -91,6 +91,8 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
         x_times = []
         for s in samples:
             T_i = s.x_time.shape[0]
+            assert T_i == s.x.shape[0], \
+                f"x_time length {T_i} != x length {s.x.shape[0]}"
             xt = torch.zeros(max_T, C, dtype=s.x_time.dtype, device=s.x_time.device)
             xt[:T_i] = s.x_time
             x_times.append(xt)
@@ -128,7 +130,7 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
 
     if samples[0].t_query is not None:
         max_Tq = max(s.t_query.shape[0] for s in samples)
-        Fq = samples[0].query_mask.shape[1] if samples[0].query_mask is not None else F
+        Fq = samples[0].query_mask.shape[1] if samples[0].query_mask is not None else None
 
         tqs: List[Tensor] = []
         qms: List[Tensor] = []
@@ -160,6 +162,8 @@ def collate_irregular(samples: List[IrregularTSBatch]) -> IrregularTSBatch:
             tqts: List[Tensor] = []
             for s in samples:
                 Tq_i = s.t_query_time.shape[0]
+                assert Tq_i == s.t_query.shape[0], \
+                    f"t_query_time length {Tq_i} != t_query length {s.t_query.shape[0]}"
                 tqt = torch.zeros(max_Tq, C2, dtype=s.t_query_time.dtype, device=s.t_query_time.device)
                 tqt[:Tq_i] = s.t_query_time
                 tqts.append(tqt)

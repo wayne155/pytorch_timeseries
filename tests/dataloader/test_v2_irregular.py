@@ -96,7 +96,7 @@ def test_collate_irregular_partial_x_time_raises():
         x=torch.randn(T, F), t=torch.linspace(0.0, 1.0, T),
         mask=torch.ones(T, F), x_time=None,
     )
-    with pytest.raises(AssertionError, match="x_time"):
+    with pytest.raises(AssertionError, match="All samples must have x_time"):
         collate_irregular([s_with, s_without])
 
 
