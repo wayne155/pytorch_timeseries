@@ -1,0 +1,47 @@
+name: Deploy Leaderboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'results/**'
+      - 'leaderboard/entries/**'
+      - 'webapp/**'
+      - 'scripts/build_leaderboard.py'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: pip install pyyaml
+
+      - name: Build leaderboard data
+        run: python scripts/build_leaderboard.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install Node deps
+        run: cd webapp && npm ci
+
+      - name: Build frontend
+        run: cd webapp && npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./webapp/dist
