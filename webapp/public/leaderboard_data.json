@@ -1,0 +1,162 @@
+{
+  "generated_at": "2026-05-29T16:55:22.362910+00:00",
+  "entries": [
+    {
+      "id": "8f0ef3b983838d9a",
+      "model": "_GridModel",
+      "task": "Forecast",
+      "dataset": "ETTh1",
+      "seed": 1,
+      "hparams": {
+        "horizon": 1,
+        "windows": 96,
+        "pred_len": 96
+      },
+      "metrics": {
+        "mse": 0.5
+      },
+      "num_params": 0,
+      "train_time_sec": 0.0,
+      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
+      "timestamp": "2026-05-29T03:13:06",
+      "source_type": "local_run",
+      "citation": "",
+      "url": "",
+      "notes": ""
+    },
+    {
+      "id": "cd804a2eee460b03",
+      "model": "_GridModel",
+      "task": "Forecast",
+      "dataset": "ETTh1",
+      "seed": 2,
+      "hparams": {
+        "horizon": 1,
+        "windows": 96,
+        "pred_len": 96
+      },
+      "metrics": {
+        "mse": 0.5
+      },
+      "num_params": 0,
+      "train_time_sec": 0.0,
+      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
+      "timestamp": "2026-05-29T03:13:06",
+      "source_type": "local_run",
+      "citation": "",
+      "url": "",
+      "notes": ""
+    },
+    {
+      "id": "c614c53ed14bde1e",
+      "model": "_GridModel",
+      "task": "Forecast",
+      "dataset": "ETTm1",
+      "seed": 1,
+      "hparams": {
+        "horizon": 1,
+        "windows": 96,
+        "pred_len": 96
+      },
+      "metrics": {
+        "mse": 0.5
+      },
+      "num_params": 0,
+      "train_time_sec": 0.0,
+      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
+      "timestamp": "2026-05-29T03:13:06",
+      "source_type": "local_run",
+      "citation": "",
+      "url": "",
+      "notes": ""
+    },
+    {
+      "id": "20d10da1b94661b8",
+      "model": "_GridModel",
+      "task": "Forecast",
+      "dataset": "ETTm1",
+      "seed": 2,
+      "hparams": {
+        "horizon": 1,
+        "windows": 96,
+        "pred_len": 96
+      },
+      "metrics": {
+        "mse": 0.5
+      },
+      "num_params": 0,
+      "train_time_sec": 0.0,
+      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
+      "timestamp": "2026-05-29T03:13:06",
+      "source_type": "local_run",
+      "citation": "",
+      "url": "",
+      "notes": ""
+    },
+    {
+      "id": "e1875b2ee56c85f2",
+      "model": "DLinear",
+      "task": "Forecast",
+      "dataset": "ETTh1",
+      "seed": null,
+      "hparams": {
+        "windows": 96,
+        "horizon": 1,
+        "pred_len": 96
+      },
+      "metrics": {
+        "mse": {
+          "mean": 0.4,
+          "std": 0.0
+        },
+        "mae": {
+          "mean": 0.3,
+          "std": 0.0
+        }
+      },
+      "num_params": null,
+      "train_time_sec": null,
+      "git_commit": "",
+      "timestamp": "",
+      "source_type": "paper",
+      "citation": "",
+      "url": "",
+      "notes": ""
+    }
+  ],
+  "schema": {
+    "tasks": [
+      "Forecast"
+    ],
+    "datasets_by_task": {
+      "Forecast": [
+        "ETTh1",
+        "ETTm1"
+      ]
+    },
+    "models": [
+      "DLinear",
+      "_GridModel"
+    ],
+    "hparams_by_task": {
+      "Forecast": [
+        "horizon",
+        "pred_len",
+        "windows"
+      ]
+    },
+    "hparam_options": {
+      "Forecast": {
+        "horizon": [
+          1
+        ],
+        "pred_len": [
+          96
+        ],
+        "windows": [
+          96
+        ]
+      }
+    }
+  }
+}
