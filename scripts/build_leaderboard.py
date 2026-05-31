@@ -7,6 +7,8 @@ Usage:
         [--entries-dir leaderboard/entries] \
         [--out webapp/public/leaderboard_data.json]
 """
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
