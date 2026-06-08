@@ -286,3 +286,14 @@ def test_forecast_dm_int_time_enc_still_works():
     dm = _toy_forecast_dm(time_enc=1)
     batch = next(iter(dm.train_loader))
     assert batch.x_time_feature is not None
+
+
+from torch_timeseries.dataloader.v2.irregular_classification import IrregularClassificationConfig
+
+
+def test_irregular_classification_config_accepts_string_time_enc():
+    cfg = IrregularClassificationConfig(time_enc="fourier")
+    assert cfg.time_enc == "fourier"
+
+    cfg2 = IrregularClassificationConfig(time_enc=0)
+    assert cfg2.time_enc == 0

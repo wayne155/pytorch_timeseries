@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import torch
@@ -12,12 +12,13 @@ from .._seed import seed_worker
 from .._split import resolve_split_ratios
 from .forecast import LoaderConfig, SplitConfig
 from .irregular_batch import IrregularTSBatch, collate_irregular
+from torch_timeseries.utils.timefeatures import TimeEncoding
 
 
 @dataclass
 class IrregularClassificationConfig:
-    time_enc: int = 0           # 0=no calendar features
-    freq: Optional[str] = None  # required if time_enc > 0
+    time_enc: Union[TimeEncoding, str, int] = "calendar"
+    freq: Optional[str] = None
 
 
 class _IrregularClassificationDataset(Dataset):
