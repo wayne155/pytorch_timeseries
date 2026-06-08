@@ -120,7 +120,9 @@ class ForecastDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc
+        # Validate and normalize time_enc; WindowedDataset will accept it once
+        # the ongoing windowed.py refactor wires time encoding back in.
+        time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc  # noqa: F841
         common = dict(
             scaler=self.scaler,
             window=wc.window,
