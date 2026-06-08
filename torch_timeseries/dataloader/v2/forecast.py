@@ -120,7 +120,7 @@ class ForecastDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc
+        self.time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc
         common = dict(
             scaler=self.scaler,
             window=wc.window,
