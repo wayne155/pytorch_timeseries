@@ -6,7 +6,7 @@ import torch
 
 from torch_timeseries.core import TimeSeriesDataset, Freq
 from torch_timeseries.scaler import StandardScaler
-from torch_timeseries.dataloader.v2 import SplitConfig, LoaderConfig, TSBatch
+from torch_timeseries.dataloader.v2 import SplitConfig, LoaderConfig, TSBatch, ForecastDataModule, WindowConfig
 from torch_timeseries.dataloader.v2.imputation import (
     ImputationDataModule, ImputationWindowConfig,
 )
@@ -229,3 +229,37 @@ def test_uea_dm_has_val_loader():
     )
     assert hasattr(dm, "val_loader")
     assert len(dm.val_dataset) > 0
+
+
+def test_window_config_accepts_string_time_enc():
+    """WindowConfig should accept string aliases without error."""
+    cfg = WindowConfig(time_enc="fourier")
+    assert cfg.time_enc == "fourier"
+
+
+def _toy_forecast_dm(time_enc="calendar"):
+    return ForecastDataModule(
+        dataset=_ToyTS(root="/tmp"),
+        scaler=StandardScaler(),
+        window=WindowConfig(window=24, horizon=4, time_enc=time_enc, freq="h"),
+        split=SplitConfig(train=0.7, val=0.1, test=0.2),
+        loader=LoaderConfig(batch_size=8, num_workers=0),
+    )
+
+
+def test_forecast_dm_string_time_enc_calendar():
+    dm = _toy_forecast_dm(time_enc="calendar")
+    batch = next(iter(dm.train_loader))
+    assert batch.x_time_feature is not None
+
+
+def test_forecast_dm_string_time_enc_fourier():
+    dm = _toy_forecast_dm(time_enc="fourier")
+    batch = next(iter(dm.train_loader))
+    assert batch.x_time_feature is not None
+
+
+def test_forecast_dm_int_time_enc_still_works():
+    dm = _toy_forecast_dm(time_enc=1)
+    batch = next(iter(dm.train_loader))
+    assert batch.x_time_feature is not None
