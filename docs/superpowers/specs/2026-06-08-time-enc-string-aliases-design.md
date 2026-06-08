@@ -48,8 +48,8 @@ Valid string aliases (case-insensitive):
 
 **Files:**
 - `torch_timeseries/dataloader/v2/forecast.py` — `WindowConfig`
-- `torch_timeseries/dataloader/v2/imputation.py` — `ImputationWindowConfig` and the `MaskedDataset.__init__` param
-- `torch_timeseries/dataloader/v2/irregular_classification.py` — `IrregularWindowConfig`
+- `torch_timeseries/dataloader/v2/imputation.py` — `ImputationWindowConfig` and `ImputationWindowedDataset.__init__` param
+- `torch_timeseries/dataloader/v2/irregular_classification.py` — `IrregularClassificationConfig`
 
 Change:
 ```python
@@ -73,9 +73,10 @@ time_enc = TimeEncoding(time_enc) if not isinstance(time_enc, TimeEncoding) else
 ```
 
 Locations:
-- `ForecastDataModule._build_datasets()` in `forecast.py`
-- `ImputationDataModule._build_datasets()` (or equivalent) in `imputation.py`
-- `IrregularClassificationDataModule` dataset-build step in `irregular_classification.py`
+- `ForecastDataModule._build_datasets()` — before passing `wc.time_enc` to `WindowedDataset`
+- `ImputationDataModule._build_datasets()` — before passing `wc.time_enc` to `ImputationWindowedDataset`
+- `ImputationWindowedDataset.__init__` — before passing `time_enc` to `time_features()`
+- `IrregularClassificationConfig.time_enc` — type annotation only; `time_enc` is currently **not wired** to `_IrregularClassificationDataset` (which normalises time to [0,1] per-sample instead). No normalization call needed there until the wiring is added.
 
 Since `TimeEncoding` is an `IntEnum`, the resolved value satisfies all existing `if timeenc == 0 / 1 / 3` checks in `time_features()` with no further changes.
 
