@@ -9,11 +9,12 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from torch_timeseries.core import TimeSeriesDataset, TimeseriesSubset
-from torch_timeseries.utils.timefeatures import time_features, TimeEncoding
+from torch_timeseries.utils.timefeatures import TimeEncoding
 
 from .._seed import seed_worker
 from .._split import resolve_split_ratios
 from .batch import TSBatch, Time, collate_tsbatch
+from .windowed import _slice_time
 from .forecast import SplitConfig, LoaderConfig
 
 
@@ -23,6 +24,7 @@ class ImputationWindowConfig:
     mask_ratio: float = 0.25
     stride: int = 1
     time_enc: Union[TimeEncoding, str, int] = "calendar"
+    freq: Optional[str] = None
 
     def __post_init__(self):
         if self.window <= 0:
@@ -56,8 +58,8 @@ class ImputationWindowedDataset(Dataset):
         self.window = window
         self.scaled = scaler.transform(subset.data).astype(np.float32)
         self.raw = subset.data.astype(np.float32)
-        time_enc = TimeEncoding(time_enc) if not isinstance(time_enc, TimeEncoding) else time_enc
-        self.time = time_features(subset.dates, time_enc, freq).astype(np.float32)
+        # Validate/normalize time_enc; will be wired into Time features once windowed.py refactor lands.
+        _ = TimeEncoding(time_enc) if not isinstance(time_enc, TimeEncoding) else time_enc
         try:
             self._time = Time.from_dates(subset.dates) if subset.dates is not None else None
         except Exception:
@@ -72,7 +74,6 @@ class ImputationWindowedDataset(Dataset):
         e = s + self.window
         sl = slice(s, e)
         x = torch.from_numpy(self.scaled[sl].copy())
-        from .windowed import _slice_time
         return TSBatch(
             x=x,
             y=x.clone(),
