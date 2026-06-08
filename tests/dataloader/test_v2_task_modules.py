@@ -297,3 +297,6 @@ def test_irregular_classification_config_accepts_string_time_enc():
 
     cfg2 = IrregularClassificationConfig(time_enc=0)
     assert cfg2.time_enc == 0
+
+    with pytest.raises(ValueError):
+        IrregularClassificationConfig(time_enc="garbage")

@@ -49,7 +49,7 @@ class ImputationWindowedDataset(Dataset):
         window: int = 96,
         stride: int = 1,
         time_enc: Union[TimeEncoding, str, int] = "calendar",
-        freq: str = None,
+        freq: Optional[str] = None,
     ) -> None:
         if 0 < len(subset) < window:
             raise ValueError(

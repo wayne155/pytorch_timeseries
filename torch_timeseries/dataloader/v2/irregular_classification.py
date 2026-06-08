@@ -20,6 +20,9 @@ class IrregularClassificationConfig:
     time_enc: Union[TimeEncoding, str, int] = "calendar"
     freq: Optional[str] = None
 
+    def __post_init__(self):
+        TimeEncoding(self.time_enc)  # validate; raises ValueError for unknown aliases
+
 
 class _IrregularClassificationDataset(Dataset):
     """Maps indices into an IrregularTimeSeriesDataset, scales, normalizes time."""
