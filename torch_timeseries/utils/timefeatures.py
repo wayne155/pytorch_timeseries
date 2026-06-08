@@ -13,6 +13,15 @@ class TimeEncoding(IntEnum):
     FOURIER    = 1   # normalized Fourier-style date features
     NORMALIZED = 3   # normalized calendar scalars
 
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            try:
+                return cls[value.upper()]
+            except KeyError:
+                pass
+        return None
+
 
 class TimeFeature:
     def __init__(self):

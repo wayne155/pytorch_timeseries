@@ -67,6 +67,26 @@ def test_time_encoding_enum_values_match_int_behaviour():
     np.testing.assert_array_equal(out_int1, out_enum1)
 
 
+def test_time_encoding_from_string_lowercase():
+    from torch_timeseries.utils.timefeatures import TimeEncoding
+    assert TimeEncoding("calendar") is TimeEncoding.CALENDAR
+    assert TimeEncoding("fourier") is TimeEncoding.FOURIER
+    assert TimeEncoding("normalized") is TimeEncoding.NORMALIZED
+
+
+def test_time_encoding_from_string_uppercase():
+    from torch_timeseries.utils.timefeatures import TimeEncoding
+    assert TimeEncoding("FOURIER") is TimeEncoding.FOURIER
+    assert TimeEncoding("Calendar") is TimeEncoding.CALENDAR
+
+
+def test_time_encoding_invalid_string_raises():
+    from torch_timeseries.utils.timefeatures import TimeEncoding
+    import pytest
+    with pytest.raises(ValueError):
+        TimeEncoding("invalid")
+
+
 def test_cli_compare_subcommand(tmp_path):
     """pytexp compare --save_dir <dir> should exit 0 and print DLinear."""
     import subprocess, sys, json
