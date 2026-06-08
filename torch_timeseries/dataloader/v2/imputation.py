@@ -139,9 +139,7 @@ class ImputationDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        freq = getattr(self.dataset, 'freq', None)
-        freq_str = freq.value if hasattr(freq, 'value') else freq
-        kw = dict(window=wc.window, stride=wc.stride, time_enc=wc.time_enc, freq=freq_str)
+        kw = dict(window=wc.window, stride=wc.stride, time_enc=wc.time_enc, freq=wc.freq)
         self.train_dataset = ImputationWindowedDataset(self.train_subset, self.scaler, **kw)
         self.val_dataset = ImputationWindowedDataset(self.val_subset, self.scaler, **kw)
         self.test_dataset = ImputationWindowedDataset(self.test_subset, self.scaler, **kw)
