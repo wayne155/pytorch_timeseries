@@ -231,6 +231,29 @@ def test_uea_dm_has_val_loader():
     assert len(dm.val_dataset) > 0
 
 
+def test_imputation_config_accepts_string_time_enc():
+    cfg = ImputationWindowConfig(time_enc="fourier")
+    assert cfg.time_enc == "fourier"
+
+
+def test_imputation_dm_string_time_enc_fourier():
+    dm = _toy_imputation_dm(window=32, time_enc="fourier", freq="h")
+    batch = next(iter(dm.train_loader))
+    assert batch.x is not None
+
+
+def test_imputation_dm_string_time_enc_calendar():
+    dm = _toy_imputation_dm(window=32, time_enc="calendar", freq="h")
+    batch = next(iter(dm.train_loader))
+    assert batch.x is not None
+
+
+def test_imputation_dm_int_time_enc_still_works():
+    dm = _toy_imputation_dm(window=32, time_enc=1, freq="h")
+    batch = next(iter(dm.train_loader))
+    assert batch.x is not None
+
+
 def test_window_config_accepts_string_time_enc():
     """WindowConfig should accept string aliases without error."""
     cfg = WindowConfig(time_enc="fourier")
