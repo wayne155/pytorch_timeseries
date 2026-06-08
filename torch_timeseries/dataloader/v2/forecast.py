@@ -30,7 +30,7 @@ class WindowConfig:
     horizon: int = 1
     steps: int = 1
     stride: int = 1
-    include_raw: bool = True
+    include_raw: bool = False
     include_time: bool = True
     include_index: bool = False
     single_variate: bool = False
@@ -120,7 +120,7 @@ class ForecastDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        self.time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc
+        time_enc = TimeEncoding(wc.time_enc) if not isinstance(wc.time_enc, TimeEncoding) else wc.time_enc
         common = dict(
             scaler=self.scaler,
             window=wc.window,
@@ -172,4 +172,6 @@ class ForecastDataModule:
         wc = self.window_cfg
         if wc.target_columns is not None:
             return len(wc.target_columns)
+        if wc.single_variate:
+            return 1
         return self.dataset.num_features
