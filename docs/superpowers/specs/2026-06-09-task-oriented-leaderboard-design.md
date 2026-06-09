@@ -255,18 +255,48 @@ out: webapp/public/leaderboard_data.json
 ### Layout
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  torch-timeseries Leaderboard                                             │
+┌───────────────────────────────────────────────────────────────────────────┐
+│  torch-timeseries Leaderboard                                              │
 ├───────────────────────────────────────────────────────────────────────────┤
-│  [Long-Term Forecast ▾]  [I96 ▾]  [ETTh1 ▾]   [☐ ±std]  [Export]       │
-├───────────────────────────────────────────────────────────────────────────┤
-│ Model     │   avg       │   96        │   192       │ ...  │  720  │      │
-│           │  MSE  MAE   │  MSE  MAE   │  MSE  MAE   │      │       │      │
-├───────────┼─────────────┼─────────────┼─────────────┼──────┼───────┼──────┤
-│ DLinear   │ 0.417 0.300 │ 0.384 0.276 │ 0.412 0.296 │ ...  │  ...  │ [⋯] │
-│ iTransf.  │ 0.392 0.281 │ 0.360 0.261 │ 0.387 0.277 │ ...  │  ...  │ [⋯] │
-└───────────┴─────────────┴─────────────┴─────────────┴──────┴───────┴──────┘
+│  [Long-Term Forecast ▾]  [I96 ▾]          [☐ ±std]  [Export CSV]         │
+├──────────────┬────────────────────────────────────────────────────────────┤
+│ Datasets     │  Model    │  avg ↓      │   96        │ 192  │ 336  │ 720  │
+│              │           │  MSE  MAE   │  MSE  MAE   │ ...  │ ...  │      │
+│ ● All        ├───────────┼─────────────┼─────────────┼──────┼──────┼──────┤
+│ ○ ETTh1      │ DLinear   │ 0.417 0.300 │ 0.384 0.276 │ ...  │ ...  │ [⋯] │
+│ ○ ETTh2      │ iTransf.  │ 0.392 0.281 │ 0.360 0.261 │ ...  │ ...  │ [⋯] │
+│ ○ ETTm1      │ PatchTST  │ 0.381 0.274 │ 0.351 0.255 │ ...  │ ...  │ [⋯] │
+│ ○ ETTm2      │           │             │             │      │      │      │
+│ ○ Electricity│           │             │             │      │      │      │
+│ ○ Weather    │           │             │             │      │      │      │
+│ ○ Traffic    │           │             │             │      │      │      │
+└──────────────┴───────────┴─────────────┴─────────────┴──────┴──────┴──────┘
 ```
+
+When a specific dataset is selected (e.g., ETTh1), the table columns change:
+
+```
+│ Datasets     │  Model    │  avg ↓      │   96        │  192  │  336  │  720  │
+│              │           │  MSE  MAE   │  MSE  MAE   │  ...  │  ...  │       │
+│ ○ All        ├───────────┼─────────────┼─────────────┼───────┼───────┼───────┤
+│ ● ETTh1      │ DLinear   │ 0.417 0.300 │ 0.384 0.276 │  ...  │  ...  │  [⋯] │
+│ ○ ETTh2      │ iTransf.  │ 0.392 0.281 │ 0.360 0.261 │  ...  │  ...  │  [⋯] │
+```
+
+For tasks without sub-columns (UEA, Anomaly, IrregularClassification), selecting "All" shows one column per dataset + an avg column on the left:
+
+```
+│ Datasets       │  Model    │  avg ↑ │ EthanolC │ FaceDetect │ Handwriting │ ...  │
+│                │           │  acc   │  acc     │  acc       │  acc        │      │
+│ ● All          ├───────────┼────────┼──────────┼────────────┼─────────────┼──────┤
+│ ○ EthanolC     │ PatchTST  │  0.78  │  0.71    │  0.75      │  0.45       │ [⋯] │
+│ ○ FaceDetect   │ GRU-D     │  0.72  │  0.65    │  0.71      │  0.38       │ [⋯] │
+│ ○ Handwriting  │           │        │          │            │             │      │
+│ ○ Heartbeat    │           │        │          │            │             │      │
+└────────────────┴───────────┴────────┴──────────┴────────────┴─────────────┴──────┘
+```
+
+Selecting a specific dataset collapses to a single metric column for that dataset.
 
 Each row has a **`[⋯]` action button** on the far right. What it does is TBD — placeholder for now. Renders as a small `⋯` icon button (`...`), disabled/no-op until behaviour is decided.
 
@@ -295,9 +325,16 @@ With ±std enabled:
 |---------|----------|
 | View selector | Switches between task views (LongTermForecast, UEAClassification, …) |
 | Variant selector | Switches between I96 / I336 / … within a view |
-| Dataset selector | Filters to one dataset (or "All" = show avg across datasets) |
+| Dataset selector | Left-side panel; radio buttons: "All" + one per dataset in the current view YAML. Selecting "All" shows all datasets. Selecting a specific dataset filters the table to that dataset's data only (see layout mockups above). |
 | ±std checkbox | Toggle std display in cells |
 | Export CSV | Downloads current visible table |
+
+**Dataset selector behavior by task type:**
+
+- **Tasks with subcolumns (Forecast, Imputation):** Selecting "All" shows avg across all datasets. Selecting ETTh1 shows only ETTh1's avg + subcolumn columns (pred_len or mask_rate).
+- **Tasks without subcolumns (UEA, Anomaly, IrregularClassification):** Selecting "All" shows one column per dataset + a left-side avg column. Selecting a specific dataset collapses to a single metric column for that dataset.
+
+The list of available datasets is read from the active view YAML's `datasets` field. Datasets with no results in the current data are shown but disabled.
 
 ### Components
 
@@ -307,7 +344,8 @@ With ±std enabled:
 | `src/hooks/useTaskView.ts` | Selects and filters the active view/variant/dataset from data |
 | `src/components/TaskTable.tsx` | Multi-level header table (avg + subcolumns) using TanStack Table column groups |
 | `src/components/ViewSelector.tsx` | Top-level tab/dropdown for view selection |
-| `src/components/VariantDatasetBar.tsx` | Variant + dataset selectors + std toggle + export |
+| `src/components/DatasetSelector.tsx` | Left-side panel with radio buttons (All + one per dataset); grays out datasets with no data; emits selected dataset to parent |
+| `src/components/VariantBar.tsx` | Variant selector + std toggle + export (dataset selector moved to its own component) |
 | `src/components/MetricCell.tsx` | Reuse existing (mean, optional ±std, best/worst highlight) |
 | `src/components/RowActionButton.tsx` | `[⋯]` placeholder button, far-right column; no-op for now |
 
