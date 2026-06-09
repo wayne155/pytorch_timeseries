@@ -5,19 +5,34 @@ import time
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
-from .results.backends import LocalBackend, ResultBackend, WandbBackend, _get_git_commit
+from .experiments.configs import split_experiment_config
+from .experiments.engine import CrossformerForecastEngine, DLinearForecastEngine
+from .results.backends import (
+    ArtifactBackend,
+    LocalArtifactBackend,
+    LocalBackend,
+    ResultBackend,
+    WandbBackend,
+    _get_git_commit,
+)
+from .results.identity import build_run_config, config_fingerprint, run_id_for_seed
 from .results.schema import RunResult
 
 
 class Experiment:
     """Fluent builder for running and comparing time-series experiments."""
 
-    def __init__(self, model: str, task: str, dataset: str) -> None:
+    def __init__(self, model: str, task: str, dataset: str, **kwargs) -> None:
         self.model = model
         self.task = task
         self.dataset = dataset
-        self._overrides: Dict = {}
+        self._overrides: Dict = dict(kwargs)
         self._backends: List[ResultBackend] = []
+        self._artifact_backends: List[ArtifactBackend] = []
+        save_dir = self._overrides.get("save_dir")
+        if save_dir is not None:
+            self._backends.append(LocalBackend(save_dir=save_dir))
+            self._artifact_backends.append(LocalArtifactBackend(save_dir=save_dir))
 
     def set(self, **kwargs) -> "Experiment":
         self._overrides.update(kwargs)
@@ -25,11 +40,85 @@ class Experiment:
 
     def with_local(self, save_dir: str = "./results") -> "Experiment":
         self._backends.append(LocalBackend(save_dir=save_dir))
+        self._artifact_backends.append(LocalArtifactBackend(save_dir=save_dir))
         return self
 
     def with_wandb(self, project: str, entity: str = None) -> "Experiment":
         self._backends.append(WandbBackend(project=project, entity=entity))
         return self
+
+    def _uses_engine_path(self) -> bool:
+        return (self.model, self.task) in self._engine_classes()
+
+    def _engine_classes(self):
+        return {
+            ("DLinear", "Forecast"): DLinearForecastEngine,
+            ("Crossformer", "Forecast"): CrossformerForecastEngine,
+        }
+
+    def _identity_for(self, hparams: dict, seed: int):
+        run_config = build_run_config(
+            model=self.model,
+            task=self.task,
+            dataset=self.dataset,
+            hparams=hparams,
+        )
+        config_hash = config_fingerprint(run_config)
+        return run_config, config_hash, run_id_for_seed(seed, config_hash)
+
+    def _save_model_artifacts(self, result: RunResult, source_path: str) -> dict:
+        artifacts = {}
+        for backend in self._artifact_backends:
+            artifacts.update(backend.save_model(result, source_path))
+        return artifacts
+
+    def _run_engine_path(self, seed: int) -> RunResult:
+        task_cfg, model_cfg, runtime_cfg = split_experiment_config(
+            model=self.model,
+            task=self.task,
+            kwargs=self._overrides,
+        )
+        engine_cls = self._engine_classes()[(self.model, self.task)]
+        hparams = {}
+        hparams.update(asdict(task_cfg))
+        hparams.update(asdict(model_cfg))
+        hparams.update(asdict(runtime_cfg))
+        run_config, config_hash, run_id = self._identity_for(hparams, seed)
+        engine = engine_cls(
+            model_name=self.model,
+            dataset_name=self.dataset,
+            task_config=task_cfg,
+            model_config=model_cfg,
+            runtime_config=runtime_cfg,
+        )
+        engine.run_config = run_config
+        engine.config_hash = config_hash
+        engine.run_id = run_id
+        t0 = time.time()
+        metrics = engine.run(seed)
+        elapsed = time.time() - t0
+        result = RunResult(
+            model=self.model,
+            task=self.task,
+            dataset=self.dataset,
+            seed=seed,
+            timestamp=datetime.datetime.now().isoformat(timespec="seconds"),
+            hparams=engine.hparams(),
+            metrics=metrics or {},
+            num_params=engine.num_parameters(),
+            train_time_sec=round(elapsed, 2),
+            git_commit=_get_git_commit(),
+            history=getattr(engine, "history", None),
+            run_config=run_config,
+            config_hash=config_hash,
+            run_id=run_id,
+        )
+        artifacts = self._save_model_artifacts(
+            result,
+            getattr(engine, "best_checkpoint_filepath", ""),
+        )
+        result.artifacts = artifacts or None
+        return result
 
     def run(self, seeds: List[int] = None) -> List[RunResult]:
         from torch_timeseries.experiments import get_experiment_class
@@ -37,6 +126,15 @@ class Experiment:
 
         if seeds is None:
             seeds = [42]
+
+        if self._uses_engine_path():
+            results = []
+            for seed in seeds:
+                r = self._run_engine_path(seed)
+                for backend in self._backends:
+                    backend.save(r)
+                results.append(r)
+            return results
 
         exp_cls = get_experiment_class(self.model, self.task)
 
@@ -59,6 +157,7 @@ class Experiment:
                            if isinstance(v, (int, float, str, bool))}
             except Exception:
                 pass
+            run_config, config_hash, run_id = self._identity_for(hparams, seed)
 
             r = RunResult(
                 model=self.model,
@@ -71,7 +170,15 @@ class Experiment:
                 num_params=num_params,
                 train_time_sec=round(elapsed, 2),
                 git_commit=_get_git_commit(),
+                run_config=run_config,
+                config_hash=config_hash,
+                run_id=run_id,
             )
+            artifacts = self._save_model_artifacts(
+                r,
+                getattr(exp, "best_checkpoint_filepath", ""),
+            )
+            r.artifacts = artifacts or None
 
             for backend in self._backends:
                 backend.save(r)

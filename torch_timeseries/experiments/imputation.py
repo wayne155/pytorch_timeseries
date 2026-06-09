@@ -24,10 +24,16 @@ from torch_timeseries.scaler import *
 from torch_timeseries.utils.model_stats import count_parameters
 from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
-from ..utils.reproduce import reproducible
+from ..utils.reproduce import get_rng_state, reproducible, set_rng_state
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
 from ..dataloader import SlidingWindowTS
 from ..utils import asdict_exc
+
+try:
+    import wandb
+except ImportError:
+    wandb = None
+    print("Warning: wandb is not installed, some functionality may not work.")
 
 
 @dataclass
@@ -46,7 +52,8 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         name: str,
         mode: str='online',
     ):
-        import wandb
+        if wandb is None:
+            raise ImportError("wandb is required for config_wandb().")
         # TODO: add seeds config parameters
         def convert_dict(dictionary):
             converted_dict = {}
@@ -56,7 +63,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
 
         # check wether this experiment had runned and reported on wandb
         api = wandb.Api()
-        config_filter = convert_dict(self.result_related_config)
+        config_filter = convert_dict(self.result_related_configs)
         runs = api.runs(path=project, filters=config_filter)
         
         try:
@@ -342,7 +349,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
 
     def _load_best_model(self):
         self.model.load_state_dict(
-            torch.load(self.best_checkpoint_filepath, map_location=self.device)
+            torch.load(self.best_checkpoint_filepath, map_location=self.device, weights_only=False)
         )
 
     def _run_print(self, *args, **kwargs):
@@ -360,11 +367,20 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         run_checkpoint_filepath = os.path.join(self.run_save_dir, f"run_checkpoint.pth")
         print(f"resuming from {run_checkpoint_filepath}")
 
-        check_point = torch.load(run_checkpoint_filepath, map_location=self.device)
+        check_point = torch.load(run_checkpoint_filepath, map_location=self.device, weights_only=False)
 
         self.model.load_state_dict(check_point["model"])
         self.model_optim.load_state_dict(check_point["optimizer"])
         self.current_epoch = check_point["current_epoch"]
+
+        if "rng_state" in check_point:
+            rng_state = check_point["rng_state"]
+            if isinstance(rng_state, dict):
+                set_rng_state(rng_state)
+            elif isinstance(rng_state, torch.Tensor):
+                torch.set_rng_state(rng_state.cpu())
+            else:
+                torch.set_rng_state(rng_state)
 
         self.early_stopper.set_state(check_point["early_stopping"])
 
@@ -387,7 +403,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         self._run_print(f"model parameters: {model_parameters_num}")
 
         if self._use_wandb():
-            wandb.run.summary["parameters"] = self.model_parameters_num
+            wandb.run.summary["parameters"] = model_parameters_num
 
         # for resumable reproducibility
         while self.current_epoch < self.epochs:
@@ -463,7 +479,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
             "model": self.model.state_dict(),
             "current_epoch": self.current_epoch,
             "optimizer": self.model_optim.state_dict(),
-            "rng_state": torch.get_rng_state(),
+            "rng_state": get_rng_state(),
             "early_stopping": self.early_stopper.get_state(),
         }
 

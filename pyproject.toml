@@ -49,3 +49,9 @@ irregular = [
 [tool.black]
 line-length = 88
 target-version = ['py38', 'py39']
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = [
+    "slow: integration tests that download data from the network",
+]

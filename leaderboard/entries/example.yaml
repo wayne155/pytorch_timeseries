@@ -1,0 +1,21 @@
+- model: DLinear
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    horizon: 1
+    pred_len: 96
+  metrics:
+    mse:
+      mean: 0.4
+      std: 0.0
+    mae:
+      mean: 0.3
+      std: 0.0
+  num_seeds: 1
+  source:
+    source_type: external
+    source_name: example
+    citation: Example curated entry
+    url: ""
+    notes: Replace with verified paper or benchmark values before publication.

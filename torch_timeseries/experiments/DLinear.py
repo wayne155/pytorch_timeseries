@@ -20,30 +20,48 @@ class DLinearParameters:
 class DLinearForecast(ForecastExp, DLinearParameters):
     model_type: str = "DLinear"
 
-    def _init_model(self):
-        self.model = DLinear(
-            seq_len=self.windows,
-            pred_len=self.pred_len,
-            enc_in=self.dataset.num_features,
-            individual=self.individual,
-        )
-        self.model = self.model.to(self.device)
+    def _run_engine_compat(self, seed):
+        from torch_timeseries.experiment import Experiment
 
-    def _process_one_batch(self, batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc):
-        # inputs:
-        # batch_x: (B, T, N)
-        # batch_y: (B, O, N)
-        # ouputs:
-        # - pred: (B, N)/(B, O, N)
-        # - label: (B, N)/(B, O, N)
-        batch_x = batch_x.to(self.device, dtype=torch.float32)
-        batch_y = batch_y.to(self.device, dtype=torch.float32)
-        batch_x_date_enc = batch_x_date_enc.to(self.device).float()
-        batch_y_date_enc = batch_y_date_enc.to(self.device).float()
-        outputs = self.model(
-            batch_x
-        )  # torch.Size([batch_size, output_length, num_nodes])
-        return outputs, batch_y
+        kwargs = {
+            "horizon": self.horizon,
+            "windows": self.windows,
+            "pred_len": self.pred_len,
+            "train_ratio": self.train_ratio,
+            "test_ratio": self.test_ratio,
+            "time_enc": self.time_enc,
+            "input_columns": self.input_columns or None,
+            "target_columns": self.target_columns or None,
+            "individual": self.individual,
+            "data_path": self.data_path,
+            "save_dir": self.save_dir,
+            "device": self.device,
+            "num_worker": self.num_worker,
+            "scaler_type": self.scaler_type,
+            "optm_type": self.optm_type,
+            "loss_func_type": self.loss_func_type,
+            "batch_size": self.batch_size,
+            "lr": self.lr,
+            "l2_weight_decay": self.l2_weight_decay,
+            "epochs": self.epochs,
+            "patience": self.patience,
+            "max_grad_norm": self.max_grad_norm,
+            "invtrans_loss": self.invtrans_loss,
+        }
+        result = Experiment(
+            model="DLinear",
+            task="Forecast",
+            dataset=self.dataset_type,
+            **kwargs,
+        ).run(seeds=[seed])
+        return result[0].metrics
+
+    def run(self, seed=42):
+        return self._run_engine_compat(seed)
+
+    def runs(self, seeds=None):
+        seeds = [1, 2, 3, 4, 5] if seeds is None else seeds
+        return [self.run(seed=seed) for seed in seeds]
 
 
 @dataclass
@@ -135,5 +153,4 @@ class DLinearImputation(ImputationExp, DLinearParameters):
             batch_masked_x
         )  # torch.Size([batch_size, output_length, num_nodes])
         return outputs, batch_x
-
 

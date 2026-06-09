@@ -20,6 +20,7 @@ pytorch_timeseries
    :titlesonly:
 
    concepts/dataloader
+   leaderboard/index
 
 
 .. toctree::
@@ -39,4 +40,3 @@ pytorch_timeseries
    :titlesonly:
 
    contribute/quick-contribute
-

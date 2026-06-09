@@ -2,10 +2,23 @@ import subprocess
 
 
 def test_forecast():
-    result = subprocess.run(["python", "./torch_timeseries/cli/exp.py", "--model", "Autoformer", "--task", "Forecast", "--dataset_type", "ExchangeRate", "run", "3"], capture_output=True, text=True)
+    result = subprocess.run(
+        [
+            "python",
+            "./torch_timeseries/cli/exp.py",
+            "--model",
+            "Autoformer",
+            "--task",
+            "Forecast",
+            "--help",
+        ],
+        capture_output=True,
+        text=True,
+    )
     print("stdout:", result.stdout)
     print("stderr:", result.stderr)
     print("Return code:", result.returncode)
+    assert result.returncode == 0
 # python ./torch_timeseries/cli/exp.py --model Autoformer --task Forecast --dataset_type ExchangeRate run 3
 # python ./torch_timeseries/cli/exp.py --model Autoformer --task Imputation --dataset_type ExchangeRate run 3
 # python ./torch_timeseries/cli/exp.py --model Autoformer --task AnomalyDetection --dataset_type MSL run 3

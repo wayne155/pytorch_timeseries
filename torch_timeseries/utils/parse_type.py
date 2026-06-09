@@ -4,7 +4,10 @@ from typing import Type, Union
 
 def parse_type(str_or_type: Union[Type, str], globals) -> Type:
     if isinstance(str_or_type, str):
-        return eval(str_or_type, globals)
+        try:
+            return globals[str_or_type]
+        except KeyError as exc:
+            raise NotImplementedError(f"Unknown type: {str_or_type}") from exc
     elif isinstance(str_or_type, type):
         return str_or_type
     else:

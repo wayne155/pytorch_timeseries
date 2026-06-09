@@ -82,7 +82,7 @@ class TSMixerUEAClassification(UEAClassificationExp, TSMixerParameters):
     model_type: str = "TSMixer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = TSMixerClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -140,7 +140,7 @@ class TSMixerAnomalyDetection(AnomalyDetectionExp, TSMixerParameters):
     model_type: str = "TSMixer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -195,7 +195,7 @@ class TSMixerImputation(ImputationExp, TSMixerParameters):
     model_type: str = "TSMixer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,

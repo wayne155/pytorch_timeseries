@@ -28,7 +28,7 @@ function downloadCsv(content: string, filename: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 const isLiveServer = !import.meta.env.PROD || window.location.port !== ''
@@ -49,12 +49,11 @@ export default function App() {
   // Derive selectedView
   const selectedView = data?.views.find(v => v.id === selectedViewId) ?? data?.views[0] ?? null
 
-  // Reset dataset and variant when selectedView changes
+  // Reset dataset and variant when view changes via data load (not explicit tab click)
   useEffect(() => {
-    if (selectedView) {
-      setSelectedDataset('All')
-      setSelectedVariant('')
-    }
+    setSelectedDataset('All')
+    setSelectedVariant('')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedView?.id])
 
   // useTaskView must be called unconditionally (hooks rules)

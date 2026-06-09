@@ -109,7 +109,7 @@ class AutoformerUEAClassification(UEAClassificationExp, AutoformerParameters):
     model_type: str = "Autoformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AutoformerClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -168,7 +168,7 @@ class AutoformerAnomalyDetection(AnomalyDetectionExp, AutoformerParameters):
     model_type: str = "Autoformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -222,7 +222,7 @@ class AutoformerImputation(ImputationExp, AutoformerParameters):
     model_type: str = "Autoformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,

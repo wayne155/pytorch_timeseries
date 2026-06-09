@@ -18,6 +18,10 @@ class RunResult:
     train_time_sec: float
     git_commit: str
     history: Optional[dict] = None
+    run_config: Optional[dict] = None
+    config_hash: str = ""
+    run_id: str = ""
+    artifacts: Optional[dict] = None
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2)

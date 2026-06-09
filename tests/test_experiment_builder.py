@@ -64,7 +64,10 @@ def test_experiment_with_local_saves_json(tmp_path, monkeypatch):
     Experiment(model="_FastModel3", task="Forecast", dataset="ETTh1") \
         .with_local(save_dir=str(tmp_path)) \
         .run(seeds=[1])
-    files = list(tmp_path.glob("*.json"))
+    files = [
+        path for path in tmp_path.rglob("*.json")
+        if path.name != "config.json"
+    ]
     assert len(files) == 1
 
 

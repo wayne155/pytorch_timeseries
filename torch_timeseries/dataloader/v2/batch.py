@@ -30,9 +30,10 @@ class TimeEncConfig:
             return None
         if self.custom_fn is not None:
             return self.custom_fn(dates)
-        from torch_timeseries.utils.timefeatures import time_features
+        from torch_timeseries.utils.timefeatures import time_features, TimeEncoding
         freq = self.freq if self.freq is not None else dataset_freq
-        return time_features(dates, self.time_enc, freq).astype("float32")
+        enc = TimeEncoding(self.time_enc) if not isinstance(self.time_enc, TimeEncoding) else self.time_enc
+        return time_features(dates, enc, freq).astype("float32")
 
 
 @dataclass

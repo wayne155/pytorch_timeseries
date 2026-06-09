@@ -121,7 +121,7 @@ class FEDformerUEAClassification(UEAClassificationExp, FEDformerParameters):
     model_type: str = "FEDformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = FEDformerClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -185,7 +185,7 @@ class FEDformerAnomalyDetection(AnomalyDetectionExp, FEDformerParameters):
     model_type: str = "FEDformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -244,7 +244,7 @@ class FEDformerImputation(ImputationExp, FEDformerParameters):
     model_type: str = "FEDformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,

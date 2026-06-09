@@ -156,7 +156,7 @@ class iTransformerAnomalyDetection(AnomalyDetectionExp, iTransformerParameters):
     model_type: str = "iTransformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = iTransformer(
             seq_len=self.windows,
             pred_len=self.windows,
@@ -206,7 +206,7 @@ class iTransformerImputation(ImputationExp, iTransformerParameters):
     model_type: str = "iTransformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = iTransformer(
             seq_len=self.windows,
             pred_len=self.windows,

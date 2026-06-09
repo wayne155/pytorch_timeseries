@@ -85,12 +85,15 @@ result = Experiment(model="DLinear", task="Forecast", dataset="ETTh1").run(seeds
 print(result[0].metrics)   # {"mse": 0.382, "mae": 0.271}
 
 # multiple seeds, save results to disk
-results = (
-    Experiment(model="DLinear", task="Forecast", dataset="ETTh1")
-    .set(windows=96, pred_len=96, lr=0.001)
-    .with_local(save_dir="./results")
-    .run(seeds=[1, 2, 3])
-)
+results = Experiment(
+    model="DLinear",
+    task="Forecast",
+    dataset="ETTh1",
+    windows=96,
+    pred_len=96,
+    lr=0.001,
+    save_dir="./results",
+).run(seeds=[1, 2, 3])
 
 # grid search across models and datasets
 Experiment.grid(
@@ -126,6 +129,13 @@ pytexp compare --save_dir ./results --task Forecast
 ```
 
 Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
+
+### Architecture direction
+
+New development targets the v2 DataModule API and the high-level `Experiment`
+entrypoint. Legacy dataloaders and direct experiment classes remain available
+for compatibility, but new task/model features should use named batches,
+Task DataModules, and result records.
 
 
 

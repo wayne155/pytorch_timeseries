@@ -113,7 +113,7 @@ class InformerUEAClassification(UEAClassificationExp, InformerParameters):
     model_type: str = "Informer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = InformerClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -171,7 +171,7 @@ class InformerAnomalyDetection(AnomalyDetectionExp, InformerParameters):
     model_type: str = "Informer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -226,7 +226,7 @@ class InformerImputation(ImputationExp, InformerParameters):
     model_type: str = "Informer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,

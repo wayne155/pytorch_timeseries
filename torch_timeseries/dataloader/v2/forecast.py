@@ -25,10 +25,12 @@ from .windowed import WindowedDataset
 
 @dataclass
 class WindowConfig:
-    window: int = 168
+    window: int = 96
     horizon: int = 1
-    steps: int = 1
+    steps: int = 96
     stride: int = 1
+    fast_val: bool = False
+    fast_test: bool = False
     time_enc_cfg: TimeEncConfig = field(default_factory=TimeEncConfig)
     input_columns: Optional[list] = None
     target_columns: Optional[list] = None
@@ -114,19 +116,27 @@ class ForecastDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
+        non_overlap_stride = wc.window + wc.horizon + wc.steps - 1
         common = dict(
             scaler=self.scaler,
             window=wc.window,
             horizon=wc.horizon,
             steps=wc.steps,
-            stride=wc.stride,
             time_enc_cfg=wc.time_enc_cfg,
             input_columns=wc.input_columns,
             target_columns=wc.target_columns,
         )
-        self.train_dataset = WindowedDataset(self.train_subset, **common)
-        self.val_dataset = WindowedDataset(self.val_subset, **common)
-        self.test_dataset = WindowedDataset(self.test_subset, **common)
+        self.train_dataset = WindowedDataset(self.train_subset, stride=wc.stride, **common)
+        self.val_dataset = WindowedDataset(
+            self.val_subset,
+            stride=non_overlap_stride if wc.fast_val else wc.stride,
+            **common,
+        )
+        self.test_dataset = WindowedDataset(
+            self.test_subset,
+            stride=non_overlap_stride if wc.fast_test else wc.stride,
+            **common,
+        )
 
     def _build_loaders(self) -> None:
         lc = self.loader_cfg

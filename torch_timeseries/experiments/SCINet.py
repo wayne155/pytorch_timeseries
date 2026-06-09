@@ -104,7 +104,7 @@ class SCINetUEAClassification(UEAClassificationExp, SCINetParameters):
     model_type: str = "SCINet"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = SCINetClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -162,7 +162,7 @@ class SCINetAnomalyDetection(AnomalyDetectionExp, SCINetParameters):
     model_type: str = "SCINet"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -217,7 +217,7 @@ class SCINetImputation(ImputationExp, SCINetParameters):
     model_type: str = "SCINet"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,

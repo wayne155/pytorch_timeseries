@@ -30,29 +30,56 @@ class CrossformerParameters:
 class CrossformerForecast(ForecastExp, CrossformerParameters):
     model_type: str = "Crossformer"
 
-    def _init_model(self):
-        self.model = Crossformer(
-            data_dim=self.dataset.num_features, in_len=self.windows, out_len=self.pred_len, seg_len=self.seg_len, win_size = self.win_size,
-                factor=self.factor, d_model=self.d_model, d_ff = self.d_ff, n_heads=self.n_heads, e_layers=self.e_layers, 
-                dropout=self.dropout, baseline =self.baseline, device=self.device
-        )
-        self.model = self.model.to(self.device)
+    def _run_engine_compat(self, seed):
+        from torch_timeseries.experiment import Experiment
 
-    def _process_one_batch(self, batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc):
-        # inputs:
-        # batch_x: (B, T, N)
-        # batch_y: (B, O, N)
-        # ouputs:
-        # - pred: (B, N)/(B, O, N)
-        # - label: (B, N)/(B, O, N)
-        batch_x = batch_x.to(self.device, dtype=torch.float32)
-        batch_y = batch_y.to(self.device, dtype=torch.float32)
-        batch_x_date_enc = batch_x_date_enc.to(self.device).float()
-        batch_y_date_enc = batch_y_date_enc.to(self.device).float()
+        kwargs = {
+            "horizon": self.horizon,
+            "windows": self.windows,
+            "pred_len": self.pred_len,
+            "train_ratio": self.train_ratio,
+            "test_ratio": self.test_ratio,
+            "time_enc": self.time_enc,
+            "input_columns": self.input_columns or None,
+            "target_columns": self.target_columns or None,
+            "seg_len": self.seg_len,
+            "win_size": self.win_size,
+            "factor": self.factor,
+            "d_model": self.d_model,
+            "d_ff": self.d_ff,
+            "n_heads": self.n_heads,
+            "e_layers": self.e_layers,
+            "dropout": self.dropout,
+            "baseline": self.baseline,
+            "data_path": self.data_path,
+            "save_dir": self.save_dir,
+            "device": self.device,
+            "num_worker": self.num_worker,
+            "scaler_type": self.scaler_type,
+            "optm_type": self.optm_type,
+            "loss_func_type": self.loss_func_type,
+            "batch_size": self.batch_size,
+            "lr": self.lr,
+            "l2_weight_decay": self.l2_weight_decay,
+            "epochs": self.epochs,
+            "patience": self.patience,
+            "max_grad_norm": self.max_grad_norm,
+            "invtrans_loss": self.invtrans_loss,
+        }
+        result = Experiment(
+            model="Crossformer",
+            task="Forecast",
+            dataset=self.dataset_type,
+            **kwargs,
+        ).run(seeds=[seed])
+        return result[0].metrics
 
-        outputs = self.model(batch_x)
-            
-        return outputs, batch_y
+    def run(self, seed=42):
+        return self._run_engine_compat(seed)
+
+    def runs(self, seeds=None):
+        seeds = [1, 2, 3, 4, 5] if seeds is None else seeds
+        return [self.run(seed=seed) for seed in seeds]
 
 
 
@@ -86,7 +113,7 @@ class CrossformerUEAClassification(UEAClassificationExp, CrossformerParameters):
     model_type: str = "Crossformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = CrossformerClassModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -144,7 +171,7 @@ class CrossformerAnomalyDetection(AnomalyDetectionExp, CrossformerParameters):
     model_type: str = "Crossformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = AnomalyModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -199,7 +226,7 @@ class CrossformerImputation(ImputationExp, CrossformerParameters):
     model_type: str = "Crossformer"
 
     def _init_model(self):
-        self.label_len = self.windows/2
+        self.label_len = int(self.windows / 2)
         self.model = ImputationModel(
             enc_in=self.dataset.num_features,
             dec_in=self.dataset.num_features,
@@ -243,5 +270,4 @@ class CrossformerImputation(ImputationExp, CrossformerParameters):
         
         
         return outputs, batch_x
-
 

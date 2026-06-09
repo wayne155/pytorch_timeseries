@@ -10,8 +10,8 @@ from torch.nn import Module
 @dataclass
 class BaseIrrelevant:
     data_path: str = "./data"
-    device: str = "cuda:0"
-    num_worker: int = 20
+    device: str = "cpu"
+    num_worker: int = 0
     save_dir: str = "./results"
     experiment_label: str = ""
 
@@ -29,5 +29,4 @@ class BaseRelevant:
     patience: int = 5
     max_grad_norm: float = 5.0
     invtrans_loss: bool = False
-    
     

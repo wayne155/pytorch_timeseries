@@ -87,7 +87,7 @@ for scaled_x, x in dataloader.val_loader:
     
 print("test................................")
 def test():
-    anomaly_criterion = torch.nn.MSELoss(reduce=False)
+    anomaly_criterion = torch.nn.MSELoss(reduction="none")
     attens_energy = []
 
     model.eval()

@@ -8,16 +8,17 @@ install_requires = [
     'numpy' ,
     'pandas',
     "einops",
-    "torch_scatter",
     "torch",
+    "torchvision",
     'sktime>=0.29.0',
     "torchmetrics>=1.1.1",
     "fire>=0.5.0",
+    "PyYAML",
     'scikit-learn',
 ]
 
 full_requires =  [
-    
+    "torch_scatter",
 ]
 
 benchmark_requires = [
