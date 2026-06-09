@@ -311,9 +311,22 @@ With ±std enabled:
 | `src/components/MetricCell.tsx` | Reuse existing (mean, optional ±std, best/worst highlight) |
 | `src/components/RowActionButton.tsx` | `[⋯]` placeholder button, far-right column; no-op for now |
 
+### Sorting
+
+Any metric header is clickable to sort the table by that metric.
+
+- First click: ascending for lower-is-better metrics (mse, mae, loss, …), descending for higher-is-better (accuracy, f1, …)
+- Second click on same header: reverses direction
+- Active sort column shows ▲ or ▼ in header
+- Default sort on load: avg column, primary metric (first in `primary_metrics`), lower-is-better direction
+
+Sort key is a tuple `(subcolumn, metric)` — e.g., clicking the MAE header under the "192" subcolumn sorts by `("192", "mae")`. Clicking the MAE header under "avg" sorts by `("avg", "mae")`.
+
+When dataset selector is "All", models may have results for multiple datasets; in that case sort uses the mean of the selected metric across all datasets.
+
 ### Best/Worst Highlight
 
-Per metric column, across all models: best = green, worst = faint red (same as current).
+Per metric column, across all models: best = green, worst = faint red (same as current). Highlight respects the same lower/higher-is-better direction as sorting.
 
 ---
 
