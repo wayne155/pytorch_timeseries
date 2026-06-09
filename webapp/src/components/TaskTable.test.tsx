@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { TaskTable } from './TaskTable'
 import type { TaskTableRow, TaskViewOptions } from '../types'
 import type { ColumnDef } from '../hooks/useTaskView'
@@ -94,5 +94,23 @@ describe('TaskTable', () => {
       />
     )
     expect(screen.getAllByTitle('Row actions')).toHaveLength(2)
+  })
+
+  it('calls onSortChange when metric header is clicked', async () => {
+    const onSortChange = vi.fn()
+    render(
+      <TaskTable
+        rows={[makeRow('DLinear')]}
+        columnDefs={COL_DEFS}
+        primaryMetrics={['mse']}
+        viewOptions={DEFAULT_OPTS}
+        onSortChange={onSortChange}
+      />
+    )
+    // Find the mse header under the "avg" group (there may be multiple mse headers)
+    const mseHeaders = screen.getAllByText(/mse/i)
+    // Click the first one
+    fireEvent.click(mseHeaders[0])
+    expect(onSortChange).toHaveBeenCalledWith('avg', 'mse', 'asc')
   })
 })

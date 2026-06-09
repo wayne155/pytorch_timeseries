@@ -71,6 +71,8 @@ export function TaskTable({
       enableSorting: false,
       columns: primaryMetrics.map((metric): ColumnDef<TaskTableRow> => ({
         id: `${col.id}__${metric}`,
+        enableSorting: true,
+        sortDescFirst: false,
         header: () => (
           <span
             className="cursor-pointer select-none hover:text-blue-600 flex items-center gap-0.5"
