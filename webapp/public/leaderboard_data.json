@@ -1,162 +1,282 @@
 {
-  "generated_at": "2026-05-29T16:55:22.362910+00:00",
-  "entries": [
+  "generated_at": "2026-06-09T14:30:20.864899+00:00",
+  "views": [
     {
-      "id": "8f0ef3b983838d9a",
-      "model": "_GridModel",
-      "task": "Forecast",
-      "dataset": "ETTh1",
-      "seed": 1,
-      "hparams": {
-        "horizon": 1,
-        "windows": 96,
-        "pred_len": 96
-      },
-      "metrics": {
-        "mse": 0.5
-      },
-      "num_params": 0,
-      "train_time_sec": 0.0,
-      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
-      "timestamp": "2026-05-29T03:13:06",
-      "source_type": "local_run",
-      "citation": "",
-      "url": "",
-      "notes": ""
+      "id": "anomaly_detection",
+      "display_name": "Anomaly Detection",
+      "primary_metrics": [
+        "f1",
+        "precision",
+        "recall"
+      ],
+      "variants": [
+        "W96"
+      ],
+      "datasets": [
+        "SMD",
+        "MSL",
+        "SMAP",
+        "SWaT",
+        "PSM"
+      ],
+      "subcolumns": [],
+      "models": []
     },
     {
-      "id": "cd804a2eee460b03",
-      "model": "_GridModel",
-      "task": "Forecast",
-      "dataset": "ETTh1",
-      "seed": 2,
-      "hparams": {
-        "horizon": 1,
-        "windows": 96,
-        "pred_len": 96
-      },
-      "metrics": {
-        "mse": 0.5
-      },
-      "num_params": 0,
-      "train_time_sec": 0.0,
-      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
-      "timestamp": "2026-05-29T03:13:06",
-      "source_type": "local_run",
-      "citation": "",
-      "url": "",
-      "notes": ""
+      "id": "imputation",
+      "display_name": "Imputation",
+      "primary_metrics": [
+        "mse",
+        "mae"
+      ],
+      "variants": [
+        "W96"
+      ],
+      "datasets": [
+        "ETTh1",
+        "ETTh2",
+        "ETTm1",
+        "ETTm2",
+        "Electricity",
+        "Weather"
+      ],
+      "subcolumns": [
+        "0.125",
+        "0.25",
+        "0.375",
+        "0.5"
+      ],
+      "models": []
     },
     {
-      "id": "c614c53ed14bde1e",
-      "model": "_GridModel",
-      "task": "Forecast",
-      "dataset": "ETTm1",
-      "seed": 1,
-      "hparams": {
-        "horizon": 1,
-        "windows": 96,
-        "pred_len": 96
-      },
-      "metrics": {
-        "mse": 0.5
-      },
-      "num_params": 0,
-      "train_time_sec": 0.0,
-      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
-      "timestamp": "2026-05-29T03:13:06",
-      "source_type": "local_run",
-      "citation": "",
-      "url": "",
-      "notes": ""
+      "id": "irregular_classification",
+      "display_name": "Irregular Classification",
+      "primary_metrics": [
+        "accuracy"
+      ],
+      "variants": [
+        "Default"
+      ],
+      "datasets": [
+        "PhysioNet2012",
+        "PhysioNet2019"
+      ],
+      "subcolumns": [],
+      "models": []
     },
     {
-      "id": "20d10da1b94661b8",
-      "model": "_GridModel",
-      "task": "Forecast",
-      "dataset": "ETTm1",
-      "seed": 2,
-      "hparams": {
-        "horizon": 1,
-        "windows": 96,
-        "pred_len": 96
-      },
-      "metrics": {
-        "mse": 0.5
-      },
-      "num_params": 0,
-      "train_time_sec": 0.0,
-      "git_commit": "e4c88a716f0283a389465e96934ec8b9f181f047",
-      "timestamp": "2026-05-29T03:13:06",
-      "source_type": "local_run",
-      "citation": "",
-      "url": "",
-      "notes": ""
-    },
-    {
-      "id": "e1875b2ee56c85f2",
-      "model": "DLinear",
-      "task": "Forecast",
-      "dataset": "ETTh1",
-      "seed": null,
-      "hparams": {
-        "windows": 96,
-        "horizon": 1,
-        "pred_len": 96
-      },
-      "metrics": {
-        "mse": {
-          "mean": 0.4,
-          "std": 0.0
+      "id": "long_term_forecast",
+      "display_name": "Long-Term Forecast",
+      "primary_metrics": [
+        "mse",
+        "mae"
+      ],
+      "variants": [
+        "I96",
+        "I336"
+      ],
+      "datasets": [
+        "ETTh1",
+        "ETTh2",
+        "ETTm1",
+        "ETTm2",
+        "Electricity",
+        "Weather",
+        "Traffic",
+        "ExchangeRate"
+      ],
+      "subcolumns": [
+        "96",
+        "192",
+        "336",
+        "720"
+      ],
+      "models": [
+        {
+          "name": "DLinear",
+          "source_type": "local_run",
+          "citation": "",
+          "url": "",
+          "results": {
+            "I96": {
+              "ETTh1": {
+                "96": {
+                  "mae": {
+                    "mean": 0.45058244466781616,
+                    "std": 0.0,
+                    "n_seeds": 1
+                  },
+                  "mse": {
+                    "mean": 0.4440358281135559,
+                    "std": 0.0,
+                    "n_seeds": 1
+                  }
+                },
+                "avg": {
+                  "mae": {
+                    "mean": 0.45058244466781616,
+                    "std": 0.0,
+                    "n_seeds": 1
+                  },
+                  "mse": {
+                    "mean": 0.4440358281135559,
+                    "std": 0.0,
+                    "n_seeds": 1
+                  }
+                }
+              }
+            }
+          }
         },
-        "mae": {
-          "mean": 0.3,
-          "std": 0.0
+        {
+          "name": "_GridModel",
+          "source_type": "local_run",
+          "citation": "",
+          "url": "",
+          "results": {
+            "I96": {
+              "ETTh1": {
+                "96": {
+                  "mse": {
+                    "mean": 0.5,
+                    "std": 0.0,
+                    "n_seeds": 2
+                  }
+                },
+                "avg": {
+                  "mse": {
+                    "mean": 0.5,
+                    "std": 0.0,
+                    "n_seeds": 2
+                  }
+                }
+              },
+              "ETTm1": {
+                "96": {
+                  "mse": {
+                    "mean": 0.5,
+                    "std": 0.0,
+                    "n_seeds": 2
+                  }
+                },
+                "avg": {
+                  "mse": {
+                    "mean": 0.5,
+                    "std": 0.0,
+                    "n_seeds": 2
+                  }
+                }
+              }
+            }
+          }
         }
-      },
-      "num_params": null,
-      "train_time_sec": null,
-      "git_commit": "",
-      "timestamp": "",
-      "source_type": "paper",
-      "citation": "",
-      "url": "",
-      "notes": ""
+      ]
+    },
+    {
+      "id": "short_term_forecast",
+      "display_name": "Short-Term Forecast",
+      "primary_metrics": [
+        "mase",
+        "mape"
+      ],
+      "variants": [
+        "I96"
+      ],
+      "datasets": [
+        "ETTh1",
+        "ETTh2",
+        "ETTm1",
+        "ETTm2"
+      ],
+      "subcolumns": [
+        "24",
+        "48",
+        "96"
+      ],
+      "models": []
+    },
+    {
+      "id": "uea_classification",
+      "display_name": "UEA Classification",
+      "primary_metrics": [
+        "accuracy"
+      ],
+      "variants": [
+        "W96"
+      ],
+      "datasets": [
+        "EthanolConcentration",
+        "FaceDetection",
+        "Handwriting",
+        "Heartbeat",
+        "JapaneseVowels",
+        "PEMS-SF",
+        "SelfRegulationSCP1",
+        "SelfRegulationSCP2",
+        "SpokenArabicDigits",
+        "UWaveGestureLibrary"
+      ],
+      "subcolumns": [],
+      "models": []
     }
   ],
   "schema": {
-    "tasks": [
-      "Forecast"
+    "views": [
+      "anomaly_detection",
+      "imputation",
+      "irregular_classification",
+      "long_term_forecast",
+      "short_term_forecast",
+      "uea_classification"
     ],
-    "datasets_by_task": {
-      "Forecast": [
+    "datasets_by_view": {
+      "anomaly_detection": [
+        "SMD",
+        "MSL",
+        "SMAP",
+        "SWaT",
+        "PSM"
+      ],
+      "imputation": [
         "ETTh1",
-        "ETTm1"
+        "ETTh2",
+        "ETTm1",
+        "ETTm2",
+        "Electricity",
+        "Weather"
+      ],
+      "irregular_classification": [
+        "PhysioNet2012",
+        "PhysioNet2019"
+      ],
+      "long_term_forecast": [
+        "ETTh1",
+        "ETTh2",
+        "ETTm1",
+        "ETTm2",
+        "Electricity",
+        "Weather",
+        "Traffic",
+        "ExchangeRate"
+      ],
+      "short_term_forecast": [
+        "ETTh1",
+        "ETTh2",
+        "ETTm1",
+        "ETTm2"
+      ],
+      "uea_classification": [
+        "EthanolConcentration",
+        "FaceDetection",
+        "Handwriting",
+        "Heartbeat",
+        "JapaneseVowels",
+        "PEMS-SF",
+        "SelfRegulationSCP1",
+        "SelfRegulationSCP2",
+        "SpokenArabicDigits",
+        "UWaveGestureLibrary"
       ]
-    },
-    "models": [
-      "DLinear",
-      "_GridModel"
-    ],
-    "hparams_by_task": {
-      "Forecast": [
-        "horizon",
-        "pred_len",
-        "windows"
-      ]
-    },
-    "hparam_options": {
-      "Forecast": {
-        "horizon": [
-          1
-        ],
-        "pred_len": [
-          96
-        ],
-        "windows": [
-          96
-        ]
-      }
     }
   }
 }

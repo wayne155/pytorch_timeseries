@@ -1,6 +1,6 @@
 # torch-timeseries Leaderboard
 
-A static webapp for comparing model results across tasks, datasets, and hparam configs. Supports per-seed rows and aggregated mean±std view.
+A static webapp for comparing model results across tasks, datasets, and prediction-length variants. Displays per-task views with aggregated mean±std metrics.
 
 ## Quick start
 
@@ -37,7 +37,7 @@ Click **↺ Refresh** in the UI to re-run the build script and reload without re
 
 ## Deploy: GitHub Pages (static)
 
-Push to `main` — GitHub Actions builds and deploys automatically whenever `results/`, `leaderboard/entries/`, `webapp/`, or `scripts/build_leaderboard.py` changes.
+Push to `main` — GitHub Actions builds and deploys automatically whenever `results/`, `leaderboard/`, `leaderboard_results/`, `webapp/`, `scripts/build_leaderboard.py`, or `leaderboard.yaml` changes.
 
 To deploy manually:
 
@@ -49,7 +49,7 @@ cd webapp && npm run build
 
 ## Adding results
 
-**From a local run** — drop a JSON file in `results/`:
+**Benchmark results** — drop files under `leaderboard_results/{Model}/{Task}/{Dataset}/seed{N}/metrics.json`:
 
 ```json
 {
@@ -57,36 +57,22 @@ cd webapp && npm run build
   "task": "Forecast",
   "dataset": "ETTh1",
   "seed": 1,
-  "hparams": {"windows": 96, "pred_len": 96, "horizon": 1},
+  "hparams": {"windows": 96, "pred_len": 96},
   "metrics": {"mse": 0.38, "mae": 0.28}
 }
 ```
 
-**From a paper** — add a YAML entry in `leaderboard/entries/`:
+**Paper baselines** — add a YAML entry in `leaderboard/entries/`:
 
 ```yaml
 - model: DLinear
   task: Forecast
   dataset: ETTh1
-  hparams: {windows: 96, pred_len: 96, horizon: 1}
+  hparams: {windows: 96, pred_len: 96}
   metrics: {mse: 0.40, mae: 0.30}
   source_type: paper
   citation: "DLinear (Zeng 2023)"
   url: https://arxiv.org/abs/2205.13504
 ```
 
-Re-run `python scripts/build_leaderboard.py` (or click Refresh) to pick up new entries.
-
-## Hparam keys shown per task
-
-Only task-relevant hparams appear in the filter sidebar — infrastructure keys like `device`, `batch_size`, `lr` are stripped automatically.
-
-| Task | Hparams shown |
-|------|--------------|
-| Forecast | windows, pred_len, horizon |
-| UEAClassification | windows |
-| AnomalyDetection | windows |
-| Imputation | windows, mask_rate |
-| IrregularClassification | windows |
-| Generation | seq_len |
-| ProbForecast | seq_len, pred_len |
+Re-run `python scripts/build_leaderboard.py` (or click Refresh in the UI) to pick up new entries.

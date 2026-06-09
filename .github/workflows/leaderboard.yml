@@ -1,16 +1,26 @@
-name: Deploy Leaderboard
+name: Leaderboard CI
 
 on:
   push:
     branches: [main]
     paths:
       - 'results/**'
-      - 'leaderboard/entries/**'
+      - 'leaderboard/**'
+      - 'leaderboard_results/**'
       - 'webapp/**'
       - 'scripts/build_leaderboard.py'
+      - 'leaderboard.yaml'
+  pull_request:
+    paths:
+      - 'results/**'
+      - 'leaderboard/**'
+      - 'leaderboard_results/**'
+      - 'webapp/**'
+      - 'scripts/build_leaderboard.py'
+      - 'leaderboard.yaml'
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -25,7 +35,7 @@ jobs:
       - name: Install Python deps
         run: pip install pyyaml
 
-      - name: Build leaderboard data
+      - name: Generate leaderboard data
         run: python scripts/build_leaderboard.py
 
       - uses: actions/setup-node@v4
@@ -37,11 +47,15 @@ jobs:
       - name: Install Node deps
         run: cd webapp && npm ci
 
+      - name: Run frontend tests
+        run: cd webapp && npx vitest run
+
       - name: Build frontend
         run: cd webapp && npm run build
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./webapp/dist
