@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import type { ViewData, TaskTableRow, TaskViewOptions, SubcolumnMetrics } from '../types'
 
-const LOWER_BETTER = ['mse', 'mae', 'loss', 'error', 'rmse', 'crps', 'wis', 'nll']
+const LOWER_BETTER = ['mse', 'mae', 'loss', 'error', 'rmse', 'crps', 'wis', 'nll', 'mase', 'mape', 'smape']
 
 export function isLowerBetter(key: string): boolean {
   const k = key.toLowerCase()

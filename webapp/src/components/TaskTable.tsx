@@ -28,7 +28,7 @@ function getBestWorst(
   const vals = rows
     .map(r => r.columns[colId]?.[metric]?.mean)
     .filter((v): v is number => v != null)
-  if (!vals.length) return { best: NaN, worst: NaN }
+  if (vals.length <= 1) return { best: NaN, worst: NaN }
   return isLowerBetter(metric)
     ? { best: Math.min(...vals), worst: Math.max(...vals) }
     : { best: Math.max(...vals), worst: Math.min(...vals) }
@@ -72,7 +72,7 @@ export function TaskTable({
       columns: primaryMetrics.map((metric): ColumnDef<TaskTableRow> => ({
         id: `${col.id}__${metric}`,
         enableSorting: true,
-        sortDescFirst: false,
+        sortDescFirst: !isLowerBetter(metric),
         header: () => (
           <span
             className="cursor-pointer select-none hover:text-blue-600 flex items-center gap-0.5"
