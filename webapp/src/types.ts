@@ -1,5 +1,10 @@
 // webapp/src/types.ts
 
+export interface AggregatedMetric {
+  mean: number
+  std: number
+}
+
 export interface SubcolumnMetrics {
   [metric: string]: { mean: number; std: number; n_seeds: number }
 }
