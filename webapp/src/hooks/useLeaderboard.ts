@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import type { LeaderboardData } from '../types'
+import type { TaskLeaderboardData } from '../types'
 
 export function useLeaderboard(url = './leaderboard_data.json') {
-  const [data, setData] = useState<LeaderboardData | null>(null)
+  const [data, setData] = useState<TaskLeaderboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -12,7 +12,7 @@ export function useLeaderboard(url = './leaderboard_data.json') {
     fetch(url)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json() as Promise<LeaderboardData>
+        return r.json() as Promise<TaskLeaderboardData>
       })
       .then(d => { setData(d); setLoading(false) })
       .catch((e: Error) => { setError(e.message); setLoading(false) })
