@@ -91,3 +91,11 @@ fix some bugs
 
 ## 0.1.22
 fix bug in Electricity
+
+## 0.1.23
+add sim freq dataset, embedding back to previous version.
+
+
+
+## 0.1.24
+ILI freq from yh to h
