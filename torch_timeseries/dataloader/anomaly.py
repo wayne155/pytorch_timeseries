@@ -2,6 +2,7 @@ import numpy as np
 from ..scaler import Scaler
 from torch_timeseries.core import TimeSeriesDataset, AnomalyDataset
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
+from ._seed import seed_worker
 
 
 class AnomalySliced(TimeSeriesDataset):
@@ -158,6 +159,7 @@ class AnomalyLoader:
             batch_size=self.batch_size,
             shuffle=self.shuffle_train,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )
 
         self.val_loader = DataLoader(
@@ -165,6 +167,7 @@ class AnomalyLoader:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )
 
         self.test_loader = DataLoader(
@@ -172,4 +175,5 @@ class AnomalyLoader:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )

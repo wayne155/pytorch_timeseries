@@ -11,6 +11,8 @@ from torch_timeseries.core import (
 )
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 
+from ._split import resolve_split_ratios
+from ._seed import seed_worker
 from .wrapper import MultiStepTimeFeatureSet
 
 
@@ -106,15 +108,12 @@ class MaskTS:
         uniform_eval=True,
     ) -> None:
 
-        self.train_ratio = train_ratio
-        self.val_ratio = val_ratio
-        self.test_ratio = 1 - self.train_ratio - self.val_ratio
+        self.train_ratio, self.val_ratio, self.test_ratio = resolve_split_ratios(
+            train_ratio=train_ratio, val_ratio=val_ratio
+        )
         self.uniform_eval = uniform_eval
         self.mask_rate = mask_rate
 
-        assert (
-            self.train_ratio + self.val_ratio + self.test_ratio == 1.0
-        ), "Split ratio must sum up to 1.0"
         self.batch_size = batch_size
         self.num_worker = num_worker
         self.dataset = dataset
@@ -204,6 +203,7 @@ class MaskTS:
             batch_size=self.batch_size,
             shuffle=self.shuffle_train,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )
 
         self.val_loader = DataLoader(
@@ -211,6 +211,7 @@ class MaskTS:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )
 
         self.test_loader = DataLoader(
@@ -218,5 +219,5 @@ class MaskTS:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
         )
-

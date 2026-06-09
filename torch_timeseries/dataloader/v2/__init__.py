@@ -21,7 +21,7 @@ Rough shape of the new API::
 
 The legacy ``SlidingWindowTS`` etc. are unchanged in the parent package.
 """
-from .batch import TSBatch, collate_tsbatch
+from .batch import TSBatch, Time, TimeEncConfig, collate_tsbatch
 from .irregular_batch import IrregularTSBatch, collate_irregular
 from .irregular_classification import IrregularClassificationDataModule, IrregularClassificationConfig
 from .windowed import WindowedDataset
@@ -33,6 +33,8 @@ from torch_timeseries.utils.timefeatures import TimeEncoding
 
 __all__ = [
     "TSBatch",
+    "Time",
+    "TimeEncConfig",
     "collate_tsbatch",
     "WindowedDataset",
     "ForecastDataModule",

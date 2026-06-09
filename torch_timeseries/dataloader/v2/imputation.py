@@ -1,19 +1,18 @@
 # torch_timeseries/dataloader/v2/imputation.py
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Optional
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
 from torch_timeseries.core import TimeSeriesDataset, TimeseriesSubset
-from torch_timeseries.utils.timefeatures import TimeEncoding
 
 from .._seed import seed_worker
 from .._split import resolve_split_ratios
-from .batch import TSBatch, Time, collate_tsbatch
+from .batch import TSBatch, Time, TimeEncConfig, collate_tsbatch
 from .windowed import _slice_time
 from .forecast import SplitConfig, LoaderConfig
 
@@ -23,8 +22,7 @@ class ImputationWindowConfig:
     window: int = 96
     mask_ratio: float = 0.25
     stride: int = 1
-    time_enc: Union[TimeEncoding, str, int] = "calendar"
-    freq: Optional[str] = None
+    time_enc_cfg: TimeEncConfig = field(default_factory=TimeEncConfig)
 
     def __post_init__(self):
         if self.window <= 0:
@@ -48,21 +46,27 @@ class ImputationWindowedDataset(Dataset):
         scaler,
         window: int = 96,
         stride: int = 1,
-        time_enc: Union[TimeEncoding, str, int] = "calendar",
-        freq: Optional[str] = None,
+        time_enc_cfg: TimeEncConfig = None,
     ) -> None:
         if 0 < len(subset) < window:
             raise ValueError(
                 f"Subset length {len(subset)} is shorter than window {window}."
             )
         self.window = window
+        _cfg = time_enc_cfg or TimeEncConfig()
         self.scaled = scaler.transform(subset.data).astype(np.float32)
         self.raw = subset.data.astype(np.float32)
-        # Validate/normalize time_enc; will be wired into Time features once windowed.py refactor lands.
-        _ = TimeEncoding(time_enc) if not isinstance(time_enc, TimeEncoding) else time_enc
-        try:
-            self._time = Time.from_dates(subset.dates) if subset.dates is not None else None
-        except Exception:
+        if subset.dates is not None:
+            try:
+                self._time_feature = _cfg.encode(subset.dates, subset.freq)
+            except Exception:
+                self._time_feature = None
+            try:
+                self._time = Time.from_dates(subset.dates)
+            except Exception:
+                self._time = None
+        else:
+            self._time_feature = None
             self._time = None
         self._starts = list(range(0, len(subset) - window + 1, stride))
 
@@ -74,11 +78,13 @@ class ImputationWindowedDataset(Dataset):
         e = s + self.window
         sl = slice(s, e)
         x = torch.from_numpy(self.scaled[sl].copy())
+        tf = self._time_feature
         return TSBatch(
             x=x,
             y=x.clone(),
             x_raw=torch.from_numpy(self.raw[sl].copy()),
-            x_time_feature=_slice_time(self._time, sl),
+            x_time_feature=tf[sl] if tf is not None else None,
+            x_time=_slice_time(self._time, sl),
         )
 
 
@@ -140,7 +146,7 @@ class ImputationDataModule:
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg
-        kw = dict(window=wc.window, stride=wc.stride, time_enc=wc.time_enc, freq=wc.freq)
+        kw = dict(window=wc.window, stride=wc.stride, time_enc_cfg=wc.time_enc_cfg)
         self.train_dataset = ImputationWindowedDataset(self.train_subset, self.scaler, **kw)
         self.val_dataset = ImputationWindowedDataset(self.val_subset, self.scaler, **kw)
         self.test_dataset = ImputationWindowedDataset(self.test_subset, self.scaler, **kw)

@@ -255,22 +255,38 @@ out: webapp/public/leaderboard_data.json
 ### Layout
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  torch-timeseries Leaderboard                                        │
-├──────────────────────────────────────────────────────────────────────┤
-│  [Long-Term Forecast ▾]  [I96 ▾]  [ETTh1 ▾]   [☐ ±std]  [Export]  │
-├──────────────────────────────────────────────────────────────────────┤
-│ Model     │   avg       │   96        │   192       │   336  │  720  │
-│           │  MSE  MAE   │  MSE  MAE   │  MSE  MAE   │  ...   │  ...  │
-├───────────┼─────────────┼─────────────┼─────────────┼────────┼───────┤
-│ DLinear   │ 0.417 0.300 │ 0.384 0.276 │ 0.412 0.296 │  ...   │  ...  │
-│ iTransf.  │ 0.392 0.281 │ 0.360 0.261 │ 0.387 0.277 │  ...   │  ...  │
-└───────────┴─────────────┴─────────────┴─────────────┴────────┴───────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  torch-timeseries Leaderboard                                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│  [Long-Term Forecast ▾]  [I96 ▾]  [ETTh1 ▾]   [☐ ±std]  [Export]       │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Model     │   avg       │   96        │   192       │ ...  │  720  │      │
+│           │  MSE  MAE   │  MSE  MAE   │  MSE  MAE   │      │       │      │
+├───────────┼─────────────┼─────────────┼─────────────┼──────┼───────┼──────┤
+│ DLinear   │ 0.417 0.300 │ 0.384 0.276 │ 0.412 0.296 │ ...  │  ...  │ [⋯] │
+│ iTransf.  │ 0.392 0.281 │ 0.360 0.261 │ 0.387 0.277 │ ...  │  ...  │ [⋯] │
+└───────────┴─────────────┴─────────────┴─────────────┴──────┴───────┴──────┘
+```
+
+Each row has a **`[⋯]` action button** on the far right. What it does is TBD — placeholder for now. Renders as a small `⋯` icon button (`...`), disabled/no-op until behaviour is decided.
+
+**Intended future use (not implemented):** clicking opens a per-seed detail panel:
+
+```
+DLinear  ·  ETTh1  ·  LongTermForecast-I96
+────────────────────────────────────────────
+seed 1   MSE 0.37  MAE 0.27   [↓ model.pt]
+seed 2   MSE 0.39  MAE 0.29   [↓ model.pt]
+seed 3   MSE 0.38  MAE 0.28   [↓ model.pt]
+seed 4   MSE 0.36  MAE 0.26   [↓ model.pt]
+seed 5   MSE 0.40  MAE 0.30   [↓ model.pt]
+────────────────────────────────────────────
+mean     0.38 ± 0.01
 ```
 
 With ±std enabled:
 ```
-│ DLinear   │ 0.417±0.008 │ 0.384±0.007 │ ...
+│ DLinear   │ 0.417±0.008 │ 0.384±0.007 │ ...  │ [⋯] │
 ```
 
 ### Controls (ToolBar, top row)
@@ -293,6 +309,7 @@ With ±std enabled:
 | `src/components/ViewSelector.tsx` | Top-level tab/dropdown for view selection |
 | `src/components/VariantDatasetBar.tsx` | Variant + dataset selectors + std toggle + export |
 | `src/components/MetricCell.tsx` | Reuse existing (mean, optional ±std, best/worst highlight) |
+| `src/components/RowActionButton.tsx` | `[⋯]` placeholder button, far-right column; no-op for now |
 
 ### Best/Worst Highlight
 
@@ -322,6 +339,7 @@ Per metric column, across all models: best = green, worst = faint red (same as c
 
 - Remote backend (placeholder in `leaderboard.yaml`, not implemented)
 - Model checkpoint storage (future)
-- Seed row expansion / checkpoint download (dropped)
+- `[⋯]` row action button behaviour (placeholder added, TBD)
+- Seed detail panel / checkpoint download (intended future use of `[⋯]`)
 - Cross-task averaging (dropped)
 - Running benchmark script (`scripts/run_benchmark.py`) — separate spec

@@ -1,6 +1,7 @@
 from typing import Sequence, Tuple, Type
 
 import numpy as np
+import pandas as pd
 import torch
 
 from torch_timeseries.dataset import UEA
@@ -13,34 +14,44 @@ from torch_timeseries.core import (
 from torch.utils.data import Dataset, DataLoader, RandomSampler, Subset
 
 from .wrapper import MultiStepTimeFeatureSet
+from ._split import resolve_split_ratios
+from ._seed import seed_worker
 
 
 
 
 
 class UEADataset(Dataset):
-    def __init__(self, dataset: UEA, scaler: Scaler, flag: str ='train', scaler_fit=True):
+    def __init__(
+        self,
+        dataset: UEA,
+        scaler: Scaler,
+        flag: str ='train',
+        scaler_fit=True,
+        indexes=None,
+    ):
         self.dataset = dataset
         self.scaler = scaler
         self.flag = flag
         if self.flag == 'test':
-            self.scaled_feature_df = self.scaler.transform(self.dataset.test_df)
             self.feature_df = self.dataset.test_df
             self.labels = self.dataset.test_labels
         elif self.flag == 'train':
-            if scaler_fit:
-                self.scaler.fit(self.dataset.train_features_data)
-
-            self.scaled_feature_df = self.scaler.transform(self.dataset.train_df)
             self.feature_df = self.dataset.train_df
             self.labels = self.dataset.train_labels
+        else:
+            raise ValueError(f"Unknown UEA dataset flag: {flag}")
 
-        self.indexes = self.feature_df.index.unique()
+        self.indexes = pd.Index(indexes) if indexes is not None else self.feature_df.index.unique()
+        if scaler_fit:
+            self.scaler.fit(self.feature_df.loc[self.indexes].values)
+        self.scaled_feature_df = self.scaler.transform(self.feature_df)
         
     def __getitem__(self, ind):
-        scaled_x = torch.tensor(self.scaled_feature_df.loc[ind].values)
-        x = torch.tensor(self.feature_df.loc[ind].values)
-        y = torch.tensor(self.labels.loc[ind].values)
+        sample_id = self.indexes[ind]
+        scaled_x = torch.tensor(self.scaled_feature_df.loc[sample_id].values)
+        x = torch.tensor(self.feature_df.loc[sample_id].values)
+        y = torch.tensor(self.labels.loc[sample_id].values)
         return scaled_x, x, y
       
     def __len__(self):
@@ -66,11 +77,16 @@ class UEAClassification:
         dataset: UEA,
         scaler: Scaler,
         window: int = 168,
+        train_ratio: float = 0.8,
+        val_ratio: float = 0.2,
         shuffle_train=True,
         batch_size: int = 32,
         num_worker: int = 3,
     ) -> None:
 
+        self.train_ratio, self.val_ratio, self.test_ratio = resolve_split_ratios(
+            train_ratio=train_ratio, val_ratio=val_ratio
+        )
         self.batch_size = batch_size
         self.num_worker = num_worker
         self.dataset = dataset
@@ -92,8 +108,33 @@ class UEAClassification:
         :return: a tuple of train_dataloader, test_dataloader and val_dataloader
         """
         # fixed suquence dataset
-        self.train_dataset = UEADataset(self.dataset, self.scaler, 'train', scaler_fit=True)
-        self.val_dataset = UEADataset(self.dataset, self.scaler, 'test', scaler_fit=False)
+        train_indexes = self.dataset.train_df.index.unique()
+        val_size = int(len(train_indexes) * self.val_ratio)
+        if self.val_ratio > 0 and val_size == 0:
+            val_size = 1
+        split_at = len(train_indexes) - val_size
+        if split_at <= 0:
+            raise ValueError(
+                "UEA train/validation split leaves no training samples; "
+                f"got train_ratio={self.train_ratio}, val_ratio={self.val_ratio}."
+            )
+        fit_indexes = train_indexes[:split_at]
+        val_indexes = train_indexes[split_at:]
+
+        self.train_dataset = UEADataset(
+            self.dataset,
+            self.scaler,
+            'train',
+            scaler_fit=True,
+            indexes=fit_indexes,
+        )
+        self.val_dataset = UEADataset(
+            self.dataset,
+            self.scaler,
+            'train',
+            scaler_fit=False,
+            indexes=val_indexes,
+        )
         self.test_dataset = UEADataset(self.dataset, self.scaler, 'test', scaler_fit=False)
 
     def _load_dataloader(self):
@@ -103,8 +144,9 @@ class UEAClassification:
         self.train_loader = DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=self.shuffle_train,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
             drop_last=False,
             collate_fn=lambda x: collate_fn(x, max_len=self.window)
         )
@@ -114,6 +156,7 @@ class UEAClassification:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
             drop_last=False,
             collate_fn=lambda x: collate_fn(x, max_len=self.window)
         )
@@ -123,6 +166,7 @@ class UEAClassification:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_worker,
+            worker_init_fn=seed_worker,
             drop_last=False,
             collate_fn=lambda x: collate_fn(x, max_len=self.window)
         )
