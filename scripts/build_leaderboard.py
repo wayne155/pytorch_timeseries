@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import pathlib
 from datetime import datetime, timezone
 from typing import Any
@@ -51,9 +52,12 @@ def collect_results(
                     continue
                 mf = seed_dir / "metrics.json"
                 if mf.exists():
-                    data = json.loads(mf.read_text())
-                    key = (data.get("model"), data.get("seed"))
-                    seen[key] = data
+                    try:
+                        data = json.loads(mf.read_text())
+                        key = (data.get("model"), data.get("seed"))
+                        seen[key] = data
+                    except (json.JSONDecodeError, KeyError):
+                        pass
 
     # Priority 2: results/*.json flat format (fallback)
     if results_dir.exists():
@@ -107,9 +111,25 @@ def mean_of_agg(agg_list: list[dict[str, Any]]) -> dict[str, Any]:
         if not present:
             continue
         avg_mean = sum(p["mean"] for p in present) / len(present)
-        avg_std = sum(p["std"] for p in present) / len(present)
+        avg_std = math.sqrt(sum(p["std"] ** 2 for p in present) / len(present))
         n = max(p["n_seeds"] for p in present)
         out[k] = {"mean": avg_mean, "std": avg_std, "n_seeds": n}
+    return out
+
+
+def _flatten_metrics(raw_metrics: dict[str, Any]) -> dict[str, float]:
+    """Normalize metrics dict to flat {name: float}.
+
+    Handles both flat values (``{mse: 0.4}``) and pre-aggregated dicts
+    (``{mse: {mean: 0.4, std: 0.0}}``).
+    """
+    out: dict[str, float] = {}
+    for k, v in raw_metrics.items():
+        if isinstance(v, dict):
+            # Pre-aggregated — use the mean value
+            out[k] = v.get("mean", 0.0)
+        else:
+            out[k] = float(v)
     return out
 
 
@@ -122,16 +142,17 @@ def _ingest_entry_yaml(entries_dir: pathlib.Path) -> list[dict[str, Any]]:
         try:
             raw = yaml.safe_load(p.read_text()) or []
             for item in raw:
+                source = item.get("source", {})
                 entries.append({
                     "model": item["model"],
                     "task": item["task"],
                     "dataset": item["dataset"],
                     "seed": None,
                     "hparams": item.get("hparams", {}),
-                    "metrics": item.get("metrics", {}),
-                    "source_type": "paper",
-                    "citation": item.get("citation", ""),
-                    "url": item.get("url", ""),
+                    "metrics": _flatten_metrics(item.get("metrics", {})),
+                    "source_type": source.get("source_type", item.get("source_type", "paper")),
+                    "citation": source.get("citation", item.get("citation", "")),
+                    "url": source.get("url", item.get("url", "")),
                 })
         except Exception as exc:
             print(f"Warning: skipping {p.name}: {exc}")
@@ -163,14 +184,19 @@ def _build_view(
             raw = collect_results(leaderboard_results_dir, results_dir, task, dataset)
             raw = [r for r in raw if matches_hparams(r, vmatch)]
 
-            for e in paper_entries:
-                if e["task"] == task and e["dataset"] == dataset and matches_hparams(e, vmatch):
-                    raw.append(e)
-
             by_model: dict[str, list[dict]] = {}
             for r in raw:
                 m = r.get("model", "Unknown")
                 by_model.setdefault(m, []).append(r)
+
+            # Add paper entries only for models that have no local-run data for this dataset/variant
+            local_run_models = set(by_model.keys())
+            for e in paper_entries:
+                if (e["task"] == task and e["dataset"] == dataset
+                        and matches_hparams(e, vmatch)
+                        and e.get("model", "Unknown") not in local_run_models):
+                    m = e.get("model", "Unknown")
+                    by_model.setdefault(m, []).append(e)
 
             for model, seeds in by_model.items():
                 if model not in all_model_results:

@@ -99,6 +99,40 @@ def test_mean_of_agg():
     assert abs(avg["mse"]["mean"] - 0.40) < 1e-9
 
 
+def test_paper_entry_used_when_no_local_runs(view_yaml, tmp_path):
+    """Paper entries are used when no local-run data exists for that model."""
+    paper_entries = [{
+        "model": "DLinear",
+        "task": "Forecast",
+        "dataset": "ETTh1",
+        "seed": None,
+        "hparams": {"windows": 96, "pred_len": 96},
+        "metrics": {"mse": 0.40, "mae": 0.30},
+        "source_type": "paper",
+        "citation": "DLinear (Zeng 2023)",
+        "url": "",
+    }]
+    from scripts.build_leaderboard import _ingest_entry_yaml, _build_view
+    import pathlib
+    view_cfg_path = list(pathlib.Path(str(view_yaml)).glob("*.yaml"))[0]
+    import yaml
+    view_cfg = yaml.safe_load(view_cfg_path.read_text())
+    view_block = _build_view(
+        view_cfg,
+        tmp_path / "empty_lr",
+        tmp_path / "empty_results",
+        paper_entries,
+    )
+    assert len(view_block["models"]) == 1
+    model = view_block["models"][0]
+    assert model["name"] == "DLinear"
+    assert model["source_type"] == "paper"
+    eth1 = model["results"]["I96"]["ETTh1"]
+    assert "96" in eth1  # subcolumn 96 should have DLinear's pred_len=96 result
+    assert eth1["96"]["mse"]["n_seeds"] == 1
+    assert abs(eth1["96"]["mse"]["mean"] - 0.40) < 1e-9
+
+
 def test_build_end_to_end(lr_tree, view_yaml, tmp_path):
     cfg = {
         "leaderboard_results_dir": str(lr_tree),
