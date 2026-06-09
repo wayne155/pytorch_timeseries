@@ -1,0 +1,18 @@
+id: short_term_forecast
+display_name: "Short-Term Forecast"
+task: ProbForecast
+primary_metrics: [mase, mape]
+
+variants:
+  - label: "I96"
+    match: {seq_len: 96}
+    subcolumns:
+      - {label: "24", match: {pred_len: 24}}
+      - {label: "48", match: {pred_len: 48}}
+      - {label: "96", match: {pred_len: 96}}
+
+datasets:
+  - ETTh1
+  - ETTh2
+  - ETTm1
+  - ETTm2

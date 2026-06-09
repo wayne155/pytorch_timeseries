@@ -1,0 +1,30 @@
+id: long_term_forecast
+display_name: "Long-Term Forecast"
+task: Forecast
+primary_metrics: [mse, mae]
+
+variants:
+  - label: "I96"
+    match: {windows: 96}
+    subcolumns:
+      - {label: "96",  match: {pred_len: 96}}
+      - {label: "192", match: {pred_len: 192}}
+      - {label: "336", match: {pred_len: 336}}
+      - {label: "720", match: {pred_len: 720}}
+  - label: "I336"
+    match: {windows: 336}
+    subcolumns:
+      - {label: "96",  match: {pred_len: 96}}
+      - {label: "192", match: {pred_len: 192}}
+      - {label: "336", match: {pred_len: 336}}
+      - {label: "720", match: {pred_len: 720}}
+
+datasets:
+  - ETTh1
+  - ETTh2
+  - ETTm1
+  - ETTm2
+  - Electricity
+  - Weather
+  - Traffic
+  - ExchangeRate

@@ -1,0 +1,13 @@
+id: irregular_classification
+display_name: "Irregular Classification"
+task: IrregularClassification
+primary_metrics: [accuracy]
+
+variants:
+  - label: "Default"
+    match: {}
+    subcolumns: []
+
+datasets:
+  - PhysioNet2012
+  - PhysioNet2019

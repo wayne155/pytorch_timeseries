@@ -1,0 +1,16 @@
+id: anomaly_detection
+display_name: "Anomaly Detection"
+task: AnomalyDetection
+primary_metrics: [f1, precision, recall]
+
+variants:
+  - label: "W96"
+    match: {windows: 96}
+    subcolumns: []
+
+datasets:
+  - SMD
+  - MSL
+  - SMAP
+  - SWaT
+  - PSM

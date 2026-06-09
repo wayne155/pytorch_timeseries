@@ -1,0 +1,21 @@
+id: imputation
+display_name: "Imputation"
+task: Imputation
+primary_metrics: [mse, mae]
+
+variants:
+  - label: "W96"
+    match: {windows: 96}
+    subcolumns:
+      - {label: "0.125", match: {mask_rate: 0.125}}
+      - {label: "0.25",  match: {mask_rate: 0.25}}
+      - {label: "0.375", match: {mask_rate: 0.375}}
+      - {label: "0.5",   match: {mask_rate: 0.5}}
+
+datasets:
+  - ETTh1
+  - ETTh2
+  - ETTm1
+  - ETTm2
+  - Electricity
+  - Weather

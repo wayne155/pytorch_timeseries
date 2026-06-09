@@ -1,0 +1,21 @@
+id: uea_classification
+display_name: "UEA Classification"
+task: UEAClassification
+primary_metrics: [accuracy]
+
+variants:
+  - label: "W96"
+    match: {windows: 96}
+    subcolumns: []
+
+datasets:
+  - EthanolConcentration
+  - FaceDetection
+  - Handwriting
+  - Heartbeat
+  - JapaneseVowels
+  - PEMS-SF
+  - SelfRegulationSCP1
+  - SelfRegulationSCP2
+  - SpokenArabicDigits
+  - UWaveGestureLibrary
