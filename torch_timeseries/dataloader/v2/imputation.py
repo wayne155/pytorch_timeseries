@@ -14,7 +14,8 @@ from .._seed import seed_worker
 from .._split import resolve_split_ratios
 from .batch import TSBatch, Time, TimeEncConfig, collate_tsbatch
 from .windowed import _slice_time
-from .forecast import SplitConfig, LoaderConfig
+from .loader import LoaderConfig
+from .split import SplitConfig
 
 
 @dataclass
@@ -98,14 +99,12 @@ class ImputationDataModule:
         window: ImputationWindowConfig = None,
         split: SplitConfig = None,
         loader: LoaderConfig = None,
-        scale_in_train: bool = True,
     ) -> None:
         self.dataset = dataset
         self.scaler = scaler
         self.window_cfg = window or ImputationWindowConfig()
         self.split_cfg = split or SplitConfig()
         self.loader_cfg = loader or LoaderConfig()
-        self.scale_in_train = scale_in_train
 
         self._build_subsets()
         self._fit_scaler()
@@ -141,8 +140,8 @@ class ImputationDataModule:
         self.test_subset = TimeseriesSubset(self.dataset, test_indices)
 
     def _fit_scaler(self) -> None:
-        data = self.train_subset.data if self.scale_in_train else self.dataset.data
-        self.scaler.fit(data)
+        # Always fit on train only — fitting on val/test data leaks statistics.
+        self.scaler.fit(self.train_subset.data)
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg

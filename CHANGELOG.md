@@ -1,3 +1,12 @@
+## 0.2.1
+
+feat: add per-task leaderboard reproduce scripts for anomaly detection, imputation, long-term forecast, short-term forecast, and UEA classification across DLinear, NLinear, PatchTST, iTransformer, TimesNet, Autoformer, and FEDformer
+feat: add NLinear model and experiment wrappers
+feat: add TimesNet imputation and anomaly detection experiment wrappers
+update: add README examples for researcher workflows using custom dataloaders, custom training loops, and default experiment registration
+update: add default ForecastExp batch handling for simple models that map `batch_x` to forecast predictions
+fix: normalize anomaly metric names for leaderboard rendering
+
 ## 0.0.3
 fixed: dependencies issue of torch-timeserie pypi package 
 

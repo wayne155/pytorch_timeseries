@@ -73,24 +73,22 @@ class Experiment:
         return artifacts
 
     def _run_engine_path(self, seed: int) -> RunResult:
-        task_cfg, model_cfg, runtime_cfg = split_experiment_config(
+        window_cfg, split_cfg, model_cfg, runtime_cfg = split_experiment_config(
             model=self.model,
             task=self.task,
             kwargs=self._overrides,
         )
         engine_cls = self._engine_classes()[(self.model, self.task)]
-        hparams = {}
-        hparams.update(asdict(task_cfg))
-        hparams.update(asdict(model_cfg))
-        hparams.update(asdict(runtime_cfg))
-        run_config, config_hash, run_id = self._identity_for(hparams, seed)
         engine = engine_cls(
             model_name=self.model,
             dataset_name=self.dataset,
-            task_config=task_cfg,
+            window_config=window_cfg,
+            split_config=split_cfg,
             model_config=model_cfg,
             runtime_config=runtime_cfg,
         )
+        hparams = engine.hparams()
+        run_config, config_hash, run_id = self._identity_for(hparams, seed)
         engine.run_config = run_config
         engine.config_hash = config_hash
         engine.run_id = run_id

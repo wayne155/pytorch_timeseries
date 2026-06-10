@@ -138,6 +138,42 @@ def test_experiment_grid_runs_all_combos(monkeypatch):
     assert len(results) == 4    # 1 model × 1 task × 2 datasets × 2 seeds
 
 
+def test_forecast_exp_default_process_one_batch_calls_model():
+    from dataclasses import dataclass
+    import torch
+    from torch import nn
+    from torch_timeseries.experiments.forecast import ForecastExp
+
+    @dataclass
+    class _DefaultBatchForecast(ForecastExp):
+        model_type: str = "_DefaultBatchForecast"
+
+    class TinyForecastNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.proj = nn.Linear(4, 2)
+
+        def forward(self, x):
+            return self.proj(x.transpose(1, 2)).transpose(1, 2)
+
+    exp = _DefaultBatchForecast(device="cpu")
+    exp.model = TinyForecastNet()
+
+    batch_x = torch.randn(3, 4, 5)
+    batch_y = torch.randn(3, 2, 5)
+    pred, true = exp._process_one_batch(
+        batch_x,
+        batch_y,
+        None,
+        None,
+        None,
+        None,
+    )
+
+    assert pred.shape == (3, 2, 5)
+    assert true is batch_y
+
+
 def test_experiment_compare_prints_table(tmp_path, capsys):
     from torch_timeseries.results.backends import LocalBackend
     from torch_timeseries.results.schema import RunResult

@@ -334,9 +334,10 @@ class UEAClassificationExp(BaseRelevant, BaseIrrelevant, ClassificationSettings)
                 loss = self.loss_func(pred, true)
                 loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.max_grad_norm
-                )
+                if self.max_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.max_grad_norm
+                    )
                 progress_bar.update(scaled_x.size(0))
                 train_loss.append(loss.item())
                 progress_bar.set_postfix(

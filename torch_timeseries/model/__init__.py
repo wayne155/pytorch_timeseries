@@ -1,4 +1,5 @@
 from .DLinear import DLinear
+from .NLinear import NLinear
 from .Autoformer import Autoformer
 from .FEDformer import FEDformer
 from .Informer import Informer

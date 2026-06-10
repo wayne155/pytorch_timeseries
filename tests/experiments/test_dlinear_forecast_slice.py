@@ -112,9 +112,9 @@ def test_dlinear_forecast_engine_uses_tsbatch_and_returns_metrics(monkeypatch, t
     import pandas as pd
     import torch
     from torch_timeseries.core import Freq, TimeSeriesDataset
+    from torch_timeseries.dataloader.v2 import SplitConfig, WindowConfig
     from torch_timeseries.experiments.configs import (
         DLinearConfig,
-        ForecastConfig,
         RuntimeConfig,
     )
     from torch_timeseries.experiments.engine import DLinearForecastEngine
@@ -164,12 +164,8 @@ def test_dlinear_forecast_engine_uses_tsbatch_and_returns_metrics(monkeypatch, t
     engine = TinyEngine(
         model_name="DLinear",
         dataset_name="TinyForecast",
-        task_config=ForecastConfig(
-            windows=8,
-            pred_len=4,
-            train_ratio=0.6,
-            test_ratio=0.2,
-        ),
+        window_config=WindowConfig(window=8, steps=4),
+        split_config=SplitConfig(train=0.6, test=0.2),
         model_config=DLinearConfig(),
         runtime_config=RuntimeConfig(
             epochs=1,
@@ -190,9 +186,9 @@ def test_crossformer_forecast_engine_builds_model_from_typed_config(monkeypatch,
     import pandas as pd
     import torch
     from torch_timeseries.core import Freq, TimeSeriesDataset
+    from torch_timeseries.dataloader.v2 import SplitConfig, WindowConfig
     from torch_timeseries.experiments.configs import (
         CrossformerConfig,
-        ForecastConfig,
         RuntimeConfig,
     )
     from torch_timeseries.experiments.engine import CrossformerForecastEngine
@@ -238,12 +234,8 @@ def test_crossformer_forecast_engine_builds_model_from_typed_config(monkeypatch,
     engine = TinyEngine(
         model_name="Crossformer",
         dataset_name="TinyForecast",
-        task_config=ForecastConfig(
-            windows=6,
-            pred_len=3,
-            train_ratio=0.6,
-            test_ratio=0.2,
-        ),
+        window_config=WindowConfig(window=6, steps=3),
+        split_config=SplitConfig(train=0.6, test=0.2),
         model_config=CrossformerConfig(
             seg_len=2,
             win_size=3,
@@ -509,9 +501,9 @@ def test_readme_teaches_constructor_first_experiment_api():
 def test_forecast_engine_train_epoch_uses_tqdm_progress_bar(monkeypatch, tmp_path):
     import torch
     import torch_timeseries.experiments.engine as engine_module
+    from torch_timeseries.dataloader.v2 import SplitConfig, WindowConfig
     from torch_timeseries.experiments.configs import (
         DLinearConfig,
-        ForecastConfig,
         RuntimeConfig,
     )
     from torch_timeseries.experiments.engine import DLinearForecastEngine
@@ -562,7 +554,7 @@ def test_forecast_engine_train_epoch_uses_tqdm_progress_bar(monkeypatch, tmp_pat
     engine = DLinearForecastEngine(
         model_name="DLinear",
         dataset_name="TinyForecast",
-        task_config=ForecastConfig(windows=2, pred_len=1),
+        window_config=WindowConfig(window=2, steps=1),
         model_config=DLinearConfig(),
         runtime_config=RuntimeConfig(
             epochs=1,
@@ -584,9 +576,9 @@ def test_forecast_engine_train_epoch_uses_tqdm_progress_bar(monkeypatch, tmp_pat
 
 
 def test_forecast_engine_reports_train_loss_and_val_history_each_epoch(capsys, tmp_path):
+    from torch_timeseries.dataloader.v2 import SplitConfig, WindowConfig
     from torch_timeseries.experiments.configs import (
         DLinearConfig,
-        ForecastConfig,
         RuntimeConfig,
     )
     from torch_timeseries.experiments.engine import ForecastEngine
@@ -625,7 +617,7 @@ def test_forecast_engine_reports_train_loss_and_val_history_each_epoch(capsys, t
     engine = TinyEngine(
         model_name="DLinear",
         dataset_name="TinyForecast",
-        task_config=ForecastConfig(windows=2, pred_len=1),
+        window_config=WindowConfig(window=2, steps=1),
         model_config=DLinearConfig(),
         runtime_config=RuntimeConfig(
             epochs=2,

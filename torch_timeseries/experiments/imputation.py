@@ -318,9 +318,10 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
                 loss = self.loss_func(pred[batch_mask == 0], true[batch_mask == 0])
                 loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.max_grad_norm
-                )
+                if self.max_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.max_grad_norm
+                    )
                 progress_bar.update(batch_x.size(0))
                 train_loss.append(loss.item())
                 progress_bar.set_postfix(

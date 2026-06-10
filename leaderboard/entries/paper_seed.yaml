@@ -1,0 +1,4424 @@
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.375
+    mae: 0.399
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.405
+    mae: 0.416
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.439
+    mae: 0.443
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.472
+    mae: 0.49
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.289
+    mae: 0.353
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.383
+    mae: 0.418
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.448
+    mae: 0.465
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.605
+    mae: 0.551
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.299
+    mae: 0.343
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.335
+    mae: 0.365
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.369
+    mae: 0.386
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.425
+    mae: 0.421
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.167
+    mae: 0.26
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.224
+    mae: 0.303
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.281
+    mae: 0.342
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.397
+    mae: 0.421
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.141
+    mae: 0.237
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.154
+    mae: 0.248
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.171
+    mae: 0.265
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.21
+    mae: 0.297
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.089
+    mae: 0.208
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.18
+    mae: 0.3
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.331
+    mae: 0.415
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 1.033
+    mae: 0.78
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.41
+    mae: 0.279
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.423
+    mae: 0.284
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.435
+    mae: 0.29
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.464
+    mae: 0.307
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.182
+    mae: 0.232
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.225
+    mae: 0.269
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.271
+    mae: 0.301
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: DLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.338
+    mae: 0.348
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.374
+    mae: 0.394
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.408
+    mae: 0.415
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.429
+    mae: 0.427
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.44
+    mae: 0.453
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.277
+    mae: 0.338
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.344
+    mae: 0.381
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.357
+    mae: 0.4
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.394
+    mae: 0.436
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.306
+    mae: 0.348
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.349
+    mae: 0.375
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.375
+    mae: 0.388
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.433
+    mae: 0.422
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.167
+    mae: 0.255
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.221
+    mae: 0.293
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.274
+    mae: 0.327
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.368
+    mae: 0.384
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.14
+    mae: 0.237
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.153
+    mae: 0.249
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.169
+    mae: 0.267
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.203
+    mae: 0.301
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.081
+    mae: 0.203
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.157
+    mae: 0.293
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.305
+    mae: 0.414
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.643
+    mae: 0.601
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.41
+    mae: 0.282
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.423
+    mae: 0.287
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.436
+    mae: 0.296
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.466
+    mae: 0.315
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.176
+    mae: 0.237
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.22
+    mae: 0.282
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.265
+    mae: 0.319
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: NLinear (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.323
+    mae: 0.362
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.449
+    mae: 0.459
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.5
+    mae: 0.482
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.521
+    mae: 0.496
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.514
+    mae: 0.512
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.358
+    mae: 0.397
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.456
+    mae: 0.452
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.482
+    mae: 0.486
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.515
+    mae: 0.511
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.505
+    mae: 0.475
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.553
+    mae: 0.496
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.621
+    mae: 0.537
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.671
+    mae: 0.561
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.255
+    mae: 0.339
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.281
+    mae: 0.34
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.339
+    mae: 0.372
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.433
+    mae: 0.432
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.201
+    mae: 0.317
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.222
+    mae: 0.334
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.231
+    mae: 0.338
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.254
+    mae: 0.361
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.197
+    mae: 0.323
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.3
+    mae: 0.369
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.509
+    mae: 0.524
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 1.447
+    mae: 0.941
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.613
+    mae: 0.388
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.616
+    mae: 0.382
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.622
+    mae: 0.337
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.66
+    mae: 0.408
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.266
+    mae: 0.336
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.307
+    mae: 0.367
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.359
+    mae: 0.395
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Autoformer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.419
+    mae: 0.428
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.865
+    mae: 0.713
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 1.008
+    mae: 0.792
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 1.107
+    mae: 0.809
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 1.181
+    mae: 0.865
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 3.755
+    mae: 1.525
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 5.602
+    mae: 1.931
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 4.721
+    mae: 1.835
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 3.647
+    mae: 1.625
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.672
+    mae: 0.571
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.795
+    mae: 0.669
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 1.212
+    mae: 0.871
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 1.166
+    mae: 0.823
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.365
+    mae: 0.453
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.533
+    mae: 0.563
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 1.363
+    mae: 0.887
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 3.379
+    mae: 1.338
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.274
+    mae: 0.368
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.296
+    mae: 0.386
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.3
+    mae: 0.394
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Electricity
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.373
+    mae: 0.439
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.847
+    mae: 0.752
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 1.204
+    mae: 0.895
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 1.672
+    mae: 1.036
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: ExchangeRate
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 2.478
+    mae: 1.31
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.719
+    mae: 0.391
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.696
+    mae: 0.379
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.777
+    mae: 0.42
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Traffic
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 0.864
+    mae: 0.472
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 96
+  metrics:
+    mse: 0.3
+    mae: 0.384
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 192
+  metrics:
+    mse: 0.598
+    mae: 0.544
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 336
+  metrics:
+    mse: 0.578
+    mae: 0.523
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: Informer (paper)
+  task: Forecast
+  dataset: Weather
+  hparams:
+    windows: 96
+    pred_len: 720
+  metrics:
+    mse: 1.059
+    mae: 0.741
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: LTSF-Linear benchmark
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?,
+      AAAI 2023 / LTSF-Linear benchmark table
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+    notes: Curated multivariate long-term forecasting results. Input length is 96;
+      prediction lengths are 96, 192, 336, and 720. Not locally reproduced in this
+      repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.019
+    mae: 0.092
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.023
+    mae: 0.101
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.029
+    mae: 0.111
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.036
+    mae: 0.124
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.018
+    mae: 0.08
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.02
+    mae: 0.085
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.023
+    mae: 0.091
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.026
+    mae: 0.098
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.057
+    mae: 0.159
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.069
+    mae: 0.178
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.084
+    mae: 0.196
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.102
+    mae: 0.215
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.04
+    mae: 0.13
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.046
+    mae: 0.141
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.052
+    mae: 0.151
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.06
+    mae: 0.162
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.085
+    mae: 0.202
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.089
+    mae: 0.206
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.094
+    mae: 0.213
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.1
+    mae: 0.221
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.025
+    mae: 0.045
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.029
+    mae: 0.052
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.031
+    mae: 0.057
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.034
+    mae: 0.062
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.058
+    mae: 0.162
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.08
+    mae: 0.193
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.103
+    mae: 0.219
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.132
+    mae: 0.248
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.062
+    mae: 0.166
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.085
+    mae: 0.196
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.106
+    mae: 0.222
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.131
+    mae: 0.247
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.151
+    mae: 0.267
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.18
+    mae: 0.292
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.215
+    mae: 0.318
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.257
+    mae: 0.347
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.1
+    mae: 0.216
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.127
+    mae: 0.247
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.158
+    mae: 0.276
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.183
+    mae: 0.299
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.092
+    mae: 0.214
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.118
+    mae: 0.247
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.144
+    mae: 0.276
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.175
+    mae: 0.305
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.039
+    mae: 0.084
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.048
+    mae: 0.103
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.057
+    mae: 0.117
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.066
+    mae: 0.134
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.034
+    mae: 0.124
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.046
+    mae: 0.144
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.057
+    mae: 0.161
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.067
+    mae: 0.174
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.023
+    mae: 0.092
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.026
+    mae: 0.101
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.03
+    mae: 0.108
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTm2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.035
+    mae: 0.119
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.074
+    mae: 0.182
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.09
+    mae: 0.203
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.109
+    mae: 0.222
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh1
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.137
+    mae: 0.248
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.044
+    mae: 0.138
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.05
+    mae: 0.149
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.06
+    mae: 0.163
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: ETTh2
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.068
+    mae: 0.173
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.089
+    mae: 0.21
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.096
+    mae: 0.22
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.104
+    mae: 0.229
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Electricity
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.113
+    mae: 0.239
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.125
+  metrics:
+    mse: 0.026
+    mae: 0.047
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.25
+  metrics:
+    mse: 0.03
+    mae: 0.054
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.375
+  metrics:
+    mse: 0.032
+    mae: 0.06
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: Imputation
+  dataset: Weather
+  hparams:
+    windows: 96
+    mask_rate: 0.5
+  metrics:
+    mse: 0.037
+    mae: 0.067
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: AnomalyDetection
+  dataset: SMD
+  hparams:
+    windows: 96
+  metrics:
+    precision: 83.62
+    recall: 71.52
+    f1: 77.1
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: AnomalyDetection
+  dataset: MSL
+  hparams:
+    windows: 96
+  metrics:
+    precision: 84.34
+    recall: 85.42
+    f1: 84.88
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: AnomalyDetection
+  dataset: SMAP
+  hparams:
+    windows: 96
+  metrics:
+    precision: 92.32
+    recall: 55.41
+    f1: 69.26
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: AnomalyDetection
+  dataset: SWaT
+  hparams:
+    windows: 96
+  metrics:
+    precision: 80.91
+    recall: 95.3
+    f1: 87.52
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: AnomalyDetection
+  dataset: PSM
+  hparams:
+    windows: 96
+  metrics:
+    precision: 98.28
+    recall: 89.26
+    f1: 93.55
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: AnomalyDetection
+  dataset: SMD
+  hparams:
+    windows: 96
+  metrics:
+    precision: 88.06
+    recall: 82.35
+    f1: 85.11
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: AnomalyDetection
+  dataset: MSL
+  hparams:
+    windows: 96
+  metrics:
+    precision: 77.27
+    recall: 80.92
+    f1: 79.05
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: AnomalyDetection
+  dataset: SMAP
+  hparams:
+    windows: 96
+  metrics:
+    precision: 90.4
+    recall: 58.62
+    f1: 71.12
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: AnomalyDetection
+  dataset: SWaT
+  hparams:
+    windows: 96
+  metrics:
+    precision: 89.85
+    recall: 95.81
+    f1: 92.74
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Autoformer (paper)
+  task: AnomalyDetection
+  dataset: PSM
+  hparams:
+    windows: 96
+  metrics:
+    precision: 99.08
+    recall: 88.15
+    f1: 93.29
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: FEDformer (paper)
+  task: AnomalyDetection
+  dataset: SMD
+  hparams:
+    windows: 96
+  metrics:
+    precision: 87.95
+    recall: 82.39
+    f1: 85.08
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: FEDformer (paper)
+  task: AnomalyDetection
+  dataset: MSL
+  hparams:
+    windows: 96
+  metrics:
+    precision: 77.14
+    recall: 80.07
+    f1: 78.57
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: FEDformer (paper)
+  task: AnomalyDetection
+  dataset: SMAP
+  hparams:
+    windows: 96
+  metrics:
+    precision: 90.47
+    recall: 58.1
+    f1: 70.76
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: FEDformer (paper)
+  task: AnomalyDetection
+  dataset: SWaT
+  hparams:
+    windows: 96
+  metrics:
+    precision: 90.17
+    recall: 96.42
+    f1: 93.19
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: FEDformer (paper)
+  task: AnomalyDetection
+  dataset: PSM
+  hparams:
+    windows: 96
+  metrics:
+    precision: 97.31
+    recall: 97.16
+    f1: 97.23
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: AnomalyDetection
+  dataset: SMD
+  hparams:
+    windows: 96
+  metrics:
+    precision: 87.76
+    recall: 82.63
+    f1: 85.12
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: AnomalyDetection
+  dataset: MSL
+  hparams:
+    windows: 96
+  metrics:
+    precision: 82.97
+    recall: 85.42
+    f1: 84.18
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: AnomalyDetection
+  dataset: SMAP
+  hparams:
+    windows: 96
+  metrics:
+    precision: 91.5
+    recall: 57.8
+    f1: 70.85
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: AnomalyDetection
+  dataset: SWaT
+  hparams:
+    windows: 96
+  metrics:
+    precision: 88.31
+    recall: 96.24
+    f1: 92.1
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: AnomalyDetection
+  dataset: PSM
+  hparams:
+    windows: 96
+  metrics:
+    precision: 98.22
+    recall: 92.21
+    f1: 95.21
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: EthanolConcentration
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.452
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: FaceDetection
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.647
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: Handwriting
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.588
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: Heartbeat
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.756
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: JapaneseVowels
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.962
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: PEMS-SF
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.751
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: Rocket (paper)
+  task: UEAClassification
+  dataset: SelfRegulationSCP1
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.908
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: EthanolConcentration
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.326
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: FaceDetection
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.68
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: Handwriting
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.27
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: Heartbeat
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.751
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: JapaneseVowels
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.962
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: PEMS-SF
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.751
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: DLinear (paper)
+  task: UEAClassification
+  dataset: SelfRegulationSCP1
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.873
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: EthanolConcentration
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.357
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: FaceDetection
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.686
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: Handwriting
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.321
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: Heartbeat
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.78
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: JapaneseVowels
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.984
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: PEMS-SF
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.896
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.
+- model: TimesNet (paper)
+  task: UEAClassification
+  dataset: SelfRegulationSCP1
+  hparams:
+    windows: 96
+  metrics:
+    accuracy: 0.918
+  num_seeds: 1
+  source:
+    source_type: paper
+    source_name: TimesNet paper
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time
+      Series Analysis, ICLR 2023'
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping
+      the web leaderboard and are not locally reproduced in this repository yet.

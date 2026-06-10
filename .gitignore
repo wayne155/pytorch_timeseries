@@ -195,4 +195,4 @@ leaderboard/results/*
 !leaderboard/results/.gitkeep
 
 # webapp logo is a real asset despite global *.svg ignore
-!leaderboard/webapp/public/favicon.svg
+!webapp/leaderboard/public/favicon.svg

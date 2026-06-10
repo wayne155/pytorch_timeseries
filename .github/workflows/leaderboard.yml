@@ -7,23 +7,21 @@ on:
       - 'results/**'
       - 'leaderboard/**'
       - 'leaderboard_results/**'
-      - 'webapp/**'
-      - 'scripts/build_leaderboard.py'
+      - 'leaderboard/build_leaderboard.py'
       - 'leaderboard.yaml'
   pull_request:
     paths:
       - 'results/**'
       - 'leaderboard/**'
       - 'leaderboard_results/**'
-      - 'webapp/**'
-      - 'scripts/build_leaderboard.py'
+      - 'leaderboard/build_leaderboard.py'
       - 'leaderboard.yaml'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -36,26 +34,54 @@ jobs:
         run: pip install pyyaml
 
       - name: Generate leaderboard data
-        run: python scripts/build_leaderboard.py
+        run: python leaderboard/build_leaderboard.py
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: webapp/package-lock.json
+          cache-dependency-path: webapp/leaderboard/package-lock.json
 
       - name: Install Node deps
-        run: cd webapp && npm ci
+        working-directory: webapp/leaderboard
+        run: npm ci
 
       - name: Run frontend tests
-        run: cd webapp && npx vitest run
+        working-directory: webapp/leaderboard
+        run: npx vitest run
 
       - name: Build frontend
-        run: cd webapp && npm run build
+        working-directory: webapp/leaderboard
+        env:
+          LEADERBOARD_BASE: /leaderboard/
+        run: npm run build
 
-      - name: Deploy to GitHub Pages
+      - name: Checkout GitHub Pages repository
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: actions/checkout@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./webapp/dist
+          repository: pytorch-timeseries/pytorch-timeseries.github.io
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          path: pages-site
+          ref: main
+
+      - name: Copy leaderboard app into Pages repository
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          rm -rf pages-site/leaderboard
+          mkdir -p pages-site/leaderboard
+          cp -R webapp/leaderboard/dist/. pages-site/leaderboard/
+
+      - name: Push leaderboard app to GitHub Pages repository
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: pages-site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add leaderboard
+          if git diff --cached --quiet; then
+            echo "No leaderboard changes to deploy."
+            exit 0
+          fi
+          git commit -m "deploy leaderboard"
+          git push origin main

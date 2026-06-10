@@ -19,8 +19,12 @@ pytorch_timeseries
    :caption: Concepts
    :titlesonly:
 
+   concepts/experiments
+   concepts/results-and-artifacts
    concepts/dataloader
+   concepts/architecture
    leaderboard/index
+   changelog
 
 
 .. toctree::

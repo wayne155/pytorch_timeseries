@@ -1,11 +1,11 @@
 id: short_term_forecast
 display_name: "Short-Term Forecast"
-task: ProbForecast
-primary_metrics: [mase, mape]
+task: Forecast
+primary_metrics: [mse, mae]
 
 variants:
   - label: "InputWindow96"
-    match: {seq_len: 96}
+    match: {windows: 96, experiment_label: short_term_forecast}
     subcolumns:
       - {label: "24", match: {pred_len: 24}}
       - {label: "48", match: {pred_len: 48}}

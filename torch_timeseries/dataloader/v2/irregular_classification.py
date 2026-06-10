@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 
 from .._seed import seed_worker
 from .._split import resolve_split_ratios
-from .forecast import LoaderConfig, SplitConfig
+from .loader import LoaderConfig
+from .split import SplitConfig
 from .irregular_batch import IrregularTSBatch, collate_irregular
 from torch_timeseries.utils.timefeatures import TimeEncoding
 

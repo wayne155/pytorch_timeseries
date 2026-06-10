@@ -5,14 +5,14 @@ primary_metrics: [mse, mae]
 
 variants:
   - label: "InputWindow96"
-    match: {windows: 96}
+    match: {windows: 96, experiment_label: ""}
     subcolumns:
       - {label: "96",  match: {pred_len: 96}}
       - {label: "192", match: {pred_len: 192}}
       - {label: "336", match: {pred_len: 336}}
       - {label: "720", match: {pred_len: 720}}
   - label: "InputWindow336"
-    match: {windows: 336}
+    match: {windows: 336, experiment_label: ""}
     subcolumns:
       - {label: "96",  match: {pred_len: 96}}
       - {label: "192", match: {pred_len: 192}}

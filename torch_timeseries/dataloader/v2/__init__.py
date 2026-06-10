@@ -25,7 +25,10 @@ from .batch import TSBatch, Time, TimeEncConfig, collate_tsbatch
 from .irregular_batch import IrregularTSBatch, collate_irregular
 from .irregular_classification import IrregularClassificationDataModule, IrregularClassificationConfig
 from .windowed import WindowedDataset
-from .forecast import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
+from .window import WindowConfig
+from .split import DEFAULT_SPLIT_CONFIGS, SplitConfig, default_split_config
+from .loader import LoaderConfig
+from .forecast import ForecastDataModule
 from .imputation import ImputationDataModule, ImputationWindowConfig
 from .anomaly import AnomalyDataModule, AnomalyWindowConfig
 from .uea import UEADataModule, UEAWindowConfig
@@ -41,6 +44,8 @@ __all__ = [
     "WindowConfig",
     "SplitConfig",
     "LoaderConfig",
+    "DEFAULT_SPLIT_CONFIGS",
+    "default_split_config",
     "TimeEncoding",
     "ImputationDataModule",
     "ImputationWindowConfig",

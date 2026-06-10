@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from .._seed import seed_worker
 from .batch import TSBatch, collate_tsbatch
-from .forecast import LoaderConfig
+from .loader import LoaderConfig
 
 
 @dataclass

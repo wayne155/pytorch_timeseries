@@ -1,48 +1,101 @@
-.. vim: syntax=rst
+Quickstart
+==========
 
-quick start
-======================
+``torch_timeseries`` is a research toolkit for time-series experiments. It can
+either run standard benchmarks for you or provide datasets and DataModules for
+your own training loop.
 
-Here is an example to train DLinear model in a long-term forecast settings, see ../examples/quickstart.py  for more details
+Install
+-------
 
-.. code-block:: python 
-    :caption: quick start
-    :linenos:
+Install the package after installing a PyTorch build that matches your machine:
 
-    from torch_timeseries.dataset import ETTh1
-    from torch_timeseries.dataloader import StandardScaler, SlidingWindow, SlidingWindowTS
-    from torch_timeseries.model import DLinear
-    from torch.nn import MSELoss, L1Loss
-    from torch.optim import Adam
-    dataset = ETTh1('./data')
-    scaler = StandardScaler()
-    dataloader = SlidingWindowTS(dataset, 
-        window=96,
-        horizon=1,
-        steps=336,
-        batch_size=32, 
-        train_ratio=0.7, 
-        val_ratio=0.2, 
-        scaler=scaler,
-        )
-    model = DLinear(dataloader.window, dataloader.steps, dataset.num_features, individual= True)
+.. code-block:: bash
 
-    optimizer = Adam(model.parameters())
-    loss_function = MSELoss()
+   pip install torch-timeseries
 
+For development from this repository:
 
-    # train
-    model.train()
-    for scaled_x, scaled_y, x, y, x_date_enc, y_date_enc in dataloader.train_loader:
-        optimizer.zero_grad()
-        
-        scaled_x = scaled_x.float()
-        scaled_y = scaled_y.float()
-        scaled_pred_y = model(scaled_x) 
-        
-        loss = loss_function(scaled_pred_y, scaled_y)
-        loss.backward()
-        optimizer.step()
-        print(loss)
+.. code-block:: bash
 
+   pip install -r requirements.txt
 
+Run a Built-In Experiment
+-------------------------
+
+The fastest path is the high-level :class:`torch_timeseries.Experiment` API.
+Choose a model, task, dataset, and any configuration overrides.
+
+.. code-block:: python
+
+   from torch_timeseries import Experiment
+
+   results = Experiment(
+       model="DLinear",
+       task="Forecast",
+       dataset="ETTh1",
+       windows=96,
+       pred_len=96,
+       lr=0.001,
+       save_dir="./results",
+   ).run(seeds=[1, 2, 3])
+
+   for result in results:
+       print(result.seed, result.metrics)
+
+The runner prepares the dataset, builds the model, trains, validates, tests, and
+stores a :class:`torch_timeseries.results.RunResult`.
+
+Use the CLI
+-----------
+
+The CLI exposes the same experiment family:
+
+.. code-block:: bash
+
+   pytexp --model DLinear --task Forecast --dataset_type ETTh1 run 1
+   pytexp --model DLinear --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
+
+Compare saved local results:
+
+.. code-block:: bash
+
+   pytexp compare --save_dir ./results --task Forecast
+
+Write Your Own Training Loop
+----------------------------
+
+Use v2 DataModules when you want full control over optimization or model code.
+They return named batch objects instead of positional tuples.
+
+.. code-block:: python
+
+   from torch_timeseries.dataset import ETTh1
+   from torch_timeseries.scaler import StandardScaler
+   from torch_timeseries.dataloader.v2 import (
+       ForecastDataModule,
+       LoaderConfig,
+       SplitConfig,
+       WindowConfig,
+   )
+
+   dataset = ETTh1("./data")
+   datamodule = ForecastDataModule(
+       dataset=dataset,
+       scaler=StandardScaler(),
+       window=WindowConfig(window=96, horizon=1, steps=96),
+       split=SplitConfig(train=0.7, val=0.1, test=0.2),
+       loader=LoaderConfig(batch_size=32),
+   )
+
+   for batch in datamodule.train_loader:
+       x = batch.x.float()
+       y = batch.y.float()
+       # your model, loss, optimizer, and logging here
+
+Next Steps
+----------
+
+- Read :doc:`/concepts/experiments` for the experiment workflow.
+- Read :doc:`/concepts/results-and-artifacts` for result storage and model downloads.
+- Read :doc:`/concepts/dataloader` for v2 DataModules and named batches.

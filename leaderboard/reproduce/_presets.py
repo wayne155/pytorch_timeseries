@@ -1,0 +1,164 @@
+"""Shared benchmark grids for per-model reproduce scripts."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+
+
+DEFAULT_SEEDS = [0, 1, 2, 3, 4]
+
+LONG_TERM_DATASETS = [
+    "ETTh1",
+    "ETTh2",
+    "ETTm1",
+    "ETTm2",
+    "Electricity",
+    "Weather",
+    "Traffic",
+    "ExchangeRate",
+]
+
+SHORT_TERM_DATASETS = ["ETTh1", "ETTh2", "ETTm1", "ETTm2"]
+
+IMPUTATION_DATASETS = [
+    "ETTh1",
+    "ETTh2",
+    "ETTm1",
+    "ETTm2",
+    "Electricity",
+    "Weather",
+]
+
+ANOMALY_DATASETS = ["SMD", "MSL", "SMAP", "SWaT", "PSM"]
+
+UEA_DATASETS = [
+    "EthanolConcentration",
+    "FaceDetection",
+    "Handwriting",
+    "Heartbeat",
+    "JapaneseVowels",
+    "PEMS-SF",
+    "SelfRegulationSCP1",
+    "SelfRegulationSCP2",
+    "SpokenArabicDigits",
+    "UWaveGestureLibrary",
+]
+
+LONG_TERM_GRID = {"pred_len": [96, 192, 336, 720]}
+SHORT_TERM_GRID = {"pred_len": [24, 48, 96]}
+IMPUTATION_GRID = {"mask_rate": [0.125, 0.25, 0.375, 0.5]}
+NO_GRID = {}
+
+
+MODEL_PARAMS = {
+    "Autoformer": {
+        "d_ff": 2048,
+        "factor": 1,
+        "activation": "gelu",
+        "e_layers": 2,
+        "d_layers": 1,
+        "output_attention": True,
+        "moving_avg": 25,
+        "n_heads": 8,
+        "d_model": 512,
+        "embed": "timeF",
+        "dropout": 0.1,
+    },
+    "DLinear": {"individual": False},
+    "FEDformer": {
+        "d_ff": 2048,
+        "d_model": 512,
+        "embed": "timeF",
+        "dropout": 0.0,
+        "cross_activation": "tanh",
+        "activation": "gelu",
+        "version": "Fourier",
+        "n_heads": 8,
+        "L": 3,
+        "moving_avg": 25,
+        "e_layers": 2,
+        "d_layers": 1,
+        "modes": 64,
+        "base": "legendre",
+        "mode_select": "random",
+    },
+    "iTransformer": {
+        "factor": 1,
+        "d_model": 512,
+        "n_heads": 8,
+        "e_layers": 2,
+        "d_ff": 2048,
+        "dropout": 0.1,
+        "embed": "timeF",
+        "activation": "gelu",
+        "use_norm": True,
+        "class_strategy": "projection",
+    },
+    "NLinear": {"individual": False},
+    "PatchTST": {
+        "d_model": 512,
+        "n_heads": 8,
+        "e_layers": 1,
+        "d_ff": 2048,
+        "dropout": 0.1,
+        "patch_len": 16,
+        "stride": 8,
+    },
+    "TimesNet": {
+        "n_heads": 8,
+        "e_layers": 2,
+        "label_len": 48,
+        "d_model": 512,
+        "d_ff": 512,
+        "num_kernels": 6,
+        "top_k": 5,
+        "dropout": 0.0,
+        "embed": "timeF",
+    },
+}
+
+
+def _lr_for(model: str) -> float:
+    return 0.001 if model in {"DLinear", "NLinear"} else 0.0001
+
+
+def _training_params(model: str, task_name: str) -> dict:
+    batch_size = 32
+    if task_name == "anomaly_detection":
+        batch_size = 128
+    elif task_name == "uea_classification":
+        batch_size = 16
+
+    return {
+        "epochs": 10,
+        "patience": 3,
+        "batch_size": batch_size,
+        "lr": _lr_for(model),
+        "max_grad_norm": None,
+    }
+
+
+def params_for(model: str, task_name: str) -> dict:
+    params = deepcopy(MODEL_PARAMS[model])
+    params.update(_training_params(model, task_name))
+
+    if task_name in {"long_term_forecast", "short_term_forecast"}:
+        params.update({
+            "windows": 96,
+            "horizon": 1,
+            "time_enc": 1,
+            "lradj": "type1",
+            "experiment_label": ""
+            if task_name == "long_term_forecast"
+            else "short_term_forecast",
+        })
+    elif task_name == "imputation":
+        params.update({"windows": 96})
+    elif task_name == "anomaly_detection":
+        params.update({"windows": 96, "spacing": 100, "anomaly_ratio": 0.25})
+    elif task_name == "uea_classification":
+        params.update({"windows": 96})
+    else:
+        raise ValueError(f"Unknown reproduce task: {task_name}")
+
+    return params

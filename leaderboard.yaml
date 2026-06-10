@@ -2,7 +2,7 @@ leaderboard_results_dir: leaderboard/results
 results_dir: results
 views_dir: leaderboard/views
 entries_dir: leaderboard/entries
-out: leaderboard/webapp/public/leaderboard_data.json
+out: webapp/leaderboard/public/leaderboard_data.json
 
 # Remote backend — placeholder, not implemented
 # backends:

@@ -9,6 +9,8 @@ from torch.nn import L1Loss, MSELoss
 from torch.optim import Adam
 from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 
+from dataclasses import replace
+
 from torch_timeseries.dataloader.v2 import (
     ForecastDataModule,
     LoaderConfig,
@@ -29,7 +31,9 @@ from torch_timeseries.results.identity import (
     run_id_for_seed,
 )
 
-from .configs import CrossformerConfig, DLinearConfig, ForecastConfig, RuntimeConfig
+from typing import Optional
+
+from .configs import CrossformerConfig, DLinearConfig, RuntimeConfig
 
 try:
     from tqdm import tqdm
@@ -56,14 +60,16 @@ class ForecastEngine:
         self,
         model_name: str,
         dataset_name: str,
-        task_config: ForecastConfig,
+        window_config: WindowConfig,
         model_config,
         runtime_config: RuntimeConfig,
+        split_config: Optional[SplitConfig] = None,
     ) -> None:
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.task = "Forecast"
-        self.task_config = task_config
+        self.window_cfg = window_config
+        self.split_cfg = split_config
         self.model_config = model_config
         self.runtime = runtime_config
         self.current_epoch = 0
@@ -80,33 +86,28 @@ class ForecastEngine:
 
     def _init_datamodule(self) -> None:
         scaler = parse_type(self.runtime.scaler_type, globals())()
+        wc = self.window_cfg
+        # Fill the time-encoding freq from the dataset when unspecified.
+        if wc.time_enc_cfg.freq is None:
+            wc = replace(
+                wc,
+                time_enc_cfg=replace(
+                    wc.time_enc_cfg,
+                    freq=getattr(self.dataset, "freq", None),
+                ),
+            )
         self.datamodule = ForecastDataModule(
             dataset=self.dataset,
             scaler=scaler,
-            window=WindowConfig(
-                window=self.task_config.windows,
-                horizon=self.task_config.horizon,
-                steps=self.task_config.pred_len,
-                stride=self.task_config.stride,
-                time_enc_cfg=TimeEncConfig(
-                    time_enc=self.task_config.time_enc,
-                    freq=getattr(self.dataset, "freq", None),
-                ),
-                input_columns=self.task_config.input_columns,
-                target_columns=self.task_config.target_columns,
-            ),
-            split=SplitConfig(
-                train=self.task_config.train_ratio,
-                val=self.task_config.val_ratio,
-                test=self.task_config.test_ratio,
-            ),
+            window=wc,
+            # None -> the dataset's default split (canonical borders or 7:1:2)
+            split=self.split_cfg,
             loader=LoaderConfig(
                 batch_size=self.runtime.batch_size,
                 num_workers=self.runtime.num_worker,
                 shuffle_train=True,
                 pin_memory=self.runtime.pin_memory,
             ),
-            scale_in_train=self.task_config.scale_in_train,
         )
         self.scaler = scaler
         self.train_loader = self.datamodule.train_loader
@@ -128,10 +129,18 @@ class ForecastEngine:
             lr=self.runtime.lr,
             weight_decay=self.runtime.l2_weight_decay,
         )
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer,
-            T_max=self.runtime.epochs,
-        )
+        if self.runtime.lradj == "cosine":
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=self.runtime.epochs,
+            )
+        else:
+            # TSLib "type1": halve the lr every epoch (first adjust is a no-op,
+            # so epoch 0 and 1 run at the base lr).
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(
+                self.optimizer,
+                lr_lambda=lambda e: 0.5 ** max(0, e - 1),
+            )
         self.run_save_dir = os.path.join(
             self.runtime.save_dir,
             "runs",
@@ -192,10 +201,11 @@ class ForecastEngine:
                     true = y_raw.to(self.runtime.device).float()
                 loss = self.loss_func(pred, true)
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(),
-                    self.runtime.max_grad_norm,
-                )
+                if self.runtime.max_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(),
+                        self.runtime.max_grad_norm,
+                    )
                 self.optimizer.step()
                 loss_value = loss.item()
                 losses.append(loss_value)
@@ -275,8 +285,18 @@ class ForecastEngine:
         return self._evaluate(self.test_loader)
 
     def hparams(self) -> dict:
-        out = {}
-        out.update(asdict(self.task_config))
+        # Flat keys (windows/pred_len/...) so leaderboard views can match on them.
+        wc = self.window_cfg
+        out = {
+            "windows": wc.window,
+            "pred_len": wc.steps,
+            "horizon": wc.horizon,
+            "stride": wc.stride,
+            "time_enc": wc.time_enc_cfg.time_enc,
+            "input_columns": wc.input_columns,
+            "target_columns": wc.target_columns,
+            "split": None if self.split_cfg is None else asdict(self.split_cfg),
+        }
         out.update(asdict(self.model_config))
         out.update(asdict(self.runtime))
         return out
@@ -294,8 +314,8 @@ class DLinearForecastEngine(ForecastEngine):
 
     def _build_model(self) -> None:
         self.model = DLinear(
-            seq_len=self.task_config.windows,
-            pred_len=self.task_config.pred_len,
+            seq_len=self.window_cfg.window,
+            pred_len=self.window_cfg.steps,
             enc_in=self.datamodule.num_features,
             individual=self.model_config.individual,
         ).to(self.runtime.device)
@@ -307,8 +327,8 @@ class CrossformerForecastEngine(ForecastEngine):
     def _build_model(self) -> None:
         self.model = Crossformer(
             data_dim=self.datamodule.num_features,
-            in_len=self.task_config.windows,
-            out_len=self.task_config.pred_len,
+            in_len=self.window_cfg.window,
+            out_len=self.window_cfg.steps,
             seg_len=self.model_config.seg_len,
             win_size=self.model_config.win_size,
             factor=self.model_config.factor,

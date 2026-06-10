@@ -21,7 +21,7 @@ def test_build_script_runs(tmp_path):
     cfg_path = tmp_path / "leaderboard.yaml"
     cfg_path.write_text(yaml.dump(cfg))
     result = subprocess.run(
-        [sys.executable, "scripts/build_leaderboard.py", "--config", str(cfg_path)],
+        [sys.executable, "leaderboard/build_leaderboard.py", "--config", str(cfg_path)],
         capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr

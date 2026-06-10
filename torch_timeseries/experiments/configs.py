@@ -1,38 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
-
-@dataclass
-class ForecastConfig:
-    windows: int = 96
-    pred_len: int = 96
-    horizon: int = 1
-    train_ratio: float = 0.7
-    val_ratio: Optional[float] = None
-    test_ratio: float = 0.2
-    time_enc: int = 1
-    input_columns: Optional[List[int]] = None
-    target_columns: Optional[List[int]] = None
-    stride: int = 1
-    scale_in_train: bool = True
-
-    def validate(self) -> None:
-        if self.windows <= 0:
-            raise ValueError("windows must be positive")
-        if self.pred_len <= 0:
-            raise ValueError("pred_len must be positive")
-        if self.horizon <= 0:
-            raise ValueError("horizon must be positive")
-        if self.stride <= 0:
-            raise ValueError("stride must be positive")
-        if not (0 < self.train_ratio < 1):
-            raise ValueError("train_ratio must be between 0 and 1")
-        if self.test_ratio is not None and not (0 < self.test_ratio < 1):
-            raise ValueError("test_ratio must be between 0 and 1")
-        if self.val_ratio is not None and not (0 <= self.val_ratio < 1):
-            raise ValueError("val_ratio must be between 0 and 1")
+from torch_timeseries.dataloader.v2 import SplitConfig, TimeEncConfig, WindowConfig
 
 
 @dataclass
@@ -89,11 +60,16 @@ class RuntimeConfig:
     num_worker: int = 0
     lr: float = 0.0001
     l2_weight_decay: float = 0.0
-    epochs: int = 20
-    patience: int = 5
-    max_grad_norm: float = 5.0
+    # TSLib protocol: 10 epochs, patience 3, halve lr each epoch, no clipping.
+    epochs: int = 10
+    patience: int = 3
+    lradj: str = "type1"
+    """LR schedule: "type1" = halve every epoch (TSLib default), "cosine"."""
+    max_grad_norm: Optional[float] = None
+    """Gradient-norm clip threshold; None disables clipping (TSLib default)."""
     invtrans_loss: bool = False
     pin_memory: bool = False
+    experiment_label: str = ""
 
     def validate(self) -> None:
         if self.batch_size <= 0:
@@ -106,8 +82,10 @@ class RuntimeConfig:
             raise ValueError("epochs must be positive")
         if self.patience <= 0:
             raise ValueError("patience must be positive")
-        if self.max_grad_norm <= 0:
-            raise ValueError("max_grad_norm must be positive")
+        if self.lradj not in ("type1", "cosine"):
+            raise ValueError("lradj must be 'type1' or 'cosine'")
+        if self.max_grad_norm is not None and self.max_grad_norm <= 0:
+            raise ValueError("max_grad_norm must be positive or None")
 
 
 def _field_names(cls) -> set:
@@ -119,11 +97,68 @@ def _build(cls, values: Dict):
     return cls(**{key: values.pop(key) for key in list(values) if key in names})
 
 
+def _build_window_split(remaining: Dict) -> Tuple[WindowConfig, Optional[SplitConfig]]:
+    """Build (WindowConfig, SplitConfig|None) from nested configs or flat
+    legacy keys (windows/pred_len/train_ratio/...). split=None means the
+    dataset's default split."""
+    window = remaining.pop("window", None)
+    split = remaining.pop("split", None)
+
+    flat = {
+        k: remaining.pop(k)
+        for k in (
+            "windows", "pred_len", "horizon", "stride", "time_enc", "freq",
+            "input_columns", "target_columns", "fast_val", "fast_test",
+        )
+        if k in remaining
+    }
+    ratios = {
+        k: remaining.pop(k)
+        for k in ("train_ratio", "val_ratio", "test_ratio")
+        if k in remaining
+    }
+
+    if window is None:
+        window = WindowConfig(
+            window=flat.get("windows", 96),
+            horizon=flat.get("horizon", 1),
+            steps=flat.get("pred_len", 96),
+            stride=flat.get("stride", 1),
+            fast_val=flat.get("fast_val", False),
+            fast_test=flat.get("fast_test", False),
+            time_enc_cfg=TimeEncConfig(
+                time_enc=flat.get("time_enc", 1),
+                freq=flat.get("freq"),
+            ),
+            input_columns=flat.get("input_columns"),
+            target_columns=flat.get("target_columns"),
+        )
+    elif flat:
+        raise TypeError(
+            f"pass either a WindowConfig or flat keys, not both: {sorted(flat)}"
+        )
+
+    if split is None:
+        explicit = {k: v for k, v in ratios.items() if v is not None}
+        if explicit:
+            split = SplitConfig(
+                train=explicit.get("train_ratio", 0.7),
+                val=explicit.get("val_ratio"),
+                test=explicit.get("test_ratio"),
+            )
+    elif any(v is not None for v in ratios.values()):
+        raise TypeError("pass either a SplitConfig or flat ratio keys, not both")
+
+    if window.window <= 0 or window.steps <= 0 or window.horizon <= 0 or window.stride <= 0:
+        raise ValueError("window/pred_len/horizon/stride must all be positive")
+    return window, split
+
+
 def split_experiment_config(
     model: str,
     task: str,
     kwargs: Dict,
-) -> Tuple[ForecastConfig, Union[DLinearConfig, CrossformerConfig], RuntimeConfig]:
+) -> Tuple[WindowConfig, Optional[SplitConfig], Union[DLinearConfig, CrossformerConfig], RuntimeConfig]:
     model_configs = {
         ("DLinear", "Forecast"): DLinearConfig,
         ("Crossformer", "Forecast"): CrossformerConfig,
@@ -134,7 +169,7 @@ def split_experiment_config(
         )
 
     remaining = dict(kwargs)
-    task_cfg = _build(ForecastConfig, remaining)
+    window_cfg, split_cfg = _build_window_split(remaining)
     model_cfg = _build(model_configs[(model, task)], remaining)
     runtime_cfg = _build(RuntimeConfig, remaining)
 
@@ -142,7 +177,6 @@ def split_experiment_config(
         unknown = ", ".join(sorted(remaining))
         raise TypeError(f"Unknown or irrelevant configuration keys: {unknown}")
 
-    task_cfg.validate()
     model_cfg.validate()
     runtime_cfg.validate()
-    return task_cfg, model_cfg, runtime_cfg
+    return window_cfg, split_cfg, model_cfg, runtime_cfg

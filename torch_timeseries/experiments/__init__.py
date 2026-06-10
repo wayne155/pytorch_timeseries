@@ -14,6 +14,13 @@ from .DLinear import (
     DLinearUEAClassification,
 )
 
+from .NLinear import (
+    NLinearAnomalyDetection,
+    NLinearForecast,
+    NLinearImputation,
+    NLinearUEAClassification,
+)
+
 from .Autoformer import (
     AutoformerAnomalyDetection,
     AutoformerForecast,

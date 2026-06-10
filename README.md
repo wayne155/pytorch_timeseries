@@ -43,37 +43,140 @@ pip install torch-timeseries
 Import a dataset and dataloader, then write your own training logic. Full control over loss, optimizer, and batch handling.
 
 ```python
+import torch
+import torch.nn as nn
+
 from torch_timeseries.dataset import ETTh1
 from torch_timeseries.scaler import StandardScaler
 from torch_timeseries.dataloader.v2 import (
     ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 )
 
-# dataset is downloaded automatically on first use
+# Dataset is downloaded automatically on first use.
 dataset = ETTh1("./data")
 
 dm = ForecastDataModule(
     dataset=dataset,
     scaler=StandardScaler(),
     window=WindowConfig(window=96, horizon=1, steps=96),
-    split=SplitConfig(train=0.7, val=0.1, test=0.2),
+    # ETTh1 academic split: 12 months train, 4 months val, 4 months test.
+    # If split is omitted, the datamodule uses this dataset default.
+    split=SplitConfig(borders=(12 * 30 * 24, 16 * 30 * 24, 20 * 30 * 24)),
     loader=LoaderConfig(batch_size=32),
 )
 
-# each batch is a TSBatch: .x, .y, .x_time, .y_time, .x_raw, .y_raw
-for batch in dm.train_loader:
-    x = batch.x.float()        # (B, 96, num_features)
-    y = batch.y.float()        # (B, 96, num_features)
-    # ... your model, loss, optimizer here
+class LinearForecaster(nn.Module):
+    """Input: (batch, input_window, features). Output: (batch, pred_len, features)."""
+
+    def __init__(self, input_window: int, pred_len: int):
+        super().__init__()
+        self.proj = nn.Linear(input_window, pred_len)
+
+    def forward(self, x):
+        # x: (B, 96, C) -> (B, C, 96) -> (B, C, 96) -> (B, 96, C)
+        return self.proj(x.transpose(1, 2)).transpose(1, 2)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = LinearForecaster(input_window=96, pred_len=96).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+loss_fn = nn.MSELoss()
+
+for epoch in range(1):
+    model.train()
+    for batch in dm.train_loader:
+        # Each batch is a TSBatch.
+        x = batch.x.float().to(device)  # (B, 96, num_features)
+        y = batch.y.float().to(device)  # (B, 96, num_features)
+
+        optimizer.zero_grad()
+        pred = model(x)                 # (B, 96, num_features)
+        loss = loss_fn(pred, y)
+        loss.backward()
+        optimizer.step()
 ```
 
 Use this pattern when you need a non-standard training loop, custom loss, or are prototyping a new architecture.
 
 ---
 
-### Way 2 — Default experiments (one command, results saved automatically)
+### Way 2 — Default training paradigm (built-in or registered models)
 
 Use the built-in experiment runner. Pick a model, task, and dataset — the library handles data loading, training, evaluation, and result saving.
+
+This path works for built-in models and for your own models registered with the default experiment classes.
+
+#### Architecture Direction
+
+New development targets the v2 DataModule API and the high-level `Experiment`
+entrypoint. Legacy dataloaders and direct experiment classes remain available
+for compatibility, but new task/model features should use named batches,
+Task DataModules, and result records.
+
+
+
+#### Register Custom Models
+
+To use the default training loop with your own model, subclass the task experiment class, define `_init_model`, then register it.
+
+For forecasting, the model should read `batch_x` with shape `(batch, windows, num_features)` and return predictions with shape `(batch, pred_len, num_features)`.
+
+```python
+from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+
+from torch_timeseries import Experiment, register_model
+from torch_timeseries.experiments import ForecastExp
+
+
+class MyForecastNet(nn.Module):
+    """Input: (B, seq_len, C). Output: (B, pred_len, C)."""
+
+    def __init__(self, seq_len: int, pred_len: int):
+        super().__init__()
+        self.proj = nn.Linear(seq_len, pred_len)
+
+    def forward(self, x):
+        return self.proj(x.transpose(1, 2)).transpose(1, 2)
+
+
+@dataclass
+class MyForecastModel(ForecastExp):
+    model_type: str = "MyForecastModel"
+
+    def _init_model(self):
+        self.model = MyForecastNet(
+            seq_len=self.windows,
+            pred_len=self.pred_len,
+        ).to(self.device)
+
+
+register_model(MyForecastModel)
+
+# The registered model name is the class name.
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+results = Experiment(
+    model="MyForecastModel",
+    task="Forecast",
+    dataset="ETTh1",
+    windows=96,
+    pred_len=96,
+    epochs=1,
+    device=device,
+).run(seeds=[1])
+
+print(results[0].metrics)
+```
+
+The same registered model can be launched from the CLI after the Python module containing `register_model(...)` has been imported:
+
+```bash
+pytexp --model MyForecastModel --task Forecast --dataset_type ETTh1 run 1
+```
+
+#### Run Built-In Models
 
 **Experiment builder (Python API):**
 
@@ -129,56 +232,6 @@ pytexp compare --save_dir ./results --task Forecast
 ```
 
 Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
-
-### Architecture direction
-
-New development targets the v2 DataModule API and the high-level `Experiment`
-entrypoint. Legacy dataloaders and direct experiment classes remain available
-for compatibility, but new task/model features should use named batches,
-Task DataModules, and result records.
-
-
-
-## Custom Models
-
-To plug in your own model, subclass the task experiment class, define `_init_model`, and register it:
-
-```python
-from dataclasses import dataclass
-from torch_timeseries.experiments import ForecastExp
-from torch_timeseries import register_model
-import torch.nn as nn
-
-@dataclass
-class MyModelParameters:
-    hidden_dim: int = 64
-
-@dataclass
-class MyModelForecast(ForecastExp, MyModelParameters):
-    model_type: str = "MyModel"
-
-    def _init_model(self):
-        self.model = MyNet(
-            seq_len=self.windows,
-            pred_len=self.pred_len,
-            hidden_dim=self.hidden_dim,
-        )
-        self.model = self.model.to(self.device)
-
-register_model(MyModelForecast)
-```
-
-Then run it with the `Experiment` builder or CLI:
-
-```python
-from torch_timeseries import Experiment
-
-Experiment(model="MyModelForecast", task="Forecast", dataset="ETTh1").run(seeds=[1, 2, 3])
-```
-
-```bash
-pytexp --model MyModelForecast --task Forecast --dataset_type ETTh1 run 1
-```
 
 
 

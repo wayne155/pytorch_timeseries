@@ -4,7 +4,7 @@ import json
 import pathlib
 import textwrap
 import pytest
-from scripts.build_leaderboard import (
+from leaderboard.build_leaderboard import (
     collect_results,
     matches_hparams,
     aggregate_metrics,
@@ -76,6 +76,8 @@ def test_matches_hparams():
     assert matches_hparams(data, {"windows": 96, "pred_len": 96}) is True
     assert matches_hparams(data, {"windows": 96, "pred_len": 192}) is False
     assert matches_hparams(data, {}) is True
+    assert matches_hparams(data, {"experiment_label": ""}) is True
+    assert matches_hparams(data, {"experiment_label": "short_term_forecast"}) is False
 
 
 def test_aggregate_metrics_mean_std():
@@ -112,7 +114,7 @@ def test_paper_entry_used_when_no_local_runs(view_yaml, tmp_path):
         "citation": "DLinear (Zeng 2023)",
         "url": "",
     }]
-    from scripts.build_leaderboard import _ingest_entry_yaml, _build_view
+    from leaderboard.build_leaderboard import _ingest_entry_yaml, _build_view
     import pathlib
     view_cfg_path = list(pathlib.Path(str(view_yaml)).glob("*.yaml"))[0]
     import yaml

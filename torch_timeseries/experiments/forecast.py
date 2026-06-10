@@ -6,7 +6,7 @@ import json
 import os
 import random
 import time
-from typing import Dict, List, Type, Union
+from typing import Dict, List, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,7 @@ from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
 from ..utils.reproduce import get_rng_state, reproducible, set_rng_state
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
-from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
+from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig, TimeEncConfig
 from ..utils import asdict_exc
 
 try:
@@ -36,8 +36,10 @@ class ForecastSettings:
     horizon: int = 1
     windows: int = 96
     pred_len: int = 96
-    train_ratio: float = 0.7
-    test_ratio: float = 0.2
+    # Both None -> the dataset's default split (canonical borders for the
+    # ETT family, 7:1:2 ratios otherwise). Set explicitly to override.
+    train_ratio: Optional[float] = None
+    test_ratio: Optional[float] = None
     time_enc: int = 1
     input_columns: List[int] = field(default_factory=list)
     target_columns: List[int] = field(default_factory=list)
@@ -46,6 +48,11 @@ class ForecastSettings:
 class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     loss_func_type : str = 'mse'
     columns : List[int] = field(default_factory=lambda : [])
+    # TSLib protocol: 10 epochs, patience 3, halve lr each epoch, no clipping.
+    epochs: int = 10
+    patience: int = 3
+    lradj: str = 'type1'
+    max_grad_norm: Optional[float] = None
     
     def config_wandb(
         self,
@@ -96,9 +103,17 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         self.model_optim = parse_type(self.optm_type, globals=globals())(
             self.model.parameters(), lr=self.lr, weight_decay=self.l2_weight_decay
         )
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.model_optim, T_max=self.epochs
-        )
+        if self.lradj == 'cosine':
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.model_optim, T_max=self.epochs
+            )
+        else:
+            # TSLib "type1": halve the lr every epoch (first adjust is a no-op,
+            # so epoch 0 and 1 run at the base lr).
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(
+                self.model_optim,
+                lr_lambda=lambda e: 0.5 ** max(0, e - 1),
+            )
 
     def _setup(self):
         # init data loader
@@ -144,22 +159,27 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
     
     def _init_data_loader(self):
         self._init_dataset()
-
         self.scaler = parse_type(self.scaler_type, globals=globals())()
 
         window_cfg = WindowConfig(
             window=self.windows,
             horizon=self.horizon,
             steps=self.pred_len,
-            time_enc=self.time_enc,
-            freq=self.dataset.freq,
+            time_enc_cfg=TimeEncConfig(
+                time_enc=self.time_enc,
+                freq=getattr(self.dataset, "freq", None),
+            ),
             input_columns=self.input_columns or None,
             target_columns=self.target_columns or None,
         )
-        split_cfg = SplitConfig(
-            train=self.train_ratio,
-            test=self.test_ratio,
-        )
+        # None -> the dataset's default split (canonical borders or 7:1:2)
+        if self.train_ratio is None and self.test_ratio is None:
+            split_cfg = None
+        else:
+            split_cfg = SplitConfig(
+                train=self.train_ratio if self.train_ratio is not None else 0.7,
+                test=self.test_ratio,
+            )
         loader_cfg = LoaderConfig(
             batch_size=self.batch_size,
             num_workers=self.num_worker,
@@ -247,7 +267,9 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         # label:  (B,O,N)
         # for single step you should output (B, N)
         # for multiple steps you should output (B, O, N)
-        raise NotImplementedError()
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        batch_y = batch_y.to(self.device, dtype=torch.float32)
+        return self.model(batch_x), batch_y
 
     def _evaluate(self, dataloader):
         self.model.eval()
@@ -255,14 +277,17 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
 
         with torch.no_grad():
             with tqdm(total=len(dataloader.dataset)) as progress_bar:
-                for (
-                    batch_x,
-                    batch_y,
-                    batch_origin_x,
-                    batch_origin_y,
-                    batch_x_date_enc,
-                    batch_y_date_enc,
-                ) in dataloader:
+                for batch in dataloader:
+                    (
+                        batch_x,
+                        batch_y,
+                        batch_origin_x,
+                        batch_origin_y,
+                        batch_x_date_enc,
+                        batch_y_date_enc,
+                    ) = batch.as_tuple(
+                        ("x", "y", "x_raw", "y_raw", "x_time_feature", "y_time_feature")
+                    )
                     batch_size = batch_x.size(0)
                     preds, truths = self._process_one_batch(
                         batch_x, batch_y, batch_origin_x, batch_origin_y, batch_x_date_enc, batch_y_date_enc
@@ -321,14 +346,17 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         with torch.enable_grad(), tqdm(total=len(self.train_loader.dataset)) as progress_bar:
             self.model.train()
             train_loss = []
-            for i, (
-                batch_x,
-                batch_y,
-                origin_x,
-                origin_y,
-                batch_x_date_enc,
-                batch_y_date_enc,
-            ) in enumerate(self.train_loader):
+            for i, batch in enumerate(self.train_loader):
+                (
+                    batch_x,
+                    batch_y,
+                    origin_x,
+                    origin_y,
+                    batch_x_date_enc,
+                    batch_y_date_enc,
+                ) = batch.as_tuple(
+                    ("x", "y", "x_raw", "y_raw", "x_time_feature", "y_time_feature")
+                )
                 start = time.time()
                 origin_y = origin_y.to(self.device)
                 self.model_optim.zero_grad()
@@ -341,9 +369,10 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                 loss = self.loss_func(pred, true)
                 loss.backward()
 
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.max_grad_norm
-                )
+                if self.max_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.max_grad_norm
+                    )
                 progress_bar.update(batch_x.size(0))
                 train_loss.append(loss.item())
                 progress_bar.set_postfix(

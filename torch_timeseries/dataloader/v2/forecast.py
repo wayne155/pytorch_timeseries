@@ -10,48 +10,17 @@ Compared to v1's ``SlidingWindowTS``, this module:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
-
 from torch.utils.data import DataLoader
 
 from torch_timeseries.core import TimeSeriesDataset, TimeseriesSubset
 
 from .._seed import seed_worker
 from .._split import resolve_split_ratios
-from .batch import TimeEncConfig, collate_tsbatch
+from .batch import collate_tsbatch
+from .loader import LoaderConfig
+from .split import SplitConfig, default_split_config
+from .window import WindowConfig
 from .windowed import WindowedDataset
-
-
-@dataclass
-class WindowConfig:
-    window: int = 96
-    horizon: int = 1
-    steps: int = 96
-    stride: int = 1
-    fast_val: bool = False
-    fast_test: bool = False
-    time_enc_cfg: TimeEncConfig = field(default_factory=TimeEncConfig)
-    input_columns: Optional[list] = None
-    target_columns: Optional[list] = None
-
-
-@dataclass
-class SplitConfig:
-    train: float = 0.7
-    val: Optional[float] = None
-    test: Optional[float] = 0.2
-    uniform_eval: bool = True
-    """If True, val/test subsets are extended by ``window+horizon-1`` so that
-    every sample in the original split has a full lookback window."""
-
-
-@dataclass
-class LoaderConfig:
-    batch_size: int = 32
-    num_workers: int = 0
-    shuffle_train: bool = True
-    pin_memory: bool = False
 
 
 class ForecastDataModule:
@@ -64,14 +33,13 @@ class ForecastDataModule:
         window: WindowConfig = None,
         split: SplitConfig = None,
         loader: LoaderConfig = None,
-        scale_in_train: bool = True,
     ) -> None:
         self.dataset = dataset
         self.scaler = scaler
         self.window_cfg = window or WindowConfig()
-        self.split_cfg = split or SplitConfig()
+        # No split config -> the dataset's default (canonical borders if known)
+        self.split_cfg = split if split is not None else default_split_config(dataset)
         self.loader_cfg = loader or LoaderConfig()
-        self.scale_in_train = scale_in_train
 
         self._build_subsets()
         self._fit_scaler()
@@ -83,6 +51,34 @@ class ForecastDataModule:
     # ------------------------------------------------------------------ #
 
     def _build_subsets(self) -> None:
+        wc = self.window_cfg
+        sc = self.split_cfg
+        eval_pad = wc.window + wc.horizon - 1 if sc.uniform_eval else 0
+        n = len(self.dataset)
+        idx = range(n)
+
+        # Precedence: explicit borders > dataset's canonical borders > ratios.
+        borders = sc.borders
+        if borders is None and sc.use_dataset_borders:
+            borders = default_split_config(self.dataset).borders
+        if borders is not None:
+            train_end, val_end, test_end = borders
+            if not (0 < train_end <= val_end <= test_end <= n):
+                raise ValueError(
+                    f"invalid split borders {borders} for dataset of length {n}"
+                )
+            self.train_ratio = train_end / n
+            self.val_ratio = (val_end - train_end) / n
+            self.test_ratio = (test_end - val_end) / n
+            self.train_subset = TimeseriesSubset(self.dataset, idx[0:train_end])
+            self.val_subset = TimeseriesSubset(
+                self.dataset, idx[train_end - eval_pad: val_end]
+            )
+            self.test_subset = TimeseriesSubset(
+                self.dataset, idx[val_end - eval_pad: test_end]
+            )
+            return
+
         train, val, test = resolve_split_ratios(
             train_ratio=self.split_cfg.train,
             val_ratio=self.split_cfg.val,
@@ -90,15 +86,10 @@ class ForecastDataModule:
         )
         self.train_ratio, self.val_ratio, self.test_ratio = train, val, test
 
-        n = len(self.dataset)
         train_size = int(train * n)
         test_size = int(test * n)
         val_size = n - train_size - test_size
 
-        wc = self.window_cfg
-        eval_pad = wc.window + wc.horizon - 1 if self.split_cfg.uniform_eval else 0
-
-        idx = range(n)
         self.train_subset = TimeseriesSubset(self.dataset, idx[0:train_size])
         self.val_subset = TimeseriesSubset(
             self.dataset,
@@ -109,10 +100,8 @@ class ForecastDataModule:
         )
 
     def _fit_scaler(self) -> None:
-        if self.scale_in_train:
-            self.scaler.fit(self.train_subset.data)
-        else:
-            self.scaler.fit(self.dataset.data)
+        # Always fit on train only — fitting on val/test data leaks statistics.
+        self.scaler.fit(self.train_subset.data)
 
     def _build_datasets(self) -> None:
         wc = self.window_cfg

@@ -77,6 +77,74 @@ class TimesNetForecast(ForecastExp, TimesNetParameters):
 
 
 @dataclass
+class TimesNetAnomalyDetection(AnomalyDetectionExp, TimesNetParameters):
+    model_type: str = "TimesNet"
+
+    def _init_model(self):
+        self.model = TimesNet(
+            seq_len=self.windows,
+            label_len=self.label_len,
+            pred_len=0,
+            e_layers=self.e_layers,
+            d_ff=self.d_ff,
+            num_kernels=self.num_kernels,
+            top_k=self.top_k,
+            d_model=self.d_model,
+            embed=self.embed,
+            enc_in=self.dataset.num_features,
+            freq="h",
+            dropout=self.dropout,
+            c_out=self.dataset.num_features,
+            task_name="anomaly_detection",
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(self, batch_x, origin_x, batch_y):
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        outputs = self.model(batch_x, None, None, None)
+        return outputs, batch_x
+
+
+@dataclass
+class TimesNetImputation(ImputationExp, TimesNetParameters):
+    model_type: str = "TimesNet"
+
+    def _init_model(self):
+        self.model = TimesNet(
+            seq_len=self.windows,
+            label_len=self.label_len,
+            pred_len=0,
+            e_layers=self.e_layers,
+            d_ff=self.d_ff,
+            num_kernels=self.num_kernels,
+            top_k=self.top_k,
+            d_model=self.d_model,
+            embed=self.embed,
+            enc_in=self.dataset.num_features,
+            freq=self.dataset.freq,
+            dropout=self.dropout,
+            c_out=self.dataset.num_features,
+            task_name="imputation",
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(
+        self,
+        batch_masked_x,
+        batch_x,
+        batch_origin_x,
+        batch_mask,
+        batch_x_date_enc,
+    ):
+        batch_masked_x = batch_masked_x.to(self.device, dtype=torch.float32)
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        batch_x_date_enc = batch_x_date_enc.to(self.device, dtype=torch.float32)
+        batch_mask = batch_mask.to(self.device)
+        outputs = self.model(batch_masked_x, batch_x_date_enc, None, None, batch_mask)
+        return outputs, batch_x
+
+
+@dataclass
 class TimesNetUEAClassification(UEAClassificationExp, TimesNetParameters):
     model_type: str = "TimesNet"
 
