@@ -57,16 +57,39 @@ export function TaskTable({
       enableSorting: false,
       cell: info => {
         const r = info.row.original
-        return r.url
-          ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{r.model}</a>
-          : <span>{r.model}</span>
+        const idx = String(info.row.index + 1).padStart(2, '0')
+        return (
+          <span className="flex items-center gap-2.5">
+            <span className="text-[11px] text-ink-faint tabular-nums">{idx}</span>
+            {r.url ? (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-signal hover:text-phosphor-bright hover:underline underline-offset-4 transition-colors"
+              >
+                {r.model}
+              </a>
+            ) : (
+              <span className="text-ink font-medium">{r.model}</span>
+            )}
+            {r.source_type === 'paper' && (
+              <span
+                className="rounded-sm border border-line px-1 py-px text-[9px] uppercase tracking-wider text-ink-faint"
+                title={r.citation || 'curated paper result'}
+              >
+                paper
+              </span>
+            )}
+          </span>
+        )
       },
     }
 
     const metricGroups: ColumnDef<TaskTableRow>[] = columnDefs.map(col => ({
       id: col.id,
       header: col.label === 'avg'
-        ? () => <span className="font-semibold">avg</span>
+        ? () => <span className="font-semibold text-phosphor">avg</span>
         : col.label,
       enableSorting: false,
       columns: primaryMetrics.map((metric): ColumnDef<TaskTableRow> => ({
@@ -75,7 +98,7 @@ export function TaskTable({
         sortDescFirst: !isLowerBetter(metric),
         header: () => (
           <span
-            className="cursor-pointer select-none hover:text-blue-600 flex items-center gap-0.5"
+            className="cursor-pointer select-none hover:text-phosphor-bright flex items-center gap-0.5 transition-colors"
             title={isLowerBetter(metric) ? 'lower is better' : 'higher is better'}
           >
             {metric} {isLowerBetter(metric) ? '↓' : '↑'}
@@ -85,7 +108,7 @@ export function TaskTable({
         cell: info => {
           const cellData = info.row.original.columns[col.id]
           if (!cellData || !(metric in cellData)) {
-            return <span className="text-gray-300 tabular-nums">—</span>
+            return <span className="text-ink-faint tabular-nums">—</span>
           }
           const m = cellData[metric]
           const { best, worst } = bestWorst[col.id]?.[metric] ?? { best: NaN, worst: NaN }
@@ -110,7 +133,7 @@ export function TaskTable({
         <button
           title="Row actions"
           disabled
-          className="text-gray-300 px-1.5 py-0.5 rounded text-base leading-none cursor-not-allowed"
+          className="text-ink-faint/60 px-1.5 py-0.5 rounded text-base leading-none cursor-not-allowed"
         >
           ⋯
         </button>
@@ -139,9 +162,9 @@ export function TaskTable({
   })
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm text-left border-collapse">
-        <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+    <div className="overflow-x-auto rounded border border-line bg-surface-panel shadow-[0_6px_24px_rgba(28,27,23,0.07)]">
+      <table className="min-w-full text-[13px] text-left border-collapse">
+        <thead className="sticky top-0 z-10 bg-surface-raised/95 backdrop-blur">
           {table.getHeaderGroups().map(hg => (
             <tr key={hg.id}>
               {hg.headers.map(header => (
@@ -149,9 +172,11 @@ export function TaskTable({
                   key={header.id}
                   colSpan={header.colSpan}
                   style={{ width: header.getSize() }}
-                  className={`px-3 py-1.5 text-xs font-semibold text-gray-600 whitespace-nowrap border-r border-gray-100 last:border-r-0 ${
-                    header.column.getCanSort() ? 'cursor-pointer select-none hover:bg-gray-100' : ''
-                  } ${header.depth === 0 && header.colSpan > 1 ? 'text-center border-b border-gray-200' : ''}`}
+                  className={`px-3 py-2 text-xs uppercase tracking-wider text-ink-dim whitespace-nowrap border-b border-r border-line last:border-r-0 ${
+                    header.column.getCanSort() ? 'cursor-pointer select-none hover:bg-phosphor-dim hover:text-ink' : ''
+                  } ${header.depth === 0 && header.colSpan > 1 ? 'text-center' : ''} ${
+                    header.column.getIsSorted() ? 'bg-phosphor-dim text-phosphor-bright font-semibold' : ''
+                  }`}
                   onClick={header.column.getToggleSortingHandler()}
                 >
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -160,11 +185,15 @@ export function TaskTable({
             </tr>
           ))}
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody>
           {table.getRowModel().rows.map((row, i) => (
-            <tr key={row.id} className={`hover:bg-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
+            <tr
+              key={row.id}
+              className="row-in border-b border-line last:border-b-0 transition-colors hover:bg-surface-raised hover:shadow-[inset_3px_0_0_0_#c2780c]"
+              style={{ animationDelay: `${Math.min(i * 35, 420)}ms` }}
+            >
               {row.getVisibleCells().map(cell => (
-                <td key={cell.id} className="px-3 py-1.5 whitespace-nowrap border-r border-gray-50 last:border-r-0">
+                <td key={cell.id} className="px-3 py-2 whitespace-nowrap border-r border-line/60 last:border-r-0">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
@@ -174,9 +203,9 @@ export function TaskTable({
             <tr>
               <td
                 colSpan={99}
-                className="px-3 py-8 text-center text-gray-400"
+                className="px-3 py-12 text-center text-ink-faint tracking-wide"
               >
-                No results for this view/variant/dataset combination.
+                ∅ &nbsp;No results for this view/variant/dataset combination.
               </td>
             </tr>
           )}

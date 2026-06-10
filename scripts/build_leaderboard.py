@@ -26,7 +26,7 @@ def load_config(config_path: pathlib.Path) -> dict[str, Any]:
         "results_dir": str(ROOT / raw.get("results_dir", "results")),
         "views_dir": str(ROOT / raw.get("views_dir", "leaderboard/views")),
         "entries_dir": str(ROOT / raw.get("entries_dir", "leaderboard/entries")),
-        "out": str(ROOT / raw.get("out", "webapp/public/leaderboard_data.json")),
+        "out": str(ROOT / raw.get("out", "leaderboard/webapp/public/leaderboard_data.json")),
     }
 
 
@@ -38,6 +38,15 @@ def collect_results(
 ) -> list[dict[str, Any]]:
     """Collect per-seed metric dicts for (task, dataset). leaderboard_results takes priority."""
     seen: dict[tuple, dict] = {}
+
+    def dedup_key(data: dict) -> tuple:
+        # hparams must be part of the key: the same (model, seed) legitimately
+        # appears once per config (e.g. per pred_len).
+        return (
+            data.get("model"),
+            data.get("seed"),
+            json.dumps(data.get("hparams", {}), sort_keys=True),
+        )
 
     # Priority 1: leaderboard_results/{Model}/{Task}/{Dataset}/seed{N}/metrics.json
     if leaderboard_results_dir.exists():
@@ -54,8 +63,7 @@ def collect_results(
                 if mf.exists():
                     try:
                         data = json.loads(mf.read_text())
-                        key = (data.get("model"), data.get("seed"))
-                        seen[key] = data
+                        seen[dedup_key(data)] = data
                     except (json.JSONDecodeError, KeyError):
                         pass
 
@@ -65,7 +73,7 @@ def collect_results(
             try:
                 data = json.loads(p.read_text())
                 if data.get("task") == task and data.get("dataset") == dataset:
-                    key = (data.get("model"), data.get("seed"))
+                    key = dedup_key(data)
                     if key not in seen:
                         seen[key] = data
             except (json.JSONDecodeError, KeyError):
@@ -275,11 +283,11 @@ if __name__ == "__main__":
     cfg_path = ROOT / args.config
     if not cfg_path.exists():
         build({
-            "leaderboard_results_dir": str(ROOT / "leaderboard_results"),
+            "leaderboard_results_dir": str(ROOT / "leaderboard/results"),
             "results_dir": str(ROOT / "results"),
             "views_dir": str(ROOT / "leaderboard/views"),
             "entries_dir": str(ROOT / "leaderboard/entries"),
-            "out": str(ROOT / "webapp/public/leaderboard_data.json"),
+            "out": str(ROOT / "leaderboard/webapp/public/leaderboard_data.json"),
         })
     else:
         build(load_config(cfg_path))

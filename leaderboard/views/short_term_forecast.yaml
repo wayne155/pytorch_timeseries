@@ -4,7 +4,7 @@ task: ProbForecast
 primary_metrics: [mase, mape]
 
 variants:
-  - label: "I96"
+  - label: "InputWindow96"
     match: {seq_len: 96}
     subcolumns:
       - {label: "24", match: {pred_len: 24}}

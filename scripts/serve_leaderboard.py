@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DIST = ROOT / "webapp" / "dist"
+DIST = ROOT / "leaderboard" / "webapp" / "dist"
 BUILD = ROOT / "scripts" / "build_leaderboard.py"
 
 app = FastAPI(title="Leaderboard Server")
@@ -36,7 +36,7 @@ def refresh():
 
 if not DIST.exists():
     raise RuntimeError(
-        "webapp/dist/ not found. Run: cd webapp && npm run build"
+        "leaderboard/webapp/dist/ not found. Run: cd leaderboard/webapp && npm run build"
     )
 
 app.mount("/", StaticFiles(directory=str(DIST), html=True), name="static")

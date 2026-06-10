@@ -11,17 +11,14 @@ export function MetricCell({ value, isBest, isWorst, showStd }: MetricCellProps)
   const numVal = typeof value === 'number' ? value : value.mean
   const std = typeof value === 'object' ? value.std : null
 
-  const cls = isBest
-    ? 'bg-green-50 text-green-800 font-semibold'
-    : isWorst
-    ? 'bg-red-50 text-red-400'
-    : ''
+  const cls = isBest ? 'metric-best' : isWorst ? 'metric-worst' : ''
 
   return (
-    <span className={`tabular-nums px-1 rounded ${cls}`}>
+    <span className={`tabular-nums px-1.5 py-0.5 rounded-sm ${cls}`}>
+      {isBest && <span className="mr-1 text-[9px] align-middle">▲</span>}
       {numVal.toFixed(4)}
       {showStd && std !== null && (
-        <span className="text-gray-400 text-xs"> ±{std.toFixed(4)}</span>
+        <span className="text-ink-faint text-[11px]"> ±{std.toFixed(4)}</span>
       )}
     </span>
   )

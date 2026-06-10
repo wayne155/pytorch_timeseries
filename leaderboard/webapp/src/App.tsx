@@ -33,6 +33,28 @@ function downloadCsv(content: string, filename: string) {
 
 const isLiveServer = !import.meta.env.PROD || window.location.port !== ''
 
+/** Decorative time-series trace: solid history + dashed forecast. */
+function SignalTrace() {
+  return (
+    <svg
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-16 w-full opacity-60"
+      viewBox="0 0 900 64"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <polyline
+        className="trace-history"
+        points="0,44 40,40 70,46 110,30 150,38 190,22 230,34 270,18 310,30 350,12 390,26 430,20 470,32 510,16 550,28 580,24 600,30"
+      />
+      <polyline
+        className="trace-forecast"
+        points="600,30 640,20 680,28 720,14 760,24 800,10 840,20 880,8 900,14"
+      />
+      <circle cx="600" cy="30" r="2.5" fill="#c2780c" />
+    </svg>
+  )
+}
+
 export default function App() {
   const { data, error, loading, refresh } = useLeaderboard()
 
@@ -85,15 +107,47 @@ export default function App() {
     downloadCsv(rowsToCsv(rows, columnDefs), filename)
   }
 
+  const generatedAt = data?.generated_at
+    ? new Date(data.generated_at).toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+    : null
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3">
-        <h1 className="text-lg font-semibold text-gray-900">torch-timeseries Leaderboard</h1>
+    <div className="min-h-screen flex flex-col font-mono">
+      {/* Masthead */}
+      <header className="relative overflow-hidden border-b border-line bg-surface-panel">
+        <SignalTrace />
+        <div className="relative flex items-end justify-between px-6 pt-5 pb-4">
+          <div className="flex items-end gap-3.5">
+            <img src="/favicon.svg" alt="torch-timeseries logo" className="h-12 w-12" />
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-phosphor mb-1">
+                torch-timeseries
+              </div>
+              <h1 className="font-display italic text-4xl leading-none text-ink">
+                Leaderboard
+              </h1>
+            </div>
+          </div>
+          <div className="hidden sm:flex flex-col items-end gap-1 pb-1 text-xs text-ink-dim">
+            <span className="flex items-center gap-1.5">
+              <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-signal" />
+              tracking {data?.views.reduce((n, v) => n + v.models.length, 0) ?? 0} model entries
+            </span>
+            {generatedAt && <span>built {generatedAt}</span>}
+          </div>
+        </div>
       </header>
 
-      {loading && <div className="p-8 text-center text-gray-500">Loading...</div>}
-      {error && <div className="p-8 text-center text-red-500">Error: {error}</div>}
+      {loading && (
+        <div className="cursor-blink p-10 text-center text-ink-dim tracking-widest uppercase text-xs">
+          acquiring signal&nbsp;
+        </div>
+      )}
+      {error && (
+        <div className="p-10 text-center text-worst text-sm">
+          ▲ signal lost — {error}
+        </div>
+      )}
       {data && (
         <>
           <ViewSelector
@@ -119,7 +173,7 @@ export default function App() {
                   selected={selectedDataset}
                   onChange={setSelectedDataset}
                 />
-                <main className="flex-1 overflow-auto p-4">
+                <main className="flex-1 overflow-auto p-5">
                   <TaskTable
                     rows={rows}
                     columnDefs={columnDefs}
@@ -133,6 +187,21 @@ export default function App() {
           )}
         </>
       )}
+
+      {/* Footer strip */}
+      <footer className="border-t border-line bg-surface-panel px-6 py-2 text-xs text-ink-dim flex justify-between">
+        <span>
+          ▲ best per column · lower&nbsp;↓ or higher&nbsp;↑ is better
+        </span>
+        <a
+          href="https://github.com/wayne155/pytorch_timeseries"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-phosphor transition-colors"
+        >
+          github / pytorch_timeseries
+        </a>
+      </footer>
     </div>
   )
 }

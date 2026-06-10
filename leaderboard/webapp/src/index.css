@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* The Observatory — chart-recorder paper (light) theme                */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --surface: #faf8f2;
+  --phosphor: #c2780c;
+  --signal: #0e7c8a;
+}
+
+html,
+body {
+  background-color: var(--surface);
+  color: #1c1b17;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 14px;
+}
+
+::selection {
+  background: rgba(194, 120, 12, 0.25);
+  color: #1c1b17;
+}
+
+/* Slim instrument scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(28, 27, 23, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(194, 120, 12, 0.55);
+}
+
+/* ------------------------------------------------------------------ */
+/* Metric highlight states                                             */
+/* ------------------------------------------------------------------ */
+
+.metric-best {
+  color: #7a4806;
+  background: rgba(194, 120, 12, 0.2);
+  box-shadow: inset 0 0 0 1.5px rgba(194, 120, 12, 0.6);
+  font-weight: 600;
+}
+
+.metric-worst {
+  color: #a93527;
+  background: rgba(180, 71, 58, 0.07);
+}
+
+/* ------------------------------------------------------------------ */
+/* Masthead signal trace                                               */
+/* ------------------------------------------------------------------ */
+
+.trace-history {
+  fill: none;
+  stroke: var(--phosphor);
+  stroke-width: 1.5;
+  opacity: 0.75;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: trace-draw 2.2s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+
+.trace-forecast {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0;
+  animation: trace-fade 0.9s ease-out 1.7s forwards;
+}
+
+@keyframes trace-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trace-fade {
+  to {
+    opacity: 0.55;
+  }
+}
+
+/* Live indicator dot */
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Row entrance                                                        */
+/* ------------------------------------------------------------------ */
+
+.row-in {
+  animation: row-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Blinking terminal cursor for loading state */
+.cursor-blink::after {
+  content: '▍';
+  color: var(--phosphor);
+  animation: live-pulse 1s steps(1) infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* Form controls with unmistakable checked states                      */
+/* ------------------------------------------------------------------ */
+
+input.instrument-check {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(28, 27, 23, 0.45);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+input.instrument-check:checked {
+  background-color: var(--phosphor);
+  border-color: var(--phosphor);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.5l3 3 6-7' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+input.instrument-radio {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(28, 27, 23, 0.45);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+input.instrument-radio:checked {
+  border-color: var(--phosphor);
+  background: var(--phosphor);
+  box-shadow: inset 0 0 0 3px #fff;
+}

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-09T14:30:20.864899+00:00",
+  "generated_at": "2026-06-10T05:35:55.911013+00:00",
   "views": [
     {
       "id": "anomaly_detection",
@@ -10,7 +10,7 @@
         "recall"
       ],
       "variants": [
-        "W96"
+        "InputWindow96"
       ],
       "datasets": [
         "SMD",
@@ -30,7 +30,7 @@
         "mae"
       ],
       "variants": [
-        "W96"
+        "InputWindow96"
       ],
       "datasets": [
         "ETTh1",
@@ -72,8 +72,8 @@
         "mae"
       ],
       "variants": [
-        "I96",
-        "I336"
+        "InputWindow96",
+        "InputWindow336"
       ],
       "datasets": [
         "ETTh1",
@@ -98,72 +98,66 @@
           "citation": "",
           "url": "",
           "results": {
-            "I96": {
+            "InputWindow96": {
               "ETTh1": {
                 "96": {
                   "mae": {
-                    "mean": 0.45058244466781616,
-                    "std": 0.0,
-                    "n_seeds": 1
+                    "mean": 0.44215601682662964,
+                    "std": 0.00018473894385725233,
+                    "n_seeds": 5
                   },
                   "mse": {
-                    "mean": 0.4440358281135559,
-                    "std": 0.0,
-                    "n_seeds": 1
+                    "mean": 0.4354503214359283,
+                    "std": 0.00020021254013143316,
+                    "n_seeds": 5
+                  }
+                },
+                "192": {
+                  "mae": {
+                    "mean": 0.48160203695297243,
+                    "std": 0.00041913443323061326,
+                    "n_seeds": 5
+                  },
+                  "mse": {
+                    "mean": 0.48644098043441775,
+                    "std": 0.0004837661402794242,
+                    "n_seeds": 5
+                  }
+                },
+                "336": {
+                  "mae": {
+                    "mean": 0.5144097208976746,
+                    "std": 1.1415106480195678e-05,
+                    "n_seeds": 5
+                  },
+                  "mse": {
+                    "mean": 0.5282630681991577,
+                    "std": 4.542232953547354e-05,
+                    "n_seeds": 5
+                  }
+                },
+                "720": {
+                  "mae": {
+                    "mean": 0.5949292302131652,
+                    "std": 0.0039148855377805864,
+                    "n_seeds": 5
+                  },
+                  "mse": {
+                    "mean": 0.6468765258789062,
+                    "std": 0.005733476286113035,
+                    "n_seeds": 5
                   }
                 },
                 "avg": {
                   "mae": {
-                    "mean": 0.45058244466781616,
-                    "std": 0.0,
-                    "n_seeds": 1
+                    "mean": 0.5082742512226104,
+                    "std": 0.0019708032137352393,
+                    "n_seeds": 5
                   },
                   "mse": {
-                    "mean": 0.4440358281135559,
-                    "std": 0.0,
-                    "n_seeds": 1
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "_GridModel",
-          "source_type": "local_run",
-          "citation": "",
-          "url": "",
-          "results": {
-            "I96": {
-              "ETTh1": {
-                "96": {
-                  "mse": {
-                    "mean": 0.5,
-                    "std": 0.0,
-                    "n_seeds": 2
-                  }
-                },
-                "avg": {
-                  "mse": {
-                    "mean": 0.5,
-                    "std": 0.0,
-                    "n_seeds": 2
-                  }
-                }
-              },
-              "ETTm1": {
-                "96": {
-                  "mse": {
-                    "mean": 0.5,
-                    "std": 0.0,
-                    "n_seeds": 2
-                  }
-                },
-                "avg": {
-                  "mse": {
-                    "mean": 0.5,
-                    "std": 0.0,
-                    "n_seeds": 2
+                    "mean": 0.5242577239871025,
+                    "std": 0.002878755297483084,
+                    "n_seeds": 5
                   }
                 }
               }
@@ -180,7 +174,7 @@
         "mape"
       ],
       "variants": [
-        "I96"
+        "InputWindow96"
       ],
       "datasets": [
         "ETTh1",
@@ -202,7 +196,7 @@
         "accuracy"
       ],
       "variants": [
-        "W96"
+        "InputWindow96"
       ],
       "datasets": [
         "EthanolConcentration",

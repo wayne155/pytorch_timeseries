@@ -23,17 +23,17 @@ describe('MetricCell', () => {
     expect(screen.queryByText(/±/)).toBeNull()
   })
 
-  it('applies green class when isBest', () => {
+  it('applies best class when isBest', () => {
     const { container } = render(
       <MetricCell value={0.3} isBest={true} isWorst={false} showStd={false} />
     )
-    expect(container.firstChild).toHaveClass('bg-green-50')
+    expect(container.firstChild).toHaveClass('metric-best')
   })
 
-  it('applies red class when isWorst', () => {
+  it('applies worst class when isWorst', () => {
     const { container } = render(
       <MetricCell value={0.9} isBest={false} isWorst={true} showStd={false} />
     )
-    expect(container.firstChild).toHaveClass('bg-red-50')
+    expect(container.firstChild).toHaveClass('metric-worst')
   })
 })

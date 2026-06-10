@@ -4,7 +4,7 @@ task: AnomalyDetection
 primary_metrics: [f1, precision, recall]
 
 variants:
-  - label: "W96"
+  - label: "InputWindow96"
     match: {windows: 96}
     subcolumns: []
 
