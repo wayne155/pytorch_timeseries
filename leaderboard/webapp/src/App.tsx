@@ -191,7 +191,7 @@ export default function App() {
       {/* Footer strip */}
       <footer className="border-t border-line bg-surface-panel px-6 py-2 text-xs text-ink-dim flex justify-between">
         <span>
-          ▲ best per column · lower&nbsp;↓ or higher&nbsp;↑ is better
+          ▲ best per column · cell color = % vs best (green 100% → red 0%) · lower&nbsp;↓ or higher&nbsp;↑ is better
         </span>
         <a
           href="https://github.com/wayne155/pytorch_timeseries"

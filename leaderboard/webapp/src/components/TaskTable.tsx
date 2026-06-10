@@ -20,6 +20,41 @@ interface TaskTableProps {
   onSortChange: (column: string, metric: string, dir: 'asc' | 'desc') => void
 }
 
+const GITHUB_MODEL_BASE =
+  'https://github.com/wayne155/pytorch_timeseries/blob/main/torch_timeseries/model'
+
+/** Paper links for bundled models; curated entries can override via row.url. */
+const PAPER_LINKS: Record<string, string> = {
+  DLinear: 'https://arxiv.org/abs/2205.13504',
+  PatchTST: 'https://arxiv.org/abs/2211.14730',
+  iTransformer: 'https://arxiv.org/abs/2310.06625',
+  Autoformer: 'https://arxiv.org/abs/2106.13008',
+  FEDformer: 'https://arxiv.org/abs/2201.12740',
+  Informer: 'https://arxiv.org/abs/2012.07436',
+  Crossformer: 'https://openreview.net/forum?id=vSVLM2j9eie',
+  FITS: 'https://arxiv.org/abs/2307.03756',
+  FreTS: 'https://arxiv.org/abs/2311.06184',
+  CATS: 'https://arxiv.org/abs/2403.01673',
+  'GRU-D': 'https://arxiv.org/abs/1606.01865',
+}
+
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  )
+}
+
+function PaperIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+      <path d="M4 1.5h5.5L13 5v9.5H4z" />
+      <path d="M9.5 1.5V5H13M6 8h4M6 10.5h4" />
+    </svg>
+  )
+}
+
 function getBestWorst(
   rows: TaskTableRow[],
   colId: string,
@@ -51,35 +86,80 @@ export function TaskTable({
   }, [rows, columnDefs, primaryMetrics])
 
   const columns = useMemo<ColumnDef<TaskTableRow>[]>(() => {
+    const rankCol: ColumnDef<TaskTableRow> = {
+      id: '_rank',
+      header: '#',
+      enableSorting: false,
+      size: 44,
+      cell: info => {
+        const pos = info.table.getRowModel().rows.findIndex(r => r.id === info.row.id) + 1
+        return pos === 1 ? (
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-phosphor text-white text-[11px] font-semibold tabular-nums">
+            1
+          </span>
+        ) : (
+          <span className="inline-flex h-5 w-5 items-center justify-center text-[12px] text-ink-dim tabular-nums">
+            {pos}
+          </span>
+        )
+      },
+    }
+
+    const typeCol: ColumnDef<TaskTableRow> = {
+      id: '_type',
+      header: 'Type',
+      enableSorting: false,
+      size: 60,
+      cell: info => {
+        const r = info.row.original
+        return r.source_type === 'paper' ? (
+          <span
+            className="rounded-sm border border-line-strong px-1.5 py-px text-[10px] uppercase tracking-wider text-ink-dim"
+            title={r.citation || 'curated paper result'}
+          >
+            paper
+          </span>
+        ) : (
+          <span
+            className="rounded-sm bg-signal-dim px-1.5 py-px text-[10px] uppercase tracking-wider text-signal"
+            title="reproduced with torch-timeseries"
+          >
+            run
+          </span>
+        )
+      },
+    }
+
     const modelCol: ColumnDef<TaskTableRow> = {
       id: 'model',
       header: 'Model',
       enableSorting: false,
       cell: info => {
         const r = info.row.original
-        const idx = String(info.row.index + 1).padStart(2, '0')
+        const paperUrl = r.url || PAPER_LINKS[r.model]
+        const githubUrl = `${GITHUB_MODEL_BASE}/${r.model}.py`
         return (
-          <span className="flex items-center gap-2.5">
-            <span className="text-[11px] text-ink-faint tabular-nums">{idx}</span>
-            {r.url ? (
+          <span className="flex items-center gap-2">
+            <span className="text-ink font-medium">{r.model}</span>
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${r.model} implementation on GitHub`}
+              className="text-ink-faint hover:text-ink transition-colors"
+            >
+              <GitHubIcon />
+            </a>
+            {paperUrl && (
               <a
-                href={r.url}
+                href={paperUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-signal hover:text-phosphor-bright hover:underline underline-offset-4 transition-colors"
+                title={r.citation || `${r.model} paper`}
+                className="text-ink-faint hover:text-phosphor-bright transition-colors"
               >
-                {r.model}
+                <PaperIcon />
               </a>
-            ) : (
-              <span className="text-ink font-medium">{r.model}</span>
-            )}
-            {r.source_type === 'paper' && (
-              <span
-                className="rounded-sm border border-line px-1 py-px text-[9px] uppercase tracking-wider text-ink-faint"
-                title={r.citation || 'curated paper result'}
-              >
-                paper
-              </span>
             )}
           </span>
         )
@@ -112,12 +192,17 @@ export function TaskTable({
           }
           const m = cellData[metric]
           const { best, worst } = bestWorst[col.id]?.[metric] ?? { best: NaN, worst: NaN }
+          const span = Math.abs(worst - best)
+          const score = Number.isNaN(span) || span === 0
+            ? null
+            : Math.abs(worst - m.mean) / span
           return (
             <MetricCell
               value={{ mean: m.mean, std: m.std }}
               isBest={m.mean === best}
               isWorst={m.mean === worst}
               showStd={viewOptions.showStd}
+              score={score}
             />
           )
         },
@@ -140,7 +225,7 @@ export function TaskTable({
       ),
     }
 
-    return [modelCol, ...metricGroups, actionCol]
+    return [rankCol, typeCol, modelCol, ...metricGroups, actionCol]
   }, [columnDefs, primaryMetrics, bestWorst, viewOptions.showStd])
 
   const table = useReactTable({

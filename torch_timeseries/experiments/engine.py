@@ -13,6 +13,7 @@ from torch_timeseries.dataloader.v2 import (
     ForecastDataModule,
     LoaderConfig,
     SplitConfig,
+    TimeEncConfig,
     WindowConfig,
 )
 from torch_timeseries.dataset import *
@@ -87,10 +88,10 @@ class ForecastEngine:
                 horizon=self.task_config.horizon,
                 steps=self.task_config.pred_len,
                 stride=self.task_config.stride,
-                include_raw=True,
-                include_time=True,
-                time_enc=self.task_config.time_enc,
-                freq=self.dataset.freq,
+                time_enc_cfg=TimeEncConfig(
+                    time_enc=self.task_config.time_enc,
+                    freq=getattr(self.dataset, "freq", None),
+                ),
                 input_columns=self.task_config.input_columns,
                 target_columns=self.task_config.target_columns,
             ),

@@ -1,2 +1,0 @@
-rank,task,dataset,model,primary_metric,metric_mean,metric_std,num_seeds,source_type,source_name,hparams,metrics,citation,url,notes,num_params,train_time_sec,git_commit
-1,Forecast,ETTh1,DLinear,mse,0.4,0.0,1,external,example,"{""horizon"": 1, ""pred_len"": 96, ""windows"": 96}","{""mae"": 0.3, ""mse"": 0.4}",Example curated entry,,Replace with verified paper or benchmark values before publication.,,,
