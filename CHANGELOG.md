@@ -100,5 +100,7 @@ add sim freq dataset, embedding back to previous version.
 ## 0.1.24
 ILI freq from yh to h
 
-## 0.1.25
+## 0.2.0
 feat: `time_enc` in v2 dataloader configs now accepts readable string aliases (`"calendar"`, `"fourier"`, `"normalized"`) in addition to existing `int` and `TimeEncoding` enum values — applies to `WindowConfig`, `ImputationWindowConfig`, and `IrregularClassificationConfig`
+
+**BREAKING**: default value of `time_enc` changed from `0` (integer) to `"calendar"` (string) — code comparing `config.time_enc == 0` must be updated
