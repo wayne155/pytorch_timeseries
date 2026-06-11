@@ -142,6 +142,7 @@ def test_forecast_exp_default_process_one_batch_calls_model():
     from dataclasses import dataclass
     import torch
     from torch import nn
+    from torch_timeseries.dataloader.v2 import TSBatch
     from torch_timeseries.experiments.forecast import ForecastExp
 
     @dataclass
@@ -161,14 +162,7 @@ def test_forecast_exp_default_process_one_batch_calls_model():
 
     batch_x = torch.randn(3, 4, 5)
     batch_y = torch.randn(3, 2, 5)
-    pred, true = exp._process_one_batch(
-        batch_x,
-        batch_y,
-        None,
-        None,
-        None,
-        None,
-    )
+    pred, true = exp._process_one_batch(TSBatch(x=batch_x, y=batch_y))
 
     assert pred.shape == (3, 2, 5)
     assert true is batch_y
