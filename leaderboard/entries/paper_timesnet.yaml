@@ -1,0 +1,129 @@
+# Curated paper baselines (compact format).
+# `defaults` is merged into every entry below; entry fields win.
+defaults:
+  hparams:
+    windows: 96
+  num_seeds: 1
+  source:
+    citation: 'Wu et al., TimesNet: Temporal 2D-Variation Modeling for General Time Series Analysis, ICLR
+      2023'
+    notes: Curated from the TimesNet paper tables. These paper numbers are for bootstrapping the web leaderboard
+      and are not locally reproduced in this repository yet.
+    source_name: TimesNet paper
+    source_type: paper
+    url: https://ar5iv.labs.arxiv.org/html/2210.02186
+
+entries:
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.019, "mae": 0.092}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.023, "mae": 0.101}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.029, "mae": 0.111}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.036, "mae": 0.124}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.018, "mae": 0.08}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.02, "mae": 0.085}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.023, "mae": 0.091}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.026, "mae": 0.098}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.057, "mae": 0.159}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.069, "mae": 0.178}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.084, "mae": 0.196}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.102, "mae": 0.215}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.04, "mae": 0.13}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.046, "mae": 0.141}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.052, "mae": 0.151}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.06, "mae": 0.162}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.085, "mae": 0.202}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.089, "mae": 0.206}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.094, "mae": 0.213}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.1, "mae": 0.221}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.025, "mae": 0.045}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.029, "mae": 0.052}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.031, "mae": 0.057}}
+  - {"model": "TimesNet (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.034, "mae": 0.062}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.058, "mae": 0.162}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.08, "mae": 0.193}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.103, "mae": 0.219}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.132, "mae": 0.248}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.062, "mae": 0.166}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.085, "mae": 0.196}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.106, "mae": 0.222}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.131, "mae": 0.247}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.151, "mae": 0.267}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.18, "mae": 0.292}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.215, "mae": 0.318}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.257, "mae": 0.347}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.1, "mae": 0.216}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.127, "mae": 0.247}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.158, "mae": 0.276}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.183, "mae": 0.299}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.092, "mae": 0.214}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.118, "mae": 0.247}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.144, "mae": 0.276}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.175, "mae": 0.305}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.039, "mae": 0.084}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.048, "mae": 0.103}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.057, "mae": 0.117}}
+  - {"model": "DLinear (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.066, "mae": 0.134}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.034, "mae": 0.124}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.046, "mae": 0.144}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.057, "mae": 0.161}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.067, "mae": 0.174}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.023, "mae": 0.092}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.026, "mae": 0.101}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.03, "mae": 0.108}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTm2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.035, "mae": 0.119}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.074, "mae": 0.182}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.09, "mae": 0.203}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.109, "mae": 0.222}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh1", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.137, "mae": 0.248}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.044, "mae": 0.138}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.05, "mae": 0.149}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.06, "mae": 0.163}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "ETTh2", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.068, "mae": 0.173}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.089, "mae": 0.21}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.096, "mae": 0.22}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.104, "mae": 0.229}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Electricity", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.113, "mae": 0.239}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.125}, "metrics": {"mse": 0.026, "mae": 0.047}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.25}, "metrics": {"mse": 0.03, "mae": 0.054}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.375}, "metrics": {"mse": 0.032, "mae": 0.06}}
+  - {"model": "Autoformer (paper)", "task": "Imputation", "dataset": "Weather", "hparams": {"mask_rate": 0.5}, "metrics": {"mse": 0.037, "mae": 0.067}}
+  - {"model": "DLinear (paper)", "task": "AnomalyDetection", "dataset": "SMD", "metrics": {"precision": 83.62, "recall": 71.52, "f1": 77.1}}
+  - {"model": "DLinear (paper)", "task": "AnomalyDetection", "dataset": "MSL", "metrics": {"precision": 84.34, "recall": 85.42, "f1": 84.88}}
+  - {"model": "DLinear (paper)", "task": "AnomalyDetection", "dataset": "SMAP", "metrics": {"precision": 92.32, "recall": 55.41, "f1": 69.26}}
+  - {"model": "DLinear (paper)", "task": "AnomalyDetection", "dataset": "SWaT", "metrics": {"precision": 80.91, "recall": 95.3, "f1": 87.52}}
+  - {"model": "DLinear (paper)", "task": "AnomalyDetection", "dataset": "PSM", "metrics": {"precision": 98.28, "recall": 89.26, "f1": 93.55}}
+  - {"model": "Autoformer (paper)", "task": "AnomalyDetection", "dataset": "SMD", "metrics": {"precision": 88.06, "recall": 82.35, "f1": 85.11}}
+  - {"model": "Autoformer (paper)", "task": "AnomalyDetection", "dataset": "MSL", "metrics": {"precision": 77.27, "recall": 80.92, "f1": 79.05}}
+  - {"model": "Autoformer (paper)", "task": "AnomalyDetection", "dataset": "SMAP", "metrics": {"precision": 90.4, "recall": 58.62, "f1": 71.12}}
+  - {"model": "Autoformer (paper)", "task": "AnomalyDetection", "dataset": "SWaT", "metrics": {"precision": 89.85, "recall": 95.81, "f1": 92.74}}
+  - {"model": "Autoformer (paper)", "task": "AnomalyDetection", "dataset": "PSM", "metrics": {"precision": 99.08, "recall": 88.15, "f1": 93.29}}
+  - {"model": "FEDformer (paper)", "task": "AnomalyDetection", "dataset": "SMD", "metrics": {"precision": 87.95, "recall": 82.39, "f1": 85.08}}
+  - {"model": "FEDformer (paper)", "task": "AnomalyDetection", "dataset": "MSL", "metrics": {"precision": 77.14, "recall": 80.07, "f1": 78.57}}
+  - {"model": "FEDformer (paper)", "task": "AnomalyDetection", "dataset": "SMAP", "metrics": {"precision": 90.47, "recall": 58.1, "f1": 70.76}}
+  - {"model": "FEDformer (paper)", "task": "AnomalyDetection", "dataset": "SWaT", "metrics": {"precision": 90.17, "recall": 96.42, "f1": 93.19}}
+  - {"model": "FEDformer (paper)", "task": "AnomalyDetection", "dataset": "PSM", "metrics": {"precision": 97.31, "recall": 97.16, "f1": 97.23}}
+  - {"model": "TimesNet (paper)", "task": "AnomalyDetection", "dataset": "SMD", "metrics": {"precision": 87.76, "recall": 82.63, "f1": 85.12}}
+  - {"model": "TimesNet (paper)", "task": "AnomalyDetection", "dataset": "MSL", "metrics": {"precision": 82.97, "recall": 85.42, "f1": 84.18}}
+  - {"model": "TimesNet (paper)", "task": "AnomalyDetection", "dataset": "SMAP", "metrics": {"precision": 91.5, "recall": 57.8, "f1": 70.85}}
+  - {"model": "TimesNet (paper)", "task": "AnomalyDetection", "dataset": "SWaT", "metrics": {"precision": 88.31, "recall": 96.24, "f1": 92.1}}
+  - {"model": "TimesNet (paper)", "task": "AnomalyDetection", "dataset": "PSM", "metrics": {"precision": 98.22, "recall": 92.21, "f1": 95.21}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "EthanolConcentration", "metrics": {"accuracy": 0.452}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "FaceDetection", "metrics": {"accuracy": 0.647}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "Handwriting", "metrics": {"accuracy": 0.588}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "Heartbeat", "metrics": {"accuracy": 0.756}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "JapaneseVowels", "metrics": {"accuracy": 0.962}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "PEMS-SF", "metrics": {"accuracy": 0.751}}
+  - {"model": "Rocket (paper)", "task": "UEAClassification", "dataset": "SelfRegulationSCP1", "metrics": {"accuracy": 0.908}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "EthanolConcentration", "metrics": {"accuracy": 0.326}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "FaceDetection", "metrics": {"accuracy": 0.68}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "Handwriting", "metrics": {"accuracy": 0.27}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "Heartbeat", "metrics": {"accuracy": 0.751}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "JapaneseVowels", "metrics": {"accuracy": 0.962}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "PEMS-SF", "metrics": {"accuracy": 0.751}}
+  - {"model": "DLinear (paper)", "task": "UEAClassification", "dataset": "SelfRegulationSCP1", "metrics": {"accuracy": 0.873}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "EthanolConcentration", "metrics": {"accuracy": 0.357}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "FaceDetection", "metrics": {"accuracy": 0.686}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "Handwriting", "metrics": {"accuracy": 0.321}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "Heartbeat", "metrics": {"accuracy": 0.78}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "JapaneseVowels", "metrics": {"accuracy": 0.984}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "PEMS-SF", "metrics": {"accuracy": 0.896}}
+  - {"model": "TimesNet (paper)", "task": "UEAClassification", "dataset": "SelfRegulationSCP1", "metrics": {"accuracy": 0.918}}

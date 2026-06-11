@@ -149,21 +149,33 @@ def _flatten_metrics(raw_metrics: dict[str, Any]) -> dict[str, float]:
 
 
 def _ingest_entry_yaml(entries_dir: pathlib.Path) -> list[dict[str, Any]]:
-    """Load legacy leaderboard/entries/*.yaml (paper baselines)."""
+    """Load leaderboard/entries/*.yaml (curated paper baselines).
+
+    Two layouts are accepted:
+    * legacy — a top-level list of complete entries;
+    * compact — ``{defaults: {...}, entries: [...]}`` where the file-level
+      defaults (task, hparams, source, ...) are merged into every entry and
+      entry fields win.
+    """
     entries = []
     if not entries_dir.exists():
         return entries
     for p in sorted(entries_dir.glob("*.yaml")):
         try:
             raw = yaml.safe_load(p.read_text()) or []
+            defaults: dict[str, Any] = {}
+            if isinstance(raw, dict):
+                defaults = raw.get("defaults", {}) or {}
+                raw = raw.get("entries", []) or []
             for item in raw:
-                source = item.get("source", {})
+                hparams = {**defaults.get("hparams", {}), **item.get("hparams", {})}
+                source = {**defaults.get("source", {}), **item.get("source", {})}
                 entries.append({
                     "model": item["model"],
-                    "task": item["task"],
+                    "task": item.get("task", defaults.get("task")),
                     "dataset": item["dataset"],
                     "seed": None,
-                    "hparams": item.get("hparams", {}),
+                    "hparams": hparams,
                     "metrics": _flatten_metrics(item.get("metrics", {})),
                     "source_type": source.get("source_type", item.get("source_type", "paper")),
                     "citation": source.get("citation", item.get("citation", "")),

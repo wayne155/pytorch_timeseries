@@ -6,11 +6,7 @@ import resource
 from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 from typing import Any, Callable, List, Optional
 import torch
-from torchvision.datasets.utils import (
-    download_url,
-    download_and_extract_archive,
-    check_integrity,
-)
+from .utils import download_url, download_and_extract_archive, check_integrity
 import pandas as pd
 import numpy as np
 import torch.utils.data
@@ -39,7 +35,8 @@ class M4(TimeSeriesDataset):
 
     name: str = "M4"
 
-    def __init__(self, root: str = "./data", category="Daily"):
+    def __init__(self, root: str = "~/.torchtimeseries/data", category="Daily"):
+        root = os.path.expanduser(root)
         self.category = category
         self.root = root
         self.dir = os.path.join(root, self.name)

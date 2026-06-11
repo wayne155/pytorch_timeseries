@@ -3,7 +3,7 @@ import resource
 from ..core.dataset.dataset import Dataset, TimeSeriesDataset
 from typing import Callable, List, Optional
 import torch
-from torchvision.datasets.utils import download_and_extract_archive, check_integrity
+from .utils import download_url, download_and_extract_archive, check_integrity
 import pandas as pd
 import numpy as np
 

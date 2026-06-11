@@ -1,0 +1,144 @@
+# Curated paper baselines (compact format).
+# `defaults` is merged into every entry below; entry fields win.
+defaults:
+  hparams:
+    windows: 96
+  num_seeds: 1
+  source:
+    citation: Zeng et al., Are Transformers Effective for Time Series Forecasting?, AAAI 2023 / LTSF-Linear
+      benchmark table
+    notes: Curated multivariate long-term forecasting results. Input length is 96; prediction lengths are
+      96, 192, 336, and 720. Not locally reproduced in this repository yet.
+    source_name: LTSF-Linear benchmark
+    source_type: paper
+    url: https://raw.githubusercontent.com/cure-lab/LTSF-Linear/main/LTSF-Benchmark.md
+
+entries:
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.375, "mae": 0.399}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.405, "mae": 0.416}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.439, "mae": 0.443}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.472, "mae": 0.49}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.289, "mae": 0.353}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.383, "mae": 0.418}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.448, "mae": 0.465}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.605, "mae": 0.551}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.299, "mae": 0.343}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.335, "mae": 0.365}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.369, "mae": 0.386}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.425, "mae": 0.421}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.167, "mae": 0.26}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.224, "mae": 0.303}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.281, "mae": 0.342}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.397, "mae": 0.421}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.141, "mae": 0.237}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.154, "mae": 0.248}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.171, "mae": 0.265}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.21, "mae": 0.297}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.089, "mae": 0.208}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.18, "mae": 0.3}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.331, "mae": 0.415}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 720}, "metrics": {"mse": 1.033, "mae": 0.78}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.41, "mae": 0.279}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.423, "mae": 0.284}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.435, "mae": 0.29}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.464, "mae": 0.307}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.182, "mae": 0.232}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.225, "mae": 0.269}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.271, "mae": 0.301}}
+  - {"model": "DLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.338, "mae": 0.348}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.374, "mae": 0.394}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.408, "mae": 0.415}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.429, "mae": 0.427}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.44, "mae": 0.453}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.277, "mae": 0.338}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.344, "mae": 0.381}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.357, "mae": 0.4}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.394, "mae": 0.436}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.306, "mae": 0.348}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.349, "mae": 0.375}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.375, "mae": 0.388}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.433, "mae": 0.422}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.167, "mae": 0.255}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.221, "mae": 0.293}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.274, "mae": 0.327}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.368, "mae": 0.384}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.14, "mae": 0.237}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.153, "mae": 0.249}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.169, "mae": 0.267}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.203, "mae": 0.301}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.081, "mae": 0.203}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.157, "mae": 0.293}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.305, "mae": 0.414}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.643, "mae": 0.601}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.41, "mae": 0.282}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.423, "mae": 0.287}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.436, "mae": 0.296}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.466, "mae": 0.315}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.176, "mae": 0.237}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.22, "mae": 0.282}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.265, "mae": 0.319}}
+  - {"model": "NLinear (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.323, "mae": 0.362}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.449, "mae": 0.459}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.5, "mae": 0.482}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.521, "mae": 0.496}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.514, "mae": 0.512}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.358, "mae": 0.397}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.456, "mae": 0.452}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.482, "mae": 0.486}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.515, "mae": 0.511}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.505, "mae": 0.475}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.553, "mae": 0.496}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.621, "mae": 0.537}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.671, "mae": 0.561}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.255, "mae": 0.339}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.281, "mae": 0.34}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.339, "mae": 0.372}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.433, "mae": 0.432}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.201, "mae": 0.317}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.222, "mae": 0.334}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.231, "mae": 0.338}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.254, "mae": 0.361}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.197, "mae": 0.323}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.3, "mae": 0.369}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.509, "mae": 0.524}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 720}, "metrics": {"mse": 1.447, "mae": 0.941}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.613, "mae": 0.388}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.616, "mae": 0.382}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.622, "mae": 0.337}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.66, "mae": 0.408}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.266, "mae": 0.336}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.307, "mae": 0.367}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.359, "mae": 0.395}}
+  - {"model": "Autoformer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.419, "mae": 0.428}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.865, "mae": 0.713}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 192}, "metrics": {"mse": 1.008, "mae": 0.792}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 336}, "metrics": {"mse": 1.107, "mae": 0.809}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh1", "hparams": {"pred_len": 720}, "metrics": {"mse": 1.181, "mae": 0.865}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 96}, "metrics": {"mse": 3.755, "mae": 1.525}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 192}, "metrics": {"mse": 5.602, "mae": 1.931}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 336}, "metrics": {"mse": 4.721, "mae": 1.835}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTh2", "hparams": {"pred_len": 720}, "metrics": {"mse": 3.647, "mae": 1.625}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.672, "mae": 0.571}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.795, "mae": 0.669}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 336}, "metrics": {"mse": 1.212, "mae": 0.871}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm1", "hparams": {"pred_len": 720}, "metrics": {"mse": 1.166, "mae": 0.823}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.365, "mae": 0.453}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.533, "mae": 0.563}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 336}, "metrics": {"mse": 1.363, "mae": 0.887}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ETTm2", "hparams": {"pred_len": 720}, "metrics": {"mse": 3.379, "mae": 1.338}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.274, "mae": 0.368}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.296, "mae": 0.386}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.3, "mae": 0.394}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Electricity", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.373, "mae": 0.439}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.847, "mae": 0.752}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 192}, "metrics": {"mse": 1.204, "mae": 0.895}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 336}, "metrics": {"mse": 1.672, "mae": 1.036}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "ExchangeRate", "hparams": {"pred_len": 720}, "metrics": {"mse": 2.478, "mae": 1.31}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.719, "mae": 0.391}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.696, "mae": 0.379}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.777, "mae": 0.42}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Traffic", "hparams": {"pred_len": 720}, "metrics": {"mse": 0.864, "mae": 0.472}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 96}, "metrics": {"mse": 0.3, "mae": 0.384}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 192}, "metrics": {"mse": 0.598, "mae": 0.544}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 336}, "metrics": {"mse": 0.578, "mae": 0.523}}
+  - {"model": "Informer (paper)", "task": "Forecast", "dataset": "Weather", "hparams": {"pred_len": 720}, "metrics": {"mse": 1.059, "mae": 0.741}}

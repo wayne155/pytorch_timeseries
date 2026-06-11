@@ -59,14 +59,17 @@ from typing import Optional
 import pandas as pd
 from .dataset import Dataset, StoreTypes
 
-class TimeSeriesDataset(Dataset):
-    def __init__(self, root: str='./data', columns=[]):
-        """_summary_
+DEFAULT_DATA_ROOT = "~/.torchtimeseries/data"
 
+
+class TimeSeriesDataset(Dataset):
+    def __init__(self, root: str = DEFAULT_DATA_ROOT, columns=[]):
+        """
         Args:
-            root (str): data save location
+            root (str): data save location, defaults to ~/.torchtimeseries/data
 
         """
+        root = os.path.expanduser(root)
         super().__init__(root)
         self.root = root
         self.columns = []
@@ -78,7 +81,10 @@ class TimeSeriesDataset(Dataset):
         self._load()
         if columns:
             self.data = self.df.drop("date", axis=1).values[:, columns]
-            self.num_features = len(columns)
+        # num_features is read from the loaded data, not the class attribute,
+        # so custom datasets do not need to declare it.
+        self.num_features = self.data.shape[1]
+        self.length = self.data.shape[0]
         self.dates: Optional[pd.DataFrame]
         self.time_index = np.arange(len(self.df))
         

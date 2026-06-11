@@ -113,3 +113,15 @@ ILI freq from yh to h
 feat: `time_enc` in v2 dataloader configs now accepts readable string aliases (`"calendar"`, `"fourier"`, `"normalized"`) in addition to existing `int` and `TimeEncoding` enum values — applies to `WindowConfig`, `ImputationWindowConfig`, and `IrregularClassificationConfig`
 
 **BREAKING**: default value of `time_enc` changed from `0` (integer) to `"calendar"` (string) — code comparing `config.time_enc == 0` must be updated
+
+## 0.2.1
+fix: ETT datasets now use canonical calendar splits (12/4/4 months, TSLib borders) instead of 7:1:2 ratios; `SplitConfig` gains explicit `borders` and dataset-default splits (`DEFAULT_SPLIT_CONFIGS`)
+fix: training protocol aligned with Time-Series-Library — `lradj=type1` (lr halved per epoch), 10 epochs, patience 3, no gradient clipping; DLinear restored moving-average weight init
+refactor: `ForecastConfig` removed; engines take `WindowConfig` + optional `SplitConfig`; v2 dataloader configs split into `window.py` / `split.py` / `loader.py`; `scale_in_train` removed (scaler always fits on train)
+feat: `LeaderboardExperiment` + task/model reproduce scripts (`leaderboard/reproduce/forecast/*.py`) with multi-GPU lane parallelism; leaderboard webapp redesign (moved to `webapp/leaderboard/`)
+
+## 0.2.2
+feat: `build_dataset(csv=..., freq=...)` builds a dataset directly from a local CSV; `num_features`/`length` are now inferred from loaded data instead of class attributes
+feat: default dataset directory is now `~/.torchtimeseries/data` (override with `root=` / `data_path=`)
+refactor: torchvision dependency removed — download/extract/integrity utilities extracted to `torch_timeseries/dataset/utils.py`
+docs: README section on custom datasets; compact format for curated leaderboard entries

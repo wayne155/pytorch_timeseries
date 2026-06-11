@@ -50,7 +50,7 @@ class CrossformerConfig:
 
 @dataclass
 class RuntimeConfig:
-    data_path: str = "./data"
+    data_path: str = "~/.torchtimeseries/data"
     save_dir: str = "./results"
     device: str = "cpu"
     scaler_type: str = "StandardScaler"

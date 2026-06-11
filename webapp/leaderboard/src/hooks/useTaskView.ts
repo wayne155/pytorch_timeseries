@@ -62,9 +62,18 @@ export function useTaskView(
     }
 
     // Build rows
-    const rows: TaskTableRow[] = view.models.map(model => {
+    const complete = new Set<string>()
+    const allRows: TaskTableRow[] = view.models.map(model => {
       const variantResults = model.results[variant] ?? {}
       const columns: Record<string, SubcolumnMetrics | null> = {}
+
+      // A model is "complete" when it has results for every dataset of the view.
+      if (view.datasets.every(d => {
+        const r = variantResults[d]
+        return r != null && Object.values(r).some(x => x != null)
+      })) {
+        complete.add(model.name)
+      }
 
       if (hasSubcolumns) {
         const datasetsToUse = selectedDataset === 'All' ? view.datasets : [selectedDataset]
@@ -110,15 +119,27 @@ export function useTaskView(
       }
     })
 
-    // Sort
+    // In the All view, only models with results on every dataset are shown.
+    const rows = selectedDataset === 'All'
+      ? allRows.filter(r => complete.has(r.model))
+      : allRows
+
+    // Sort — defaults to the avg column on the first primary metric, with
+    // direction chosen so the best value is on top. Rows missing the sort
+    // value always sink to the bottom, whatever the direction.
+    const col = options.sortColumn ?? 'avg'
+    const metric = options.sortMetric ?? view.primary_metrics[0]
+    const dir = options.sortColumn
+      ? (options.sortDirection === 'asc' ? 1 : -1)
+      : (isLowerBetter(metric ?? '') ? 1 : -1)
     let sorted = rows
-    if (options.sortColumn && options.sortMetric) {
-      const col = options.sortColumn
-      const metric = options.sortMetric
-      const dir = options.sortDirection === 'asc' ? 1 : -1
+    if (metric) {
       sorted = [...rows].sort((a, b) => {
-        const av = a.columns[col]?.[metric]?.mean ?? (isLowerBetter(metric) ? Infinity : -Infinity)
-        const bv = b.columns[col]?.[metric]?.mean ?? (isLowerBetter(metric) ? Infinity : -Infinity)
+        const av = a.columns[col]?.[metric]?.mean ?? null
+        const bv = b.columns[col]?.[metric]?.mean ?? null
+        if (av == null && bv == null) return 0
+        if (av == null) return 1
+        if (bv == null) return -1
         return dir * (av - bv)
       })
     }

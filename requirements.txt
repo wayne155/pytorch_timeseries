@@ -9,5 +9,4 @@ prettytable
 einops
 torchmetrics>=1.0.0
 PyYAML
-torchvision
 pytest

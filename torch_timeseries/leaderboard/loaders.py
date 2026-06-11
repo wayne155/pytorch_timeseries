@@ -66,21 +66,24 @@ def load_curated_entries(entries_dir: str = "leaderboard/entries") -> List[Leade
         path = os.path.join(entries_dir, fname)
         with open(path) as f:
             data = yaml.safe_load(f) or []
+        # compact layout: file-level defaults merged into every entry
+        defaults = {}
         if isinstance(data, dict):
-            data = data.get("entries", [])
+            defaults = data.get("defaults", {}) or {}
+            data = data.get("entries", []) or []
         for item in data:
-            source_data = item.get("source", {})
+            source_data = {**defaults.get("source", {}), **item.get("source", {})}
             metrics, metric_mean, metric_std = _metric_parts(item.get("metrics", {}))
             entries.append(
                 LeaderboardEntry(
                     model=item["model"],
-                    task=item["task"],
+                    task=item.get("task", defaults.get("task")),
                     dataset=item["dataset"],
-                    hparams=item.get("hparams", {}),
+                    hparams={**defaults.get("hparams", {}), **item.get("hparams", {})},
                     metrics=metrics,
                     metric_mean=metric_mean,
                     metric_std=metric_std,
-                    num_seeds=int(item.get("num_seeds", 1)),
+                    num_seeds=int(item.get("num_seeds", defaults.get("num_seeds", 1))),
                     seed=item.get("seed"),
                     source=LeaderboardSource(
                         source_type=source_data.get("source_type", "external"),

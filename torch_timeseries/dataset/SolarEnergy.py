@@ -1,5 +1,5 @@
 import pandas as pd
-from torchvision.datasets.utils import download_and_extract_archive, check_integrity
+from .utils import download_url, download_and_extract_archive, check_integrity
 import torch
 from typing import Callable, List, Optional
 import os

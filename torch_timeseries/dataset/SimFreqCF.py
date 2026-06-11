@@ -7,7 +7,7 @@ from typing import Any, Callable, Generic, NewType, Optional, Sequence, TypeVar,
 from torch import Tensor
 import torch.utils.data
 import os
-from torchvision.datasets.utils import download_and_extract_archive, check_integrity
+from .utils import download_url, download_and_extract_archive, check_integrity
 from abc import ABC, abstractmethod
 
 

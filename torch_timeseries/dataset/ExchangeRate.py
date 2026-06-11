@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from torchvision.datasets.utils import download_and_extract_archive, check_integrity, download_url
+from .utils import download_url, download_and_extract_archive, check_integrity
 import torch
 from typing import Any, Callable, List, Optional
 import os

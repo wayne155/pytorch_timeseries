@@ -52,8 +52,9 @@ from torch_timeseries.dataloader.v2 import (
     ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
 )
 
-# Dataset is downloaded automatically on first use.
-dataset = ETTh1("./data")
+# Dataset is downloaded automatically on first use
+# (to ~/.torchtimeseries/data by default; pass a path to override).
+dataset = ETTh1()
 
 dm = ForecastDataModule(
     dataset=dataset,
@@ -96,6 +97,55 @@ for epoch in range(1):
 ```
 
 Use this pattern when you need a non-standard training loop, custom loss, or are prototyping a new architecture.
+
+#### Custom Datasets
+
+The quickest path is a local CSV with a `date` column — everything else
+(feature count, length, time index) is inferred from the file:
+
+```python
+from torch_timeseries.dataset import build_dataset
+
+dataset = build_dataset(csv="./my_sensors.csv", freq="h")
+dm = ForecastDataModule(dataset=dataset, scaler=StandardScaler(),
+                        window=WindowConfig(window=96, steps=96))
+```
+
+For datasets that need downloading or preprocessing, subclass
+`TimeSeriesDataset` and implement `download()` and `_load()`. The contract is
+small: `_load()` must set `self.df` (a DataFrame with a `date` column),
+`self.dates`, and `self.data` (numpy array `[T, num_features]`) —
+`num_features` and `length` are inferred from the loaded data.
+
+```python
+import os
+import numpy as np
+import pandas as pd
+
+from torch_timeseries.core import TimeSeriesDataset, Freq
+
+class MySensors(TimeSeriesDataset):
+    name: str = "MySensors"        # subdirectory under the data root
+    freq: Freq = "h"               # used by time-feature encoding
+    # Optional canonical benchmark split: register (train_end, val_end,
+    # test_end) in torch_timeseries.dataloader.v2.split.DEFAULT_SPLIT_CONFIGS;
+    # without it, dataloaders fall back to the 7:1:2 ratio split.
+
+    def download(self):
+        # Fetch raw files into self.dir, or no-op if the data is already local.
+        pass
+
+    def _load(self) -> np.ndarray:
+        self.file_path = os.path.join(self.dir, "my_sensors.csv")
+        # CSV layout: a `date` column + one column per variable
+        self.df = pd.read_csv(self.file_path, parse_dates=["date"])
+        self.dates = pd.DataFrame({"date": self.df.date})
+        self.data = self.df.drop("date", axis=1).to_numpy()
+        return self.data
+
+# Works everywhere a built-in dataset works:
+dataset = MySensors()              # stored at ~/.torchtimeseries/data/MySensors
+```
 
 ---
 

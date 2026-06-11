@@ -264,6 +264,9 @@ export function TaskTable({
     data: rows,
     columns,
     state: { sorting },
+    // Sorting (incl. nulls-to-bottom and the default avg sort) is done in
+    // useTaskView; the table only reports header clicks upward.
+    manualSorting: true,
     onSortingChange: updater => {
       const next = typeof updater === 'function' ? updater(sorting) : updater
       setSorting(next)

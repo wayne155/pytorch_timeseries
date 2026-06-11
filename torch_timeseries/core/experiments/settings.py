@@ -9,7 +9,7 @@ from torch.nn import Module
 
 @dataclass
 class BaseIrrelevant:
-    data_path: str = "./data"
+    data_path: str = "~/.torchtimeseries/data"
     device: str = "cpu"
     num_worker: int = 0
     save_dir: str = "./results"
