@@ -6,7 +6,7 @@ import torch
 
 from torch_timeseries.core import TimeSeriesDataset, Freq
 from torch_timeseries.scaler import StandardScaler
-from torch_timeseries.dataloader.v2 import SplitConfig, LoaderConfig, TSBatch, ForecastDataModule, WindowConfig
+from torch_timeseries.dataloader.v2 import SplitConfig, LoaderConfig, TSBatch, ForecastDataModule, WindowConfig, TimeEncConfig
 from torch_timeseries.dataloader.v2.imputation import (
     ImputationDataModule, ImputationWindowConfig,
 )
@@ -232,39 +232,39 @@ def test_uea_dm_has_val_loader():
 
 
 def test_imputation_config_accepts_string_time_enc():
-    cfg = ImputationWindowConfig(time_enc="fourier")
-    assert cfg.time_enc == "fourier"
+    cfg = ImputationWindowConfig(time_enc_cfg=TimeEncConfig(time_enc="fourier"))
+    assert cfg.time_enc_cfg.time_enc == "fourier"
 
 
 def test_imputation_dm_string_time_enc_fourier():
-    dm = _toy_imputation_dm(window=32, time_enc="fourier", freq="h")
+    dm = _toy_imputation_dm(window=32, time_enc_cfg=TimeEncConfig(time_enc="fourier", freq="h"))
     batch = next(iter(dm.train_loader))
     assert batch.x is not None
 
 
 def test_imputation_dm_string_time_enc_calendar():
-    dm = _toy_imputation_dm(window=32, time_enc="calendar", freq="h")
+    dm = _toy_imputation_dm(window=32, time_enc_cfg=TimeEncConfig(time_enc="calendar", freq="h"))
     batch = next(iter(dm.train_loader))
     assert batch.x is not None
 
 
 def test_imputation_dm_int_time_enc_still_works():
-    dm = _toy_imputation_dm(window=32, time_enc=1, freq="h")
+    dm = _toy_imputation_dm(window=32, time_enc_cfg=TimeEncConfig(time_enc=1, freq="h"))
     batch = next(iter(dm.train_loader))
     assert batch.x is not None
 
 
 def test_window_config_accepts_string_time_enc():
-    """WindowConfig should accept string aliases without error."""
-    cfg = WindowConfig(time_enc="fourier")
-    assert cfg.time_enc == "fourier"
+    """TimeEncConfig should accept string aliases without error."""
+    cfg = WindowConfig(time_enc_cfg=TimeEncConfig(time_enc="fourier"))
+    assert cfg.time_enc_cfg.time_enc == "fourier"
 
 
 def _toy_forecast_dm(time_enc="calendar"):
     return ForecastDataModule(
         dataset=_ToyTS(root="/tmp"),
         scaler=StandardScaler(),
-        window=WindowConfig(window=24, horizon=4, time_enc=time_enc, freq="h"),
+        window=WindowConfig(window=24, horizon=4, steps=12, time_enc_cfg=TimeEncConfig(time_enc=time_enc, freq="h")),
         split=SplitConfig(train=0.7, val=0.1, test=0.2),
         loader=LoaderConfig(batch_size=8, num_workers=0),
     )

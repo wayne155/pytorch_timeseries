@@ -147,6 +147,74 @@ class MySensors(TimeSeriesDataset):
 dataset = MySensors()              # stored at ~/.torchtimeseries/data/MySensors
 ```
 
+#### Fast evaluation windows (`fast_val` / `fast_test`)
+
+Training always slides the window one step at a time, but evaluating every
+overlapping window is wasteful when inference is expensive — a diffusion
+model sampling 100 trajectories per window would run the sampler thousands
+of times. `WindowConfig.fast_val` / `fast_test` switch the val/test split to
+**non-overlapping** windows (stride = `window + horizon + steps − 1`) while
+training keeps the dense sliding window:
+
+```python
+dm = ForecastDataModule(
+    dataset=ETTh1(),
+    scaler=StandardScaler(),
+    window=WindowConfig(window=96, steps=24, fast_val=True, fast_test=True),
+)
+# ETTh1, pred_len 24:  val/test windows  2857 -> 24  (119x fewer model calls)
+```
+
+The windows still tile the whole evaluation span, so metrics remain
+representative — they are just computed on disjoint windows instead of every
+shifted copy.
+
+#### Probabilistic forecasting
+
+`ProbForecastExp` adapts the default training paradigm for sample-based
+probabilistic models (diffusion, flows, deep ensembles, ...). It differs from
+point forecasting in three ways:
+
+1. **Training** — the model computes its own loss (ELBO, diffusion loss, ...),
+   so `_process_train_batch(batch)` returns the loss directly instead of an
+   `(x, y)` pair.
+2. **Inference** — `_process_val_batch(batch)` returns an ensemble
+   `preds` of shape `(batch, pred_len, num_features, num_samples)` plus
+   `truths` of shape `(batch, pred_len, num_features)`.
+3. **Evaluation** — val/test use `fast_val`/`fast_test` non-overlapping
+   windows by default, and metrics are the probabilistic suite from
+   `torch_timeseries.metrics`: `CRPS`, `CRPSSum`, `QICE`, `PICP`, plus
+   `ProbMSE`/`ProbMAE`/`ProbRMSE` on the ensemble mean. Early stopping
+   monitors validation CRPS.
+
+```python
+from dataclasses import dataclass
+import torch
+from torch_timeseries.experiments import ProbForecastExp
+
+@dataclass
+class MyDiffusionForecast(ProbForecastExp):
+    model_type: str = "MyDiffusion"
+
+    def _init_model(self):
+        self.model = MyDiffusion(...).to(self.device)
+
+    def _process_train_batch(self, batch):
+        x = batch.x.to(self.device).float()
+        y = batch.y.to(self.device).float()
+        return self.model.loss(x, y)            # model returns its own loss
+
+    def _process_val_batch(self, batch):
+        x = batch.x.to(self.device).float()
+        y = batch.y.to(self.device).float()
+        preds = self.model.sample(x, n=self.num_samples)  # (B, O, N, S)
+        return preds, y
+
+exp = MyDiffusionForecast(dataset_type="ETTh1", windows=96, pred_len=96,
+                          num_samples=100, device="cuda:0")
+exp.run(seed=0)   # -> {'crps': ..., 'crps_sum': ..., 'picp': ..., 'qice': ..., ...}
+```
+
 ---
 
 ### Way 2 — Default training paradigm (built-in or registered models)

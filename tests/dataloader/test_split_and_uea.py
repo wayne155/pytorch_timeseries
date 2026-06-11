@@ -92,7 +92,6 @@ def test_windowed_dataset_column_selection_by_index():
         window=24, horizon=1, steps=12,
         input_columns=[0, 1, 2],
         target_columns=[4],
-        include_time=False, include_raw=False,
     )
     batch = wd[0]
     assert batch.x.shape == (24, 3), batch.x.shape
@@ -109,7 +108,6 @@ def test_windowed_dataset_column_selection_by_name():
         window=24, horizon=1, steps=12,
         input_columns=["c0", "c1", "c2"],
         target_columns=["c4"],
-        include_time=False, include_raw=False,
     )
     batch = wd[0]
     assert batch.x.shape == (24, 3), batch.x.shape

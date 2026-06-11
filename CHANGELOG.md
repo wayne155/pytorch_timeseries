@@ -125,3 +125,9 @@ feat: `build_dataset(csv=..., freq=...)` builds a dataset directly from a local 
 feat: default dataset directory is now `~/.torchtimeseries/data` (override with `root=` / `data_path=`)
 refactor: torchvision dependency removed — download/extract/integrity utilities extracted to `torch_timeseries/dataset/utils.py`
 docs: README section on custom datasets; compact format for curated leaderboard entries
+
+## 0.2.3
+feat: probabilistic forecasting — `ProbForecastExp` (model returns its own training loss; inference returns `(batch, pred_len, num_features, samples)` ensembles; early stopping on val CRPS)
+feat: probabilistic metrics package `torch_timeseries.metrics` — CRPS (native vectorized estimator, no external deps), CRPSSum, QICE, PICP, ProbMSE/ProbMAE/ProbRMSE
+feat: `WindowConfig.fast_val` / `fast_test` documented — sliding-window training with non-overlapping val/test windows to accelerate expensive (e.g. diffusion) inference
+refactor: `_process_one_batch(batch: TSBatch)` — forecast experiments receive the structured batch instead of six positional tensors; tuple unpacking removed from train/eval loops

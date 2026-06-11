@@ -10,6 +10,8 @@ Compared to v1's ``SlidingWindowTS``, this module:
 """
 from __future__ import annotations
 
+import warnings
+
 from torch.utils.data import DataLoader
 
 from torch_timeseries.core import TimeSeriesDataset, TimeseriesSubset
@@ -38,6 +40,7 @@ class ForecastDataModule:
         self.scaler = scaler
         self.window_cfg = window or WindowConfig()
         # No split config -> the dataset's default (canonical borders if known)
+        self._split_from_default = split is None
         self.split_cfg = split if split is not None else default_split_config(dataset)
         self.loader_cfg = loader or LoaderConfig()
 
@@ -59,14 +62,26 @@ class ForecastDataModule:
 
         # Precedence: explicit borders > dataset's canonical borders > ratios.
         borders = sc.borders
+        borders_from_default = self._split_from_default
         if borders is None and sc.use_dataset_borders:
             borders = default_split_config(self.dataset).borders
+            borders_from_default = True
         if borders is not None:
             train_end, val_end, test_end = borders
             if not (0 < train_end <= val_end <= test_end <= n):
-                raise ValueError(
-                    f"invalid split borders {borders} for dataset of length {n}"
+                if not borders_from_default:
+                    raise ValueError(
+                        f"invalid split borders {borders} for dataset of length {n}"
+                    )
+                # e.g. a truncated/mocked copy of a benchmark dataset — its
+                # canonical borders no longer fit, use the ratio split instead.
+                warnings.warn(
+                    f"canonical split borders {borders} exceed dataset "
+                    f"length {n}; falling back to the ratio split"
                 )
+                borders = None
+        if borders is not None:
+            train_end, val_end, test_end = borders
             self.train_ratio = train_end / n
             self.val_ratio = (val_end - train_end) / n
             self.test_ratio = (test_end - val_end) / n

@@ -23,7 +23,7 @@ from ..utils.early_stop import EarlyStopping
 from ..utils.parse_type import parse_type
 from ..utils.reproduce import get_rng_state, reproducible, set_rng_state
 from ..core import TimeSeriesDataset, BaseIrrelevant, BaseRelevant
-from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig, TimeEncConfig
+from ..dataloader.v2 import ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig, TimeEncConfig, TSBatch
 from ..utils import asdict_exc
 
 try:
@@ -139,6 +139,11 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         )
         self.metrics.to(self.device)
 
+    @property
+    def monitor_metric(self) -> str:
+        """Validation metric used for early stopping / model selection."""
+        return self.loss_func_type
+
     def _init_loss_func(self):
         loss_func_map = {'mse': MSELoss, 'mae': L1Loss}
         self.loss_func = parse_type(loss_func_map[self.loss_func_type], globals=globals())()
@@ -247,28 +252,19 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             self.patience, verbose=True, path=self.best_checkpoint_filepath
         )
 
-    def _process_one_batch(
-        self,
-        batch_x,
-        batch_y,
-        batch_origin_x,
-        batch_origin_y,
-        batch_x_date_enc,
-        batch_y_date_enc,
-    ):
-        # inputs:
-        # batch_x:  (B, T, N)
-        # batch_y:  (B, Steps,T)
-        # batch_x_date_enc:  (B, T, N)
-        # batch_y_date_enc:  (B, T, Steps)
+    def _process_one_batch(self, batch: TSBatch):
+        """Run the model on one TSBatch.
 
-        # outputs:
-        # pred: (B, O, N)
-        # label:  (B,O,N)
-        # for single step you should output (B, N)
-        # for multiple steps you should output (B, O, N)
-        batch_x = batch_x.to(self.device, dtype=torch.float32)
-        batch_y = batch_y.to(self.device, dtype=torch.float32)
+        Useful batch fields (see ``torch_timeseries.dataloader.v2.TSBatch``):
+            batch.x / batch.y                      scaled input / target, (B, T, N) / (B, O, N)
+            batch.x_raw / batch.y_raw              unscaled values
+            batch.x_time_feature / y_time_feature  encoded time features
+
+        Returns:
+            (pred, true): (B, O, N) each — or (B, N) for single-step.
+        """
+        batch_x = batch.x.to(self.device, dtype=torch.float32)
+        batch_y = batch.y.to(self.device, dtype=torch.float32)
         return self.model(batch_x), batch_y
 
     def _evaluate(self, dataloader):
@@ -278,24 +274,11 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
         with torch.no_grad():
             with tqdm(total=len(dataloader.dataset)) as progress_bar:
                 for batch in dataloader:
-                    (
-                        batch_x,
-                        batch_y,
-                        batch_origin_x,
-                        batch_origin_y,
-                        batch_x_date_enc,
-                        batch_y_date_enc,
-                    ) = batch.as_tuple(
-                        ("x", "y", "x_raw", "y_raw", "x_time_feature", "y_time_feature")
-                    )
-                    batch_size = batch_x.size(0)
-                    preds, truths = self._process_one_batch(
-                        batch_x, batch_y, batch_origin_x, batch_origin_y, batch_x_date_enc, batch_y_date_enc
-                    )
-                    batch_origin_y = batch_origin_y.to(self.device)
+                    batch_size = batch.x.size(0)
+                    preds, truths = self._process_one_batch(batch)
                     if self.invtrans_loss:
                         preds = self.scaler.inverse_transform(preds)
-                        truths = batch_origin_y
+                        truths = batch.y_raw.to(self.device)
                     if self.pred_len == 1:
                         self.metrics.update(
                             preds.contiguous().reshape(batch_size, -1),
@@ -304,7 +287,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                     else:
                         self.metrics.update(preds.contiguous(), truths.contiguous())
 
-                    progress_bar.update(batch_x.shape[0])
+                    progress_bar.update(batch_size)
 
             result = {
                 name: float(metric.compute()) for name, metric in self.metrics.items()
@@ -347,25 +330,11 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             self.model.train()
             train_loss = []
             for i, batch in enumerate(self.train_loader):
-                (
-                    batch_x,
-                    batch_y,
-                    origin_x,
-                    origin_y,
-                    batch_x_date_enc,
-                    batch_y_date_enc,
-                ) = batch.as_tuple(
-                    ("x", "y", "x_raw", "y_raw", "x_time_feature", "y_time_feature")
-                )
-                start = time.time()
-                origin_y = origin_y.to(self.device)
                 self.model_optim.zero_grad()
-                pred, true = self._process_one_batch(
-                    batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc
-                )
+                pred, true = self._process_one_batch(batch)
                 if self.invtrans_loss:
                     pred = self.scaler.inverse_transform(pred)
-                    true = origin_y
+                    true = batch.y_raw.to(self.device)
                 loss = self.loss_func(pred, true)
                 loss.backward()
 
@@ -373,7 +342,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), self.max_grad_norm
                     )
-                progress_bar.update(batch_x.size(0))
+                progress_bar.update(batch.x.size(0))
                 train_loss.append(loss.item())
                 progress_bar.set_postfix(
                     loss=loss.item(),
@@ -479,7 +448,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             test_result = self._test()
 
             self.current_epoch = self.current_epoch + 1
-            self.early_stopper(val_result[self.loss_func_type], model=self.model)
+            self.early_stopper(val_result[self.monitor_metric], model=self.model)
 
             self._save_run_check_point(seed)
 

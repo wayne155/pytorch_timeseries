@@ -2,6 +2,7 @@ import os
 import glob
 
 from .forecast import ForecastExp
+from .prob_forecast import ProbForecastExp
 from .uea_classification import UEAClassificationExp
 from .anomaly_detection import AnomalyDetectionExp
 from .imputation import ImputationExp

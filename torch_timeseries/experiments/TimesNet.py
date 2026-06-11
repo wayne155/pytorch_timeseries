@@ -48,7 +48,10 @@ class TimesNetForecast(ForecastExp, TimesNetParameters):
             )
         self.model = self.model.to(self.device)
 
-    def _process_one_batch(self, batch_x, batch_y, origin_x, origin_y, batch_x_date_enc, batch_y_date_enc):
+    def _process_one_batch(self, batch):
+        batch_x, batch_y = batch.x, batch.y
+        origin_x, origin_y = batch.x_raw, batch.y_raw
+        batch_x_date_enc, batch_y_date_enc = batch.x_time_feature, batch.y_time_feature
         # inputs:
         # batch_x: (B, T, N)
         # batch_y: (B, O, N)

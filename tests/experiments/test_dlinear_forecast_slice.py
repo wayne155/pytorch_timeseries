@@ -4,7 +4,7 @@ import pytest
 def test_forecast_dlinear_config_split_accepts_flat_experiment_kwargs():
     from torch_timeseries.experiments.configs import split_experiment_config
 
-    task_cfg, model_cfg, runtime_cfg = split_experiment_config(
+    window_cfg, split_cfg, model_cfg, runtime_cfg = split_experiment_config(
         model="DLinear",
         task="Forecast",
         kwargs={
@@ -21,11 +21,11 @@ def test_forecast_dlinear_config_split_accepts_flat_experiment_kwargs():
         },
     )
 
-    assert task_cfg.windows == 96
-    assert task_cfg.pred_len == 336
-    assert task_cfg.horizon == 1
-    assert task_cfg.input_columns == [0, 1]
-    assert task_cfg.target_columns == [2]
+    assert window_cfg.window == 96
+    assert window_cfg.steps == 336
+    assert window_cfg.horizon == 1
+    assert window_cfg.input_columns == [0, 1]
+    assert window_cfg.target_columns == [2]
     assert model_cfg.individual is True
     assert runtime_cfg.batch_size == 16
     assert runtime_cfg.epochs == 2
@@ -36,7 +36,7 @@ def test_forecast_dlinear_config_split_accepts_flat_experiment_kwargs():
 def test_forecast_crossformer_config_split_accepts_flat_experiment_kwargs():
     from torch_timeseries.experiments.configs import split_experiment_config
 
-    task_cfg, model_cfg, runtime_cfg = split_experiment_config(
+    window_cfg, split_cfg, model_cfg, runtime_cfg = split_experiment_config(
         model="Crossformer",
         task="Forecast",
         kwargs={
@@ -56,8 +56,8 @@ def test_forecast_crossformer_config_split_accepts_flat_experiment_kwargs():
         },
     )
 
-    assert task_cfg.windows == 48
-    assert task_cfg.pred_len == 24
+    assert window_cfg.window == 48
+    assert window_cfg.steps == 24
     assert model_cfg.seg_len == 4
     assert model_cfg.win_size == 3
     assert model_cfg.factor == 8
@@ -99,7 +99,7 @@ def test_forecast_crossformer_config_rejects_irrelevant_model_kwargs():
 def test_forecast_config_validates_shape_controls():
     from torch_timeseries.experiments.configs import split_experiment_config
 
-    with pytest.raises(ValueError, match="pred_len must be positive"):
+    with pytest.raises(ValueError, match="must all be positive"):
         split_experiment_config(
             model="DLinear",
             task="Forecast",
@@ -282,13 +282,15 @@ def test_experiment_constructor_accepts_flat_dlinear_forecast_config(monkeypatch
             self,
             model_name,
             dataset_name,
-            task_config,
+            window_config,
             model_config,
             runtime_config,
+            split_config=None,
         ):
             captured["model_name"] = model_name
             captured["dataset_name"] = dataset_name
-            captured["task_config"] = task_config
+            captured["window_config"] = window_config
+            captured["split_config"] = split_config
             captured["model_config"] = model_config
             captured["runtime_config"] = runtime_config
             self.model = None
@@ -299,7 +301,7 @@ def test_experiment_constructor_accepts_flat_dlinear_forecast_config(monkeypatch
 
         def hparams(self):
             return {
-                "windows": captured["task_config"].windows,
+                "windows": captured["window_config"].window,
                 "individual": captured["model_config"].individual,
             }
 
@@ -321,8 +323,8 @@ def test_experiment_constructor_accepts_flat_dlinear_forecast_config(monkeypatch
 
     assert captured["model_name"] == "DLinear"
     assert captured["dataset_name"] == "ETTh1"
-    assert captured["task_config"].windows == 24
-    assert captured["task_config"].pred_len == 12
+    assert captured["window_config"].window == 24
+    assert captured["window_config"].steps == 12
     assert captured["model_config"].individual is True
     assert captured["runtime_config"].epochs == 1
     assert captured["seed"] == 7
@@ -335,13 +337,14 @@ def test_experiment_constructor_saves_dlinear_forecast_local_result(monkeypatch,
     from torch_timeseries.experiment import Experiment
 
     class FakeEngine:
-        def __init__(self, model_name, dataset_name, task_config, model_config, runtime_config):
+        def __init__(self, model_name, dataset_name, window_config, model_config, runtime_config, split_config=None):
             self.best_checkpoint_filepath = str(tmp_path / "source_best_model.pth")
             self.history = {"train_loss": [0.1], "val": [{"mse": 0.2}]}
             self._hparams = {
-                "windows": task_config.windows,
-                "pred_len": task_config.pred_len,
+                "windows": window_config.window,
+                "pred_len": window_config.steps,
                 "lr": runtime_config.lr,
+                "batch_size": runtime_config.batch_size,
                 "save_dir": runtime_config.save_dir,
             }
 
@@ -392,13 +395,15 @@ def test_experiment_constructor_accepts_flat_crossformer_forecast_config(monkeyp
             self,
             model_name,
             dataset_name,
-            task_config,
+            window_config,
             model_config,
             runtime_config,
+            split_config=None,
         ):
             captured["model_name"] = model_name
             captured["dataset_name"] = dataset_name
-            captured["task_config"] = task_config
+            captured["window_config"] = window_config
+            captured["split_config"] = split_config
             captured["model_config"] = model_config
             captured["runtime_config"] = runtime_config
 
@@ -408,7 +413,7 @@ def test_experiment_constructor_accepts_flat_crossformer_forecast_config(monkeyp
 
         def hparams(self):
             return {
-                "windows": captured["task_config"].windows,
+                "windows": captured["window_config"].window,
                 "seg_len": captured["model_config"].seg_len,
             }
 
@@ -430,8 +435,8 @@ def test_experiment_constructor_accepts_flat_crossformer_forecast_config(monkeyp
 
     assert captured["model_name"] == "Crossformer"
     assert captured["dataset_name"] == "ETTh1"
-    assert captured["task_config"].windows == 24
-    assert captured["task_config"].pred_len == 12
+    assert captured["window_config"].window == 24
+    assert captured["window_config"].steps == 12
     assert captured["model_config"].seg_len == 3
     assert captured["runtime_config"].epochs == 1
     assert captured["seed"] == 9
