@@ -36,3 +36,8 @@ def test_timegan_smoke():
     from torch_timeseries.experiments.TimeGAN import TimeGANGeneration
     _run(TimeGANGeneration, hidden_dim=4, n_layers=2,
          epochs_ae=2, epochs_sup=2, epochs_joint=2)
+
+
+def test_csdi_smoke():
+    from torch_timeseries.experiments.CSDI import CSDIGeneration
+    _run(CSDIGeneration, d_model=8, n_heads=2, n_layers=1, T=3)
