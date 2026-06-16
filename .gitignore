@@ -2,6 +2,10 @@
 *.png
 *.jpg
 
+# README figures are real assets
+!docs/_static/img/*.png
+!docs/_static/img/*.jpg
+
 data
 data/*
 dist
