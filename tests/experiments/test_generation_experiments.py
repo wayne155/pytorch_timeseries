@@ -46,3 +46,8 @@ def test_csdi_smoke():
 def test_diffusion_ts_smoke():
     from torch_timeseries.experiments.DiffusionTS import DiffusionTSGeneration
     _run(DiffusionTSGeneration, d_model=8, n_heads=2, n_layers=1, T=3)
+
+
+def test_timediff_smoke():
+    from torch_timeseries.experiments.TimeDiff import TimeDiffGeneration
+    _run(TimeDiffGeneration, d_model=8, n_heads=2, n_layers=1, T=3)

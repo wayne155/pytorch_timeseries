@@ -50,3 +50,19 @@ def test_diffusion_ts_generate():
     m = DiffusionTS(seq_len=8, n_features=3, d_model=16, n_heads=2, n_layers=2, T=5)
     out = m.generate(4)
     assert out.shape == (4, 8, 3)
+
+
+def test_timediff_forward():
+    from torch_timeseries.model.TimeDiff import TimeDiff
+    m = TimeDiff(seq_len=8, n_features=3, d_model=16, n_heads=2, n_layers=2, T=5)
+    x_t = torch.randn(2, 8, 3)
+    t   = torch.randint(0, 5, (2,))
+    out = m.denoise(x_t, t)
+    assert out.shape == (2, 8, 3)
+
+
+def test_timediff_generate():
+    from torch_timeseries.model.TimeDiff import TimeDiff
+    m = TimeDiff(seq_len=8, n_features=3, d_model=16, n_heads=2, n_layers=2, T=5)
+    out = m.generate(4)
+    assert out.shape == (4, 8, 3)
