@@ -54,5 +54,10 @@ def test_timediff_smoke():
 
 
 def test_ns_diffusion_smoke():
-    from torch_timeseries.experiments.NSDiffusion import NSDiffusionGeneration
-    _run(NSDiffusionGeneration, d_model=8, n_heads=2, n_layers=1, T=3)
+    from torch_timeseries.experiments.NsDiff import NsDiffGeneration
+    _run(NsDiffGeneration, T=3, kernel_size=4)
+
+
+def test_tmdm_smoke():
+    from torch_timeseries.experiments.TMDM import TMDMGeneration
+    _run(TMDMGeneration, T=3)

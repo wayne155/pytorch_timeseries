@@ -1,3 +1,9 @@
+## 0.2.4
+feat: `NsDiff` — full Non-Stationary DDPM rewrite (local-variance-adapted noise schedule via `betas_tilde`/`betas_bar`; `_NsDenoiser` takes `[y_t ‖ y_0_hat ‖ gx]`; `_SigmaNet` rolling-variance MLP; unconditional generation from `N(0, gx)` prior)
+feat: `TMDM` — TMDM-style DDPM with GRU prior-mean network (`_MuNet`); denoiser takes `[y_t ‖ y_0_hat]`; `NsDiffGeneration` / `TMDMGeneration` experiment wrappers
+docs: README table of contents; figures for every code example (`forecast_custom_pipeline`, `fast_eval_windows`, `prob_forecast`, `nsdiff_generation`, `experiment_builder`)
+rename: `NSDiffusion` → `NsDiff` throughout (model, experiment, leaderboard scripts, tests)
+
 ## 0.2.1
 
 feat: add per-task leaderboard reproduce scripts for anomaly detection, imputation, long-term forecast, short-term forecast, and UEA classification across DLinear, NLinear, PatchTST, iTransformer, TimesNet, Autoformer, and FEDformer

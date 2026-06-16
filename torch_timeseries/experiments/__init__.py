@@ -81,7 +81,8 @@ from .TimeGAN import TimeGANGeneration
 from .CSDI import CSDIGeneration
 from .DiffusionTS import DiffusionTSGeneration
 from .TimeDiff import TimeDiffGeneration
-from .NSDiffusion import NSDiffusionGeneration
+from .NsDiff import NsDiffGeneration
+from .TMDM import TMDMGeneration
 
 from .registry import build_experiment_registry, format_experiment_choices
 

@@ -16,5 +16,6 @@ from .TimeGAN import TimeGAN
 from .CSDI import CSDI
 from .DiffusionTS import DiffusionTS
 from .TimeDiff import TimeDiff
-from .NSDiffusion import NSDiffusion
+from .NsDiff import NsDiff
+from .TMDM import TMDM
 from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_embedding

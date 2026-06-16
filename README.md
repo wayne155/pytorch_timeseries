@@ -24,7 +24,27 @@ An all-in-one deep learning library for time series research.
 - Highly customizable pipeline
 - One-command experiment runner
 
+---
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Two Ways to Use](#two-ways-to-use)
+  - [Way 1 — Custom pipeline](#way-1--custom-pipeline-bring-your-own-training-loop)
+    - [Custom Datasets](#custom-datasets)
+    - [Fast evaluation windows](#fast-evaluation-windows-fast_val--fast_test)
+    - [Probabilistic forecasting](#probabilistic-forecasting)
+    - [Time series generation](#time-series-generation)
+  - [Way 2 — Default training paradigm](#way-2--default-training-paradigm-built-in-or-registered-models)
+    - [Register Custom Models](#register-custom-models)
+    - [Run Built-In Models](#run-built-in-models)
+- [Development Milestones](#development-milestones)
+  - [Implemented Datasets](#implemented-datasets)
+  - [Implemented Tasks](#implemented-tasks)
+  - [Implemented Models](#implemented-models)
+- [Dev Install](#dev-install)
+
+---
 
 ## Installation
 
@@ -96,6 +116,10 @@ for epoch in range(1):
         optimizer.step()
 ```
 
+Grey = input window · Blue dashed = ground truth · Orange = forecast:
+
+![LinearForecaster predictions](docs/_static/img/forecast_custom_pipeline.png)
+
 Use this pattern when you need a non-standard training loop, custom loss, or are prototyping a new architecture.
 
 #### Custom Datasets
@@ -165,6 +189,10 @@ dm = ForecastDataModule(
 # ETTh1, pred_len 24:  val/test windows  2857 -> 24  (119x fewer model calls)
 ```
 
+Blue = input window · Orange = prediction horizon. Top: training (dense). Bottom: eval with `fast_val=True` (non-overlapping):
+
+![fast_val vs dense sliding windows](docs/_static/img/fast_eval_windows.png)
+
 The windows still tile the whole evaluation span, so metrics remain
 representative — they are just computed on disjoint windows instead of every
 shifted copy.
@@ -214,6 +242,74 @@ exp = MyDiffusionForecast(dataset_type="ETTh1", windows=96, pred_len=96,
                           num_samples=100, device="cuda:0")
 exp.run(seed=0)   # -> {'crps': ..., 'crps_sum': ..., 'picp': ..., 'qice': ..., ...}
 ```
+
+Grey = observed · Blue dashed = ground truth · Orange = ensemble mean · Shaded bands = 25 / 50 / 90% prediction intervals:
+
+![Probabilistic forecasting with uncertainty bands](docs/_static/img/prob_forecast.png)
+
+#### Time series generation
+
+`GenerationExp` trains models that learn to *synthesise* new sequences — no forecasting target needed. The training loop feeds sliding windows of the raw series to the model's own loss function; evaluation computes four standard metrics (discriminative score, predictive score, context-FID, correlational score) on generated vs. real sequences.
+
+```python
+import torch
+import matplotlib.pyplot as plt
+
+from torch_timeseries.model.NsDiff import NsDiff
+from torch_timeseries.experiments.NsDiff import NsDiffGeneration
+
+# ── Way 1: use the model directly with your own training loop ─────────────────
+torch.manual_seed(0)
+T, C = 96, 3
+
+# build a small synthetic dataset (400 windows, seq_len=96, 3 channels)
+real = torch.randn(400, T, C)
+ds     = torch.utils.data.TensorDataset(real)
+loader = torch.utils.data.DataLoader(ds, batch_size=64, shuffle=True)
+
+model = NsDiff(seq_len=T, n_features=C, T=100, kernel_size=24)
+opt   = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+for epoch in range(50):
+    for (x,) in loader:
+        opt.zero_grad()
+        model.loss(x).backward()
+        opt.step()
+
+model.eval()
+with torch.no_grad():
+    samples = model.generate(n=8)   # → (8, 96, 3) on CPU
+
+# ── Way 2: use the experiment runner on a real dataset ────────────────────────
+exp = NsDiffGeneration(
+    dataset_type="ETTh1",
+    seq_len=96,
+    T=100,
+    kernel_size=24,
+    epochs=200,
+    batch_size=64,
+    eval_n_samples=1000,
+    device="cuda:0",
+)
+result = exp.run(seed=1)
+# → {'discriminative_score': ..., 'predictive_score': ...,
+#    'context_fid': ..., 'correlational_score': ...}
+print(result)
+
+# ── Plot real vs. generated ───────────────────────────────────────────────────
+fig, axes = plt.subplots(1, 2, figsize=(11, 3), sharey=True)
+for i in range(6):
+    axes[0].plot(real[i, :, 0].numpy(), color="#aaaaaa", lw=0.8, alpha=0.7)
+    axes[1].plot(samples[i, :, 0].numpy(), color="#4C72B0", lw=0.8, alpha=0.7)
+axes[0].set_title("Real sequences (channel 0)")
+axes[1].set_title("NsDiff generated sequences (channel 0)")
+plt.tight_layout()
+plt.savefig("nsdiff_generation.png", dpi=120)
+```
+
+Grey = real sequences · Blue = NsDiff-generated sequences (all 3 channels, non-stationary synthetic data):
+
+![NsDiff generated vs. real](docs/_static/img/nsdiff_generation.png)
 
 ---
 
@@ -349,6 +445,10 @@ pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentrat
 pytexp compare --save_dir ./results --task Forecast
 ```
 
+Representative ETTh1 forecasting metrics (pred_len=96) across built-in models:
+
+![Experiment builder — ETTh1 benchmark metrics](docs/_static/img/experiment_builder.png)
+
 Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
 
 
@@ -373,6 +473,7 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 - [x] Imputation
 - [x] Anomaly Detection
 - [x] Classification (UEA datasets)
+- [x] Generation
 - [ ] Contribute your own task!
 
 ### Implemented Models
