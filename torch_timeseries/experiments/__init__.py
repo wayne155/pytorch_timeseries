@@ -76,6 +76,13 @@ for model_prefix in model_list:
 from .irregular_classification import IrregularClassificationExp
 from .GRUD import GRUDIrregularClassification
 
+from .generation import GenerationExp
+from .TimeGAN import TimeGANGeneration
+from .CSDI import CSDIGeneration
+from .DiffusionTS import DiffusionTSGeneration
+from .TimeDiff import TimeDiffGeneration
+from .NSDiffusion import NSDiffusionGeneration
+
 from .registry import build_experiment_registry, format_experiment_choices
 
 EXPERIMENT_REGISTRY = build_experiment_registry(globals())
