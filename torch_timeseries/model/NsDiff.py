@@ -57,33 +57,25 @@ def _wv_sigma_trailing(x: Tensor, window: int) -> Tensor:
 
 # ── Networks ──────────────────────────────────────────────────────────────────
 
-class _ConditionalLinear(nn.Module):
-    """Timestep-conditioned linear: gamma(t) * Linear(x)."""
-    def __init__(self, in_dim: int, out_dim: int, T: int):
-        super().__init__()
-        self.lin = nn.Linear(in_dim, out_dim)
-        self.embed = nn.Embedding(T + 1, out_dim)
-        self.embed.weight.data.uniform_()
-
-    def forward(self, x: Tensor, t: Tensor) -> Tensor:
-        return self.embed(t).unsqueeze(1) * self.lin(x)   # (B, T, out_dim)
-
-
 class _NsDenoiser(nn.Module):
-    """NsDiff ConditionalGuidedModel: concat [y_t ‖ y_0_hat ‖ gx] → (eps, sigma)."""
-    def __init__(self, n_features: int, T: int, hidden: int = 128):
+    """GRU-based conditional denoiser: [y_t ‖ y_0_hat ‖ gx] → (eps, sigma).
+
+    Uses a bidirectional GRU so each position is denoised with full temporal
+    context, enabling the model to produce smooth, correlated sequences.
+    """
+    def __init__(self, n_features: int, T: int, hidden: int = 64):
         super().__init__()
-        self.l1 = _ConditionalLinear(n_features * 3, hidden, T)
-        self.l2 = _ConditionalLinear(hidden, hidden, T)
-        self.l3 = _ConditionalLinear(hidden, hidden, T)
-        self.eps_head = nn.Linear(hidden, n_features)
-        self.sigma_head = nn.Linear(hidden, n_features)
+        self.inp_proj  = nn.Linear(n_features * 3, hidden)
+        self.t_embed   = nn.Embedding(T + 1, hidden)
+        self.gru       = nn.GRU(hidden, hidden, num_layers=2,
+                                batch_first=True, bidirectional=True)
+        self.eps_head   = nn.Linear(hidden * 2, n_features)
+        self.sigma_head = nn.Linear(hidden * 2, n_features)
 
     def forward(self, y_t: Tensor, y_0_hat: Tensor, gx: Tensor, t: Tensor):
-        h = torch.cat([y_t, y_0_hat, gx], dim=-1)
-        h = F.softplus(self.l1(h, t))
-        h = F.softplus(self.l2(h, t))
-        h = F.softplus(self.l3(h, t))
+        h = torch.cat([y_t, y_0_hat, gx], dim=-1)          # (B, T, 3N)
+        h = self.inp_proj(h) + self.t_embed(t).unsqueeze(1) # (B, T, hidden)
+        h, _ = self.gru(h)                                   # (B, T, 2·hidden)
         return self.eps_head(h), F.softplus(self.sigma_head(h))
 
 
@@ -171,9 +163,10 @@ class NsDiff(nn.Module):
         self.sigma_net = _SigmaNet(seq_len, n_features, kernel_size=self.kernel_size)
         self.denoiser = _NsDenoiser(n_features, T)
 
-        # EMA of gx observed during training — used as the default prior at generation time
-        self.register_buffer("gx_ema", torch.ones(1, seq_len, n_features))
-        self._ema_alpha = 0.005   # slow decay: stable across many batches
+        # Reservoir of training windows; sampled at generation time to obtain
+        # realistic, diverse gx values without needing the caller to pass data.
+        self.register_buffer("_x_bank", torch.zeros(0, seq_len, n_features))
+        self._bank_size = 512
 
     # ── forward-process helpers ───────────────────────────────────────────────
 
@@ -209,9 +202,13 @@ class NsDiff(nn.Module):
         y_sigma = _wv_sigma_trailing(x, self.kernel_size)
         gx = self.sigma_net(x)
 
-        # Update EMA so generate() can use a realistic gx without needing real data
+        # Reservoir-sample training windows so generate() can draw realistic gx
         with torch.no_grad():
-            self.gx_ema = (1 - self._ema_alpha) * self.gx_ema + self._ema_alpha * gx.mean(0, keepdim=True)
+            bank = torch.cat([self._x_bank.detach(), x.detach().cpu()], dim=0)
+            if bank.shape[0] > self._bank_size:
+                idx = torch.randperm(bank.shape[0])[:self._bank_size]
+                bank = bank[idx]
+            self._x_bank = bank
 
         y_0_hat = torch.zeros_like(x)
 
@@ -250,10 +247,16 @@ class NsDiff(nn.Module):
             reps = (n + x_ref.shape[0] - 1) // x_ref.shape[0]
             x_ref = x_ref.repeat(reps, 1, 1)[:n]
             gx = self.sigma_net(x_ref)
+        elif self._x_bank.shape[0] > 0:
+            # Sample n windows from the training reservoir to get diverse, realistic gx
+            bank = self._x_bank
+            idx = torch.randperm(bank.shape[0])[:n]
+            x_ref_bank = bank[idx].to(dev)
+            if x_ref_bank.shape[0] < n:
+                x_ref_bank = x_ref_bank.repeat((n // x_ref_bank.shape[0]) + 1, 1, 1)[:n]
+            gx = self.sigma_net(x_ref_bank)
         else:
-            # Use the EMA of gx accumulated during training — same noise scale the
-            # denoiser was trained on, broadcast to the requested batch size.
-            gx = self.gx_ema.to(dev).expand(n, -1, -1).clone()
+            gx = torch.ones(n, self.seq_len, self.n_features, device=dev)
         y_0_hat = torch.zeros_like(gx)
 
         # Prior at T: N(0, gx)
