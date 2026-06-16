@@ -206,11 +206,24 @@ __version__ = '0.2.4'
 # pyproject.toml has dynamic version — no change needed there
 ```
 
-### 2. Update changelog
+### 2. Update docs and changelog
 
-Add an entry at the top of both:
+Update the Sphinx docs under `docs/` as needed (new modules, updated API references,
+concept pages, etc.). At minimum, add an entry at the top of both changelog files:
 - `CHANGELOG.md` (repo root)
 - `docs/CHANGELOG.md` (rendered on ReadtheDocs)
+
+Then trigger a ReadtheDocs rebuild via API so the live site reflects the new content
+**before** the release is announced:
+
+```bash
+curl -X POST \
+  -H "Authorization: Token <RTD_API_TOKEN>" \
+  https://readthedocs.org/api/v3/projects/pytorch-timeseries/versions/latest/builds/
+```
+
+RTD API token: stored in project settings (not committed). Verify the build at
+<https://app.readthedocs.org/projects/pytorch-timeseries/builds/>.
 
 ### 3. Commit, tag, and push
 
@@ -225,18 +238,7 @@ git push my v0.2.4
 The SSH remote is named `my` (`git@github.com:wayne155/pytorch_timeseries.git`).
 The HTTPS remote `origin` requires interactive auth — use `my` for pushes.
 
-### 4. Trigger ReadtheDocs rebuild
-
-```bash
-curl -X POST \
-  -H "Authorization: Token <RTD_API_TOKEN>" \
-  https://readthedocs.org/api/v3/projects/pytorch-timeseries/versions/latest/builds/
-```
-
-RTD also rebuilds automatically once the GitHub push lands (webhook). Manual trigger
-is only needed if you want to force a rebuild before or without a push.
-
-### 5. Build wheel and publish to PyPI
+### 4. Build wheel and publish to PyPI
 
 ```bash
 python -m build
