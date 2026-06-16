@@ -2,7 +2,7 @@ from typing import Dict, Tuple, Type
 
 
 TASK_SUFFIXES = ("Forecast", "Imputation", "UEAClassification", "AnomalyDetection",
-                 "IrregularClassification")
+                 "IrregularClassification", "Generation")
 
 
 def build_experiment_registry(namespace: dict) -> Dict[Tuple[str, str], Type]:

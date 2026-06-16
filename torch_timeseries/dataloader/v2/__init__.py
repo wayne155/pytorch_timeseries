@@ -32,6 +32,7 @@ from .forecast import ForecastDataModule
 from .imputation import ImputationDataModule, ImputationWindowConfig
 from .anomaly import AnomalyDataModule, AnomalyWindowConfig
 from .uea import UEADataModule, UEAWindowConfig
+from .generation import GenerationDataModule, GenerationWindowConfig
 from torch_timeseries.utils.timefeatures import TimeEncoding
 
 __all__ = [
@@ -57,4 +58,6 @@ __all__ = [
     "collate_irregular",
     "IrregularClassificationDataModule",
     "IrregularClassificationConfig",
+    "GenerationDataModule",
+    "GenerationWindowConfig",
 ]
