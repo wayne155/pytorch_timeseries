@@ -46,7 +46,7 @@ examples/                 # standalone usage examples
 ## Key abstractions
 
 ### Tasks
-Five task types, identified by class-name suffix and auto-discovered by `registry.py`:
+Six task types, identified by class-name suffix and auto-discovered by `registry.py`:
 
 | Suffix | Description |
 |---|---|
@@ -55,9 +55,10 @@ Five task types, identified by class-name suffix and auto-discovered by `registr
 | `UEAClassification` | UEA archive classification |
 | `AnomalyDetection` | Anomaly detection |
 | `IrregularClassification` | Irregular / sporadically sampled time series classification |
+| `Generation` | Unconditional / conditional time series synthesis |
 
 ### Experiment naming convention
-A class named `DLinearForecast` is automatically registered as model `DLinear`, task `Forecast`. The registry scans any class that ends in one of the five suffixes.
+A class named `DLinearForecast` is automatically registered as model `DLinear`, task `Forecast`. The registry scans any class that ends in one of the six suffixes.
 
 ### v2 dataloader — `TSBatch`
 The structured batch type. **Never unpack positionally.** Use named fields:
@@ -129,8 +130,8 @@ directly so no file I/O or network calls are needed for most tests.
 1. Implement the model in `torch_timeseries/model/{ModelName}.py`.
 2. Export it from `torch_timeseries/model/__init__.py`.
 3. Create an experiment class in `torch_timeseries/experiments/{ModelName}.py` that
-   subclasses the relevant base (`ForecastExp`, `IrregularClassificationExp`, etc.) and
-   is named `{ModelName}{Task}`.
+   subclasses the relevant base (`ForecastExp`, `IrregularClassificationExp`,
+   `GenerationExp`, etc.) and is named `{ModelName}{Task}`.
 4. Import the experiment class in `torch_timeseries/experiments/__init__.py` so the
    registry can discover it.
 5. Add leaderboard reproduce scripts under `leaderboard/reproduce/{task}/{modelname}.py`
