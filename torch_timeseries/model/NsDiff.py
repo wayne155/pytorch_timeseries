@@ -225,11 +225,25 @@ class NsDiff(nn.Module):
     # ── generation ────────────────────────────────────────────────────────────
 
     @torch.no_grad()
-    def generate(self, n: int, device: str = "cpu") -> Tensor:
-        """Reverse-diffusion sampling; returns (n, seq_len, n_features) on CPU."""
+    def generate(self, n: int, device: str = "cpu", x_ref: Tensor | None = None) -> Tensor:
+        """Reverse-diffusion sampling; returns (n, seq_len, n_features) on CPU.
+
+        Args:
+            n: number of sequences to generate.
+            device: torch device string.
+            x_ref: optional reference windows (B, T, C) used to estimate the local
+                variance gx.  When None, gx defaults to all-ones (unit variance),
+                matching standardised training data.
+        """
         dev = torch.device(device)
-        x_dummy = torch.zeros(n, self.seq_len, self.n_features, device=dev)
-        gx = self.sigma_net(x_dummy)
+        if x_ref is not None:
+            x_ref = x_ref.to(dev)
+            reps = (n + x_ref.shape[0] - 1) // x_ref.shape[0]
+            x_ref = x_ref.repeat(reps, 1, 1)[:n]
+            gx = self.sigma_net(x_ref)
+        else:
+            # unit variance: standard DDPM prior; matches standardised (mean=0, std=1) data
+            gx = torch.ones(n, self.seq_len, self.n_features, device=dev)
         y_0_hat = torch.zeros_like(gx)
 
         # Prior at T: N(0, gx)
