@@ -188,3 +188,61 @@ The CLI is registered as the `pytexp` console script and delegates to
 - `time_enc` accepts string aliases (`"calendar"`, `"fourier"`, `"normalized"`) or the
   legacy integer 0/1/2; default is `"calendar"` (changed in 0.2.0).
 - ETT datasets use canonical calendar splits (12/4/4 months); others default to 7:1:2.
+
+---
+
+## Release workflow
+
+Steps to cut a new release (e.g. `0.2.4`):
+
+### 1. Bump version
+
+Update the version string in **two places**:
+
+```bash
+# setup.py
+__version__ = '0.2.4'
+
+# pyproject.toml has dynamic version — no change needed there
+```
+
+### 2. Update changelog
+
+Add an entry at the top of both:
+- `CHANGELOG.md` (repo root)
+- `docs/CHANGELOG.md` (rendered on ReadtheDocs)
+
+### 3. Commit, tag, and push
+
+```bash
+git add setup.py CHANGELOG.md docs/CHANGELOG.md
+git commit -m "feat: v0.2.4 — <summary>"
+git tag -a v0.2.4 -m "v0.2.4 — <summary>"
+git push my main
+git push my v0.2.4
+```
+
+The SSH remote is named `my` (`git@github.com:wayne155/pytorch_timeseries.git`).
+The HTTPS remote `origin` requires interactive auth — use `my` for pushes.
+
+### 4. Trigger ReadtheDocs rebuild
+
+```bash
+curl -X POST \
+  -H "Authorization: Token <RTD_API_TOKEN>" \
+  https://readthedocs.org/api/v3/projects/pytorch-timeseries/versions/latest/builds/
+```
+
+RTD also rebuilds automatically once the GitHub push lands (webhook). Manual trigger
+is only needed if you want to force a rebuild before or without a push.
+
+### 5. Build wheel and publish to PyPI
+
+```bash
+python -m build
+python -m twine upload dist/*   # credentials in ~/.pypirc
+```
+
+PyPI rejects re-uploads of an existing version (`400 File already exists`) — this is
+expected if the version was already published. Do **not** try to overwrite; bump the
+version instead.
