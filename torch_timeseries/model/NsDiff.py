@@ -171,6 +171,10 @@ class NsDiff(nn.Module):
         self.sigma_net = _SigmaNet(seq_len, n_features, kernel_size=self.kernel_size)
         self.denoiser = _NsDenoiser(n_features, T)
 
+        # EMA of gx observed during training — used as the default prior at generation time
+        self.register_buffer("gx_ema", torch.ones(1, seq_len, n_features))
+        self._ema_alpha = 0.005   # slow decay: stable across many batches
+
     # ── forward-process helpers ───────────────────────────────────────────────
 
     def _fwd_noise_var(self, gx: Tensor, y_sigma: Tensor, t: Tensor) -> Tensor:
@@ -204,6 +208,11 @@ class NsDiff(nn.Module):
 
         y_sigma = _wv_sigma_trailing(x, self.kernel_size)
         gx = self.sigma_net(x)
+
+        # Update EMA so generate() can use a realistic gx without needing real data
+        with torch.no_grad():
+            self.gx_ema = (1 - self._ema_alpha) * self.gx_ema + self._ema_alpha * gx.mean(0, keepdim=True)
+
         y_0_hat = torch.zeros_like(x)
 
         t = torch.randint(0, self.T, (B // 2 + 1,), device=device)
@@ -242,8 +251,9 @@ class NsDiff(nn.Module):
             x_ref = x_ref.repeat(reps, 1, 1)[:n]
             gx = self.sigma_net(x_ref)
         else:
-            # unit variance: standard DDPM prior; matches standardised (mean=0, std=1) data
-            gx = torch.ones(n, self.seq_len, self.n_features, device=dev)
+            # Use the EMA of gx accumulated during training — same noise scale the
+            # denoiser was trained on, broadcast to the requested batch size.
+            gx = self.gx_ema.to(dev).expand(n, -1, -1).clone()
         y_0_hat = torch.zeros_like(gx)
 
         # Prior at T: N(0, gx)
