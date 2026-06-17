@@ -7,3 +7,9 @@ from .embedding import PatchEmbedding, PositionalEmbedding, DataEmbedding, DataE
 from .MultiWaveletCorrelation import MultiWaveletTransform, MultiWaveletCross
 from .SelfAttention_Family import FlowAttention, FlashAttention, FullAttention, ProbAttention, AttentionLayer
 from .Transformer_EncDec import Encoder, EncoderLayer, Decoder, DecoderLayer
+from .temporal_encoding import (
+    Time2Vec,
+    LearnableFourierFeatures,
+    RotaryEmbedding,
+    SinusoidalEmbedding,
+)

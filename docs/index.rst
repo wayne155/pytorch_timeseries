@@ -36,6 +36,7 @@ pytorch_timeseries
    modules/dataloader
    modules/scaler
    modules/model
+   modules/nn
 
 
 
