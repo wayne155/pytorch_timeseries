@@ -8,8 +8,31 @@ import numpy as np
 
 
 class iTransformer(nn.Module):
-    """
-    Paper link: https://arxiv.org/abs/2310.06625
+    """iTransformer — Inverted Transformer for multivariate forecasting (Liu et al., ICLR 2024).
+
+    Inverts the roles of the time and feature axes: each *variable* (rather
+    than each time step) is treated as a token, so attention captures
+    multivariate correlations while the feed-forward network encodes
+    temporal patterns within each variable.
+
+    Paper: *iTransformer: Inverted Transformers Are Effective for Time Series
+    Forecasting.*
+    https://openreview.net/forum?id=JePfAI8fah
+
+    Args:
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        c_in (int): Number of input features (channels). Defaults to 7.
+        d_model (int): Embedding dimension. Defaults to 512.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        e_layers (int): Number of encoder layers. Defaults to 2.
+        d_ff (int): Feed-forward hidden size. Defaults to 2048.
+        dropout (float): Dropout probability. Defaults to 0.1.
+        use_norm (bool): Apply reversible instance normalisation. Defaults to True.
+        class_strategy (str): Projection strategy for multi-task heads.
+            Defaults to ``'projection'``.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
 
     def __init__(self, seq_len, pred_len, use_norm=True,c_in=7, factor=1,n_heads=8, d_ff=2048, activation='gelu', e_layers=2, output_attention=True, d_model=512, embed='timeF', freq='h', dropout=0.1, class_strategy='projection'):

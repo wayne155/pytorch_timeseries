@@ -21,14 +21,25 @@ class _GRUNet(nn.Module):
 
 
 class TimeGAN(nn.Module):
-    """Five-network GAN for time series.
+    """TimeGAN — GAN for time series generation (Yoon et al., NeurIPS 2019).
+
+    Trains five GRU networks (embedder, recovery, generator, supervisor,
+    discriminator) jointly with a four-component loss: reconstruction,
+    supervised, unsupervised GAN, and moment-matching.  The embedding network
+    maps to a learned latent space where the GAN operates, so the generator
+    never directly produces raw series — this stabilises training.
+
+    Paper: *Time-series Generative Adversarial Networks.*
+    https://proceedings.neurips.cc/paper/2019/hash/c9efe5f26cd17ba6216bbe2a7d26d490-Abstract.html
 
     Args:
-        seq_len: window length
-        n_features: number of channels
-        hidden_dim: GRU hidden size (default 24)
-        n_layers: GRU depth (default 3)
-        gamma: supervised loss weight (default 1.0)
+        seq_len (int): Window length of each generated sequence.
+        n_features (int): Number of output channels.
+        hidden_dim (int): GRU hidden state size. Defaults to 24.
+        n_layers (int): Number of GRU layers. Defaults to 3.
+        gamma (float): Weight for the supervised loss term. Defaults to 1.0.
+
+    Tasks: Generation.
     """
 
     def __init__(self, seq_len: int, n_features: int,

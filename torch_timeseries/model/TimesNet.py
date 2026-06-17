@@ -69,20 +69,37 @@ class TimesBlock(nn.Module):
 
 
 class TimesNet(nn.Module):
-    """
-    Paper link: https://openreview.net/pdf?id=ju_Uqw384Oq
+    """TimesNet — temporal 2D-variation modeling for time series (Wu et al., ICLR 2023).
+
+    Transforms 1-D time series into 2-D space by reshaping based on the top-k
+    dominant frequencies, then applies 2-D convolutions (via an Inception block)
+    to capture both intra-period and inter-period variation.  The results are
+    folded back to 1-D and summed over the k periods.
+
+    Paper: *TimesNet: Temporal 2D-Variation Modeling for General Time Series
+    Analysis.*
+    https://openreview.net/pdf?id=ju_Uqw384Oq
+
+    Args:
+        seq_len (int): Input sequence length. Defaults to 96.
+        pred_len (int): Prediction horizon length. Defaults to 96.
+        label_len (int): Decoder warm-start length. Defaults to 48.
+        enc_in (int): Number of encoder input features. Defaults to 7.
+        c_out (int): Number of output features. Defaults to 7.
+        d_model (int): Embedding dimension. Defaults to 512.
+        d_ff (int): Feed-forward hidden size. Defaults to 2048.
+        e_layers (int): Number of TimesBlock layers. Defaults to 2.
+        top_k (int): Number of dominant frequencies to extract. Defaults to 5.
+        num_kernels (int): Number of Inception kernel sizes. Defaults to 6.
+        dropout (float): Dropout probability. Defaults to 0.0.
+        task_name (str): Task identifier — ``'long_term_forecast'``,
+            ``'imputation'``, ``'anomaly_detection'``, or ``'classification'``.
+        num_class (int): Number of classes for classification. Defaults to 0.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
 
     def __init__(self, seq_len=96, label_len=48, pred_len=96,e_layers=2,d_ff=2048,num_kernels=6,top_k=5, d_model=512, enc_in=7, embed='timeF', freq='h', dropout=0.0 ,c_out=7,task_name="long_term_forecast",num_class=0):
-        """Times net model ICLR 2023
-
-        Args:
-            seq_len (int, optional): input window length. Defaults to 96.
-            label_len (int, optional): decoder input length. Defaults to 48.
-            pred_len (int, optional): total predict stpes. Defaults to 96.
-            enc_in (int, optional): encoder input feature numbers. Defaults to 7.
-            c_out (int, optional): decoder output feature numbers. Defaults to 7.
-        """
         super(TimesNet, self).__init__()
         self.task_name = task_name
         self.seq_len = seq_len

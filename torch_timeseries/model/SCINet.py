@@ -205,6 +205,31 @@ class EncoderTree(nn.Module):
         return x
 
 class SCINet(nn.Module):
+    """SCINet — Sample Convolution and Interaction Network (Liu et al., NeurIPS 2022).
+
+    Recursively splits the time series into even/odd sub-sequences, applies
+    lightweight convolutions to each split, and then combines them via
+    interactive learning — analogous to the Cooley-Tukey FFT butterfly
+    structure but in the time domain. A tree of SCI-Blocks forms a
+    hierarchical encoder; a multi-step decoder produces the forecast.
+
+    Paper: *SCINet: Time Series Modeling and Forecasting with Sample
+    Convolution and Interaction.*
+    https://proceedings.neurips.cc/paper_files/paper/2022/hash/266983d0949aed78a16fa4782237dea7-Abstract-Conference.html
+
+    Args:
+        output_len (int): Prediction horizon length.
+        input_len (int): Input sequence length.
+        input_dim (int): Number of input features. Defaults to 9.
+        hid_size (int): Hidden channel multiplier inside SCI-Blocks. Defaults to 1.
+        num_stacks (int): Number of stacked SCINet modules. Defaults to 1.
+        num_levels (int): Number of recursive decomposition levels. Defaults to 3.
+        kernel (int): Convolution kernel size inside SCI-Blocks. Defaults to 5.
+        dropout (float): Dropout probability. Defaults to 0.5.
+        RIN (bool): Apply Reversible Instance Normalisation. Defaults to False.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
     def __init__(self, output_len, input_len, input_dim = 9, hid_size = 1, num_stacks = 1,
                 num_levels = 3, num_decoder_layer = 1, concat_len = 0, groups = 1, kernel = 5, dropout = 0.5,
                  single_step_output_One = 0, input_len_seg = 0, positionalE = False, modified = True, RIN=False):

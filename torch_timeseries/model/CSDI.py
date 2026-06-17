@@ -67,16 +67,28 @@ class _CSDIDenoiser(nn.Module):
 
 
 class CSDI(nn.Module):
-    """CSDI model.
+    """CSDI — Conditional Score-based Diffusion for time series (Tashiro et al., NeurIPS 2021).
+
+    Score-based DDPM denoiser with a dual-attention Transformer that attends
+    independently over the time axis and the feature axis.  Originally designed
+    for probabilistic imputation (conditioning on observed values), but also
+    used here for unconditional generation by setting ``cond=None``.
+
+    Paper: *CSDI: Conditional Score-based Diffusion Models for Probabilistic
+    Time Series Imputation.*
+    https://proceedings.neurips.cc/paper/2021/hash/cfe8504bda37b575c70ee1a8276f3486-Abstract.html
 
     Args:
-        seq_len: sequence length
-        n_features: number of channels
-        d_model: transformer hidden dim (default 64)
-        n_heads: attention heads (default 8)
-        n_layers: number of dual-attention blocks (default 4)
-        T: diffusion steps (default 100)
-        schedule: beta schedule ("linear" or "cosine")
+        seq_len (int): Sequence length of each window.
+        n_features (int): Number of channels.
+        d_model (int): Transformer hidden dimension. Defaults to 64.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        n_layers (int): Number of dual-attention blocks. Defaults to 4.
+        T (int): Number of diffusion steps. Defaults to 100.
+        schedule (str): Beta schedule — ``'linear'`` or ``'cosine'``.
+            Defaults to ``'linear'``.
+
+    Tasks: Generation.
     """
 
     def __init__(self, seq_len: int, n_features: int,

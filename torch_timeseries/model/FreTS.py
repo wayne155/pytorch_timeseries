@@ -4,6 +4,26 @@ import torch.nn.functional as F
 import numpy as np
 
 class FreTS(nn.Module):
+    """FreTS — Frequency-domain MLP for time series forecasting (Yi et al., NeurIPS 2023).
+
+    Embeds each time series into a learnable frequency space, applies complex-valued
+    MLP layers (real and imaginary weights separately) in the frequency domain, and
+    projects back to the time domain.  Supports both channel-independent and
+    channel-dependent modes.
+
+    Paper: *FreTS: Frequency-domain MLPs are More Effective Learners in Time Series
+    Forecasting.*
+    https://proceedings.neurips.cc/paper_files/paper/2023/hash/f1d16af76939f476b5f040fd1398c0a3-Abstract-Conference.html
+
+    Args:
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        enc_in (int): Number of input features (channels).
+        channel_independence (bool): If True, each channel is modelled
+            independently (no cross-channel mixing).
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
     def __init__(self, seq_len, pred_len, enc_in, channel_independence):
         super(FreTS, self).__init__()
         self.embed_size = 128 #embed_size

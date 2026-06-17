@@ -9,8 +9,26 @@ import numpy as np
 
 
 class DLinear(nn.Module):
-    """
-    Decomposition-Linear
+    """DLinear — Decomposition-Linear forecaster (Zeng et al., AAAI 2023).
+
+    Decomposes the input into trend and seasonal components using a moving
+    average kernel, then applies an independent linear projection to each
+    component. Despite its simplicity it matches or outperforms many
+    Transformer-based baselines on long-term forecasting benchmarks.
+
+    Paper: *Are Transformers Effective for Time Series Forecasting?*
+    https://ojs.aaai.org/index.php/AAAI/article/view/26317
+
+    Args:
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        enc_in (int): Number of input features (channels).
+        individual (bool): If True, each channel has its own linear weights.
+            Defaults to False (shared weights across channels).
+        output_prob (int): If > 0, add a classification head outputting
+            ``output_prob`` class logits. Defaults to 0 (regression only).
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
     def __init__(self, seq_len, pred_len, enc_in, individual:bool = False, output_prob=0):
         super(DLinear, self).__init__()

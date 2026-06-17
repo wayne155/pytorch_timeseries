@@ -18,8 +18,39 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class FEDformer(nn.Module):
-    """
-    FEDformer performs the attention mechanism on frequency domain and achieved O(N) complexity
+    """FEDformer — Frequency-Enhanced Decomposed Transformer (Zhou et al., ICML 2022).
+
+    Combines a seasonal-trend decomposition architecture (from Autoformer) with
+    attention computed in the frequency domain via Fourier or Wavelet transforms.
+    Operates in a random subset of Fourier modes, keeping complexity O(N) while
+    capturing global periodic patterns.
+
+    Paper: *FEDformer: Frequency Enhanced Decomposed Transformer for
+    Long-term Series Forecasting.*
+    https://proceedings.mlr.press/v162/zhou22g.html
+
+    Args:
+        enc_in (int): Number of encoder input features.
+        dec_in (int): Number of decoder input features.
+        seq_len (int): Encoder input sequence length.
+        pred_len (int): Prediction horizon length.
+        label_len (int): Decoder warm-start token length.
+        c_out (int): Number of output features.
+        version (str): Frequency block type — ``'Fourier'`` or ``'Wavelets'``.
+            Defaults to ``'Fourier'``.
+        modes (int): Number of Fourier modes kept. Defaults to 64.
+        mode_select (str): Mode selection strategy — ``'random'`` or ``'low'``.
+            Defaults to ``'random'``.
+        d_model (int): Embedding dimension. Defaults to 512.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        e_layers (int): Number of encoder layers. Defaults to 2.
+        d_layers (int): Number of decoder layers. Defaults to 1.
+        d_ff (int): Feed-forward hidden size. Defaults to 2048.
+        moving_avg (list): Kernel sizes for moving-average decomposition.
+            Defaults to [24].
+        dropout (float): Dropout probability. Defaults to 0.0.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
     def __init__(self, enc_in,dec_in,seq_len, pred_len,label_len, c_out,  version='Fourier', L=3, d_ff=2048, activation='gelu', e_layers=2, d_layers=1, mode_select='random', modes=64, output_attention=True, moving_avg=[24] , n_heads=8, cross_activation='tanh', d_model=512, embed='timeF', freq='h', dropout=0.0, base='legendre'):
         super(FEDformer, self).__init__()

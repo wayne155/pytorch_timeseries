@@ -19,3 +19,15 @@ from .TimeDiff import TimeDiff
 from .NsDiff import NsDiff
 from .TMDM import TMDM
 from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_embedding
+
+forecasting_models = [
+    "DLinear", "NLinear",
+    "Informer", "Autoformer", "FEDformer",
+    "PatchTST", "iTransformer",
+    "TSMixer", "Crossformer", "SCINet", "TimesNet",
+    "CATS", "FITS", "FreTS",
+]
+
+generation_models = [
+    "TimeGAN", "CSDI", "DiffusionTS", "TimeDiff", "NsDiff", "TMDM",
+]

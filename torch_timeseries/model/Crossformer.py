@@ -15,8 +15,36 @@ from math import sqrt
 from math import ceil
 
 class Crossformer(nn.Module):
+    """Crossformer — cross-dimension dependency Transformer (Zhang & Yan, ICLR 2023).
+
+    Segments the input into patches along the time axis (Two-Stage Attention
+    Router), then applies cross-time and cross-dimension attention to model
+    dependencies between patches across different variables at multiple
+    temporal resolutions.
+
+    Paper: *Crossformer: Transformer Utilizing Cross-Dimension Dependency
+    for Multivariate Time Series Forecasting.*
+    https://openreview.net/forum?id=vSVLM2j9eie
+
+    Args:
+        data_dim (int): Number of input features (channels).
+        in_len (int): Input sequence length.
+        out_len (int): Prediction horizon length.
+        seg_len (int): Segment (patch) length for the Two-Stage router.
+        win_size (int): Merge window size for hierarchical encoder. Defaults to 4.
+        factor (int): Attention sampling factor. Defaults to 10.
+        d_model (int): Embedding dimension. Defaults to 512.
+        d_ff (int): Feed-forward hidden size. Defaults to 1024.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        e_layers (int): Number of encoder stages. Defaults to 3.
+        dropout (float): Dropout probability. Defaults to 0.0.
+        baseline (bool): Use simple mean baseline instead of learned output.
+            Defaults to False.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
     def __init__(self, data_dim, in_len, out_len, seg_len, win_size = 4,
-                factor=10, d_model=512, d_ff = 1024, n_heads=8, e_layers=3, 
+                factor=10, d_model=512, d_ff = 1024, n_heads=8, e_layers=3,
                 dropout=0.0, baseline = False, device=torch.device('cuda:0')):
         super(Crossformer, self).__init__()
         self.data_dim = data_dim

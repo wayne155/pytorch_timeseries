@@ -21,15 +21,35 @@ class FlattenHead(nn.Module):
 
 
 class PatchTST(nn.Module):
-    """
-    Paper link: https://arxiv.org/pdf/2211.14730.pdf
+    """PatchTST — Patch-based Transformer for time series (Nie et al., ICLR 2023).
+
+    Divides each channel's time series into non-overlapping (or strided)
+    patches and treats each patch as a token fed into a Transformer encoder.
+    The channel-independent design applies the same Transformer to every
+    channel separately, giving strong performance on long-term forecasting.
+
+    Paper: *A Time Series is Worth 64 Words: Long-term Forecasting with
+    Transformers.*
+    https://openreview.net/forum?id=Jbdc0vTOcol
+
+    Args:
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        enc_in (int): Number of input features (channels).
+        n_heads (int): Number of Transformer attention heads. Defaults to 8.
+        e_layers (int): Number of Transformer encoder layers. Defaults to 2.
+        d_model (int): Transformer embedding dimension. Defaults to 512.
+        d_ff (int): Feed-forward hidden size. Defaults to 512.
+        patch_len (int): Length of each temporal patch. Defaults to 16.
+        stride (int): Patch stride (overlap = patch_len - stride). Defaults to 8.
+        dropout (float): Dropout probability. Defaults to 0.0.
+        task_name (str): ``'long_term_forecast'`` or ``'classification'``.
+        num_class (int): Number of classes for classification head. Defaults to 0.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
 
     def __init__(self, seq_len,pred_len,enc_in,n_heads=8,dropout=0.0,e_layers=2,d_model=512,d_ff=512, patch_len=16, stride=8,task_name="long_term_forecast",num_class=0):
-        """
-        patch_len: int, patch len for patch_embedding
-        stride: int, stride for patch_embedding
-        """
         super().__init__()
         self.task_name = task_name
         self.seq_len = seq_len

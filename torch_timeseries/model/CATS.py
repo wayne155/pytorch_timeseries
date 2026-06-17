@@ -235,6 +235,34 @@ class _MultiheadAttention(nn.Module):
         else: return output, attn_weights
 
 class CATS(nn.Module):
+    """CATS — Contiguous Adaptive Time Series forecaster (Lin et al., ICML 2024).
+
+    A decoder-only Transformer that treats the forecast horizon as a sequence
+    of learnable query tokens.  Query Adaptive Masking (QAM) gradually unmasks
+    queries during training to focus attention on the most informative prefix of
+    the forecast, while patch-based input tokens capture local temporal patterns.
+
+    Paper: *CATS: Enhancing Multivariate Time Series Forecasting by Constructing
+    Auxiliary Time Series as Exogenous Variables.*
+    https://arxiv.org/abs/2403.01673
+
+    Args:
+        dec_in (int): Number of input features.
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        d_layers (int): Number of decoder Transformer layers.
+        n_heads (int): Number of attention heads.
+        d_model (int): Embedding dimension.
+        d_ff (int): Feed-forward hidden size.
+        dropout (float): Dropout probability.
+        query_independence (bool): Use independent queries per channel.
+        patch_len (int): Input patch length.
+        stride (int): Input patch stride.
+        QAM_start (float): Initial masking ratio for Query Adaptive Masking.
+        QAM_end (float): Final masking ratio for Query Adaptive Masking.
+
+    Tasks: Forecasting.
+    """
     def __init__(self, dec_in, seq_len, pred_len, d_layers, n_heads, d_model, d_ff, dropout, query_independence, patch_len, stride,padding_patch, store_attn, QAM_start, QAM_end, **kwargs):
         
         super().__init__()

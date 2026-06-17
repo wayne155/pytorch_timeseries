@@ -4,8 +4,27 @@ import torch.nn.functional as F
 import numpy as np
 
 class FITS(nn.Module):
+    """FITS — Frequency Interpolation Time Series Forecasting (Xu et al., ICLR 2024).
 
-    # FITS: Frequency Interpolation Time Series Forecasting
+    Computes the real FFT of the input, keeps only the low-frequency components
+    up to ``cut_freq``, applies a complex-valued linear layer to interpolate them
+    to the target length, then uses the inverse FFT to produce the forecast.
+    The model has very few parameters (a single complex linear per channel or
+    one shared) while achieving competitive long-term forecasting performance.
+
+    Paper: *FITS: Modeling Time Series with 10k Parameters.*
+    https://openreview.net/forum?id=bWcnvZ3qMb
+
+    Args:
+        seq_len (int): Input sequence length.
+        pred_len (int): Prediction horizon length.
+        enc_in (int): Number of input features (channels).
+        individual (bool): If True, each channel has its own complex linear.
+            Defaults to False (shared).
+        cut_freq (int): Number of low-frequency components to retain.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
 
     def __init__(self, seq_len, pred_len, individual, enc_in, cut_freq):
         super(FITS, self).__init__()

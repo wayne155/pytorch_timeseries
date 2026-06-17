@@ -10,10 +10,26 @@ class TSLinear(nn.Module):
         return self.fc(x)
 
 class TSMixer(nn.Module):
+    """TSMixer — MLP-Mixer for time series forecasting (Chen et al., KDD 2023).
+
+    Applies alternating temporal-mixing (along the time axis) and
+    feature-mixing (along the channel axis) MLP layers, inspired by the
+    MLP-Mixer image model.  Each mixer block is residual and the final
+    output is produced by a temporal projection head.
+
+    Paper: *TSMixer: An All-MLP Architecture for Time Series Forecasting.*
+    https://arxiv.org/abs/2303.06053
+
+    Args:
+        L (int): Input sequence length.
+        C (int): Number of input features (channels).
+        T (int): Prediction horizon length (output size).
+        n_mixer (int): Number of MixerLayer blocks. Defaults to 8.
+        dropout (float): Dropout probability inside mixer blocks. Defaults to 0.05.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
     def __init__(self, L, C, T, n_mixer:int = 8, dropout=0.05):
-        # L: seq length
-        # C: number of nodes
-        # T:  output size 
         super(TSMixer, self).__init__()
         self.mixer_layers = []
         self.n_mixer = n_mixer

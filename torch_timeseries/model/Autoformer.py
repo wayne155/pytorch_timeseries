@@ -12,9 +12,35 @@ from torch_timeseries.nn.Autoformer_EncDec import Encoder, Decoder, EncoderLayer
 
 
 class Autoformer(nn.Module):
-    """
-    Autoformer is the first method to achieve the series-wise connection,
-    with inherent O(LlogL) complexity
+    """Autoformer — Transformer with Auto-Correlation mechanism (Wu et al., NeurIPS 2021).
+
+    Replaces point-wise attention with a series-wise Auto-Correlation operation
+    that discovers period-based dependencies and aggregates similar sub-series.
+    Also incorporates a progressive decomposition architecture that separates
+    trend and seasonal components at each encoder/decoder layer.
+
+    Paper: *Autoformer: Decomposition Transformers with Auto-Correlation
+    for Long-Term Series Forecasting.*
+    https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html
+
+    Args:
+        enc_in (int): Number of encoder input features.
+        dec_in (int): Number of decoder input features.
+        seq_len (int): Encoder input sequence length.
+        pred_len (int): Prediction horizon length.
+        label_len (int): Decoder warm-start token length.
+        c_out (int): Number of output features.
+        factor (int): Auto-correlation top-k selection factor. Defaults to 1.
+        d_model (int): Embedding dimension. Defaults to 512.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        e_layers (int): Number of encoder layers. Defaults to 2.
+        d_layers (int): Number of decoder layers. Defaults to 1.
+        d_ff (int): Feed-forward hidden size. Defaults to 2048.
+        moving_avg (list): Kernel sizes for moving-average decomposition.
+            Defaults to [24].
+        dropout (float): Dropout probability. Defaults to 0.0.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
     """
     def __init__(self,  enc_in,dec_in,seq_len, pred_len,label_len, c_out, factor=1, d_ff=2048, activation='gelu', e_layers=2, d_layers=1, output_attention=True, moving_avg=[24] , n_heads=8, d_model=512, embed='timeF', freq='h', dropout=0.0):
         super(Autoformer, self).__init__()

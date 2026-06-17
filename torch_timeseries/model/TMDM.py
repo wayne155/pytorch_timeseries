@@ -65,17 +65,22 @@ class _MuNet(nn.Module):
 # ── TMDM ─────────────────────────────────────────────────────────────────────
 
 class TMDM(nn.Module):
-    """Temporal diffusion model for unconditional time series generation.
+    """TMDM — Temporal Diffusion Model for time series generation (Ye et al.).
 
-    Adapts TMDM (Ye) from probabilistic forecasting to generation using
-    a GRU prior-mean network and TMDM-style DDPM reverse coefficients.
+    Uses a GRU-based prior-mean network (``_MuNet``) to predict a data-dependent
+    mean at each reverse diffusion step, rather than the standard zero mean.
+    The denoiser takes ``[y_t ‖ y_0_hat]`` — the noisy sample concatenated with
+    the GRU prediction — allowing the model to condition the reverse process on a
+    coarse temporal estimate.
 
     Args:
-        seq_len: window length T
-        n_features: number of channels C
-        T: diffusion timesteps (default 100)
-        beta_start: initial beta (default 1e-4)
-        beta_end: final beta (default 0.5)
+        seq_len (int): Sequence length of each window.
+        n_features (int): Number of channels.
+        T (int): Number of diffusion steps. Defaults to 100.
+        beta_start (float): Starting noise schedule value. Defaults to 1e-4.
+        beta_end (float): Ending noise schedule value. Defaults to 0.5.
+
+    Tasks: Generation.
     """
 
     def __init__(

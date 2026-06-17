@@ -109,19 +109,25 @@ class _SigmaNet(nn.Module):
 # ── NsDiff ───────────────────────────────────────────────────────────────────
 
 class NsDiff(nn.Module):
-    """Non-stationary diffusion for unconditional time series generation.
+    """NsDiff — Non-Stationary Diffusion for time series generation (Ye et al.).
 
-    Implements the NsDiff non-stationary DDPM adapted for generation:
-    forward/reverse noise is scaled by gx (local variance estimate) so the model
-    naturally handles heteroscedastic, non-stationary sequences.
+    Extends DDPM by scaling the forward and reverse noise with a per-step local
+    variance estimate ``gx``, so the diffusion process is non-stationary and
+    adapts to heteroscedastic sequences.  The denoiser is a bidirectional GRU
+    that models the full temporal structure at each diffusion step.  At generation
+    time ``gx`` is estimated from a reservoir of training windows accumulated
+    during ``loss()`` calls.
 
     Args:
-        seq_len: window length T
-        n_features: number of channels C
-        T: diffusion timesteps (default 100)
-        beta_start: initial beta (default 1e-4)
-        beta_end: final beta (default 0.01)
-        kernel_size: rolling window for local variance (default 24)
+        seq_len (int): Sequence length of each window.
+        n_features (int): Number of channels.
+        T (int): Number of diffusion steps. Defaults to 100.
+        beta_start (float): Starting noise schedule value. Defaults to 1e-4.
+        beta_end (float): Ending noise schedule value. Defaults to 0.01.
+        kernel_size (int): Rolling-window size for local variance estimation.
+            Defaults to 24.
+
+    Tasks: Generation.
     """
 
     def __init__(

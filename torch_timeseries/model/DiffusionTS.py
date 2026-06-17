@@ -47,16 +47,28 @@ class _DiffusionTSDenoiser(nn.Module):
 
 
 class DiffusionTS(nn.Module):
-    """DiffusionTS model.
+    """Diffusion-TS — DDPM with trend-seasonal decomposition (Yuan & Qiao, ICLR 2024).
+
+    Denoiser is a Transformer decoder that separately learns trend and seasonal
+    components at each diffusion step.  The seasonal branch uses multi-head
+    attention over the sequence; the trend branch uses a simple linear layer.
+    Uses a cosine beta schedule by default.
+
+    Paper: *Diffusion-TS: Interpretable Diffusion for General Time Series
+    Generation.*
+    https://openreview.net/forum?id=4h1apFjO99
 
     Args:
-        seq_len: sequence length
-        n_features: number of channels
-        d_model: transformer hidden dim (default 128)
-        n_heads: attention heads (default 4)
-        n_layers: transformer decoder layers (default 4)
-        T: diffusion steps (default 1000)
-        schedule: "cosine" (default) or "linear"
+        seq_len (int): Sequence length of each window.
+        n_features (int): Number of channels.
+        d_model (int): Transformer hidden dimension. Defaults to 128.
+        n_heads (int): Number of attention heads. Defaults to 4.
+        n_layers (int): Number of Transformer decoder layers. Defaults to 4.
+        T (int): Number of diffusion steps. Defaults to 1000.
+        schedule (str): Beta schedule — ``'cosine'`` or ``'linear'``.
+            Defaults to ``'cosine'``.
+
+    Tasks: Generation.
     """
 
     def __init__(self, seq_len: int, n_features: int,

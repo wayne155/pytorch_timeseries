@@ -9,32 +9,42 @@ from torch_timeseries.nn.attention import FullAttention, ProbAttention, Attentio
 from torch_timeseries.nn.embedding import DataEmbedding
 
 class Informer(nn.Module):
-    def __init__(self, enc_in:int, dec_in:int, c_out:int, out_len:int, 
-                factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512, 
-                dropout=0.0, attn='prob', embed='fixed', freq='h', activation='gelu', 
-                output_attention = False, distil=True, mix=True, time_embed=True):
-        """_summary_
+    """Informer — efficient Transformer with ProbSparse self-attention (Zhou et al., AAAI 2021).
 
-        Args:
-            enc_in (int): num of features input in encoder
-            dec_in (int): num of features input in decoder
-            c_out (int): num of features output in decoder
-            out_len (int): num of sequences output in decoder
-            factor (int, optional): _description_. Defaults to 5.
-            d_model (int, optional): _description_. Defaults to 512.
-            n_heads (int, optional): _description_. Defaults to 8.
-            e_layers (int, optional): _description_. Defaults to 3.
-            d_layers (int, optional): _description_. Defaults to 2.
-            d_ff (int, optional): _description_. Defaults to 512.
-            dropout (float, optional): _description_. Defaults to 0.0.
-            attn (str, optional): _description_. Defaults to 'prob'.
-            embed (str, optional): _description_. Defaults to 'fixed'.
-            freq (str, optional): _description_. Defaults to 'h'.
-            activation (str, optional): _description_. Defaults to 'gelu'.
-            output_attention (bool, optional): _description_. Defaults to False.
-            distil (bool, optional): _description_. Defaults to True.
-            mix (bool, optional): _description_. Defaults to True.
-        """
+    Replaces the canonical O(L²) self-attention with a sparse ``ProbSparse``
+    variant that selects the top-k queries by attention energy, reducing
+    encoder complexity to O(L log L).  A ``ConvLayer`` distillation step
+    further halves the temporal resolution at each encoder layer.
+
+    Paper: *Informer: Beyond Efficient Transformer for Long Sequence
+    Time-Series Forecasting.*
+    https://ojs.aaai.org/index.php/AAAI/article/view/17325
+
+    Args:
+        enc_in (int): Number of encoder input features.
+        dec_in (int): Number of decoder input features.
+        c_out (int): Number of output features.
+        out_len (int): Output (prediction) sequence length.
+        factor (int): ProbSparse sampling factor. Defaults to 5.
+        d_model (int): Transformer embedding dimension. Defaults to 512.
+        n_heads (int): Number of attention heads. Defaults to 8.
+        e_layers (int): Number of encoder layers. Defaults to 3.
+        d_layers (int): Number of decoder layers. Defaults to 2.
+        d_ff (int): Feed-forward hidden dimension. Defaults to 512.
+        dropout (float): Dropout probability. Defaults to 0.0.
+        attn (str): Attention type — ``'prob'`` (ProbSparse) or ``'full'``.
+            Defaults to ``'prob'``.
+        embed (str): Time-feature embedding type. Defaults to ``'fixed'``.
+        freq (str): Sampling frequency for time encoding. Defaults to ``'h'``.
+        distil (bool): Use encoder distillation (halving). Defaults to True.
+        time_embed (bool): Add time-feature embeddings. Defaults to True.
+
+    Tasks: Forecasting, Imputation, Anomaly Detection, Classification.
+    """
+    def __init__(self, enc_in:int, dec_in:int, c_out:int, out_len:int,
+                factor=5, d_model=512, n_heads=8, e_layers=3, d_layers=2, d_ff=512,
+                dropout=0.0, attn='prob', embed='fixed', freq='h', activation='gelu',
+                output_attention = False, distil=True, mix=True, time_embed=True):
         super(Informer, self).__init__()
         self.pred_len = out_len
         self.attn = attn

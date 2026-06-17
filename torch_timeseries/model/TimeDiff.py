@@ -38,17 +38,29 @@ class _TimeDiffDenoiser(nn.Module):
 
 
 class TimeDiff(nn.Module):
-    """TimeDiff model.
+    """TimeDiff — self-guided DDPM for time series generation (Shen & Kwok, ICML 2023).
+
+    Extends standard DDPM with a *future mixup* mechanism: during training a
+    mixture of the clean and noisy sequence is used as guidance, teaching the
+    denoiser to exploit coarse temporal structure.  The denoiser is a Transformer
+    encoder that takes ``[x_t ‖ guidance]`` concatenated along the feature axis.
+
+    Paper: *Non-autoregressive Conditional Diffusion Models for Time Series
+    Prediction.*
+    https://proceedings.mlr.press/v202/shen23d.html
 
     Args:
-        seq_len: sequence length
-        n_features: number of channels
-        d_model: transformer hidden dim (default 128)
-        n_heads: attention heads (default 4)
-        n_layers: encoder layers (default 4)
-        T: diffusion steps (default 500)
-        schedule: "linear" (default) or "cosine"
-        mix_ratio: future-mixup strength; fraction of t used for guidance (default 0.5)
+        seq_len (int): Sequence length of each window.
+        n_features (int): Number of channels.
+        d_model (int): Transformer hidden dimension. Defaults to 128.
+        n_heads (int): Number of attention heads. Defaults to 4.
+        n_layers (int): Number of Transformer encoder layers. Defaults to 4.
+        T (int): Number of diffusion steps. Defaults to 500.
+        schedule (str): Beta schedule — ``'linear'`` or ``'cosine'``.
+            Defaults to ``'linear'``.
+        mix_ratio (float): Future-mixup interpolation weight. Defaults to 0.5.
+
+    Tasks: Generation.
     """
 
     def __init__(self, seq_len: int, n_features: int,
