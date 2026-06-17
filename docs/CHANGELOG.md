@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.5
+
+- Add temporal encoding classes to `torch_timeseries.nn`: `Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding` (RoPE), `SinusoidalEmbedding`.
+- Add Sphinx model reference — all 20 models documented with paper citations and Args.
+- Add Sphinx nn reference — temporal encoding and embedding classes.
+- Restructure README: new TOC covering all 6 time-series tasks; full code examples and figures for Imputation, Anomaly Detection, and Classification.
+- Fix hard-coded `.cuda()` → `.to(device)` in `AutoCorrelation.py`.
+- Remove duplicate class definitions in `Autoformer_EncDec.py` (aliases to canonical `kernels`/`decomp` implementations).
+- Fix import shadowing in `nn/__init__.py`; remove dead code across `Crossformer.py`, `DLinear.py`, `embedding.py`, `MultiWaveletCorrelation.py`.
+
+## 0.2.4
+
+- Add `NsDiff` (Non-Stationary DDPM) and `TMDM` generation models.
+- Add `Sine` and `Stocks` benchmark generation datasets.
+- Add `NsDiffGeneration` and `TMDMGeneration` experiment wrappers.
+- Rename `NSDiffusion` → `NsDiff` throughout.
+
 ## 0.2.3
 
 - Add probabilistic forecasting via `ProbForecastExp`.

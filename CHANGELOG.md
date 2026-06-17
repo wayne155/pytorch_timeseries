@@ -1,3 +1,9 @@
+## 0.2.5
+feat: temporal encoding — `Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding`, `SinusoidalEmbedding` added to `torch_timeseries.nn`
+docs: model reference section in Sphinx docs with paper citations and Args for all 20 models; nn temporal encoding section
+docs: README restructure — new TOC covering 6 time-series tasks; full examples + figures for Imputation, Anomaly Detection, and Classification
+refactor: remove duplicate `MovingAvg`/`SeriesDecomp`/`SeriesDecompMulti` class bodies in `Autoformer_EncDec.py` (now imported from `kernels`/`decomp`); fix hard-coded `.cuda()` → `.to(device)` in `AutoCorrelation.py`; remove import shadowing in `nn/__init__.py`; remove dead code in `Crossformer.py`, `DLinear.py`, `embedding.py`, `MultiWaveletCorrelation.py`
+
 ## 0.2.4
 feat: `NsDiff` — full Non-Stationary DDPM rewrite (local-variance-adapted noise schedule via `betas_tilde`/`betas_bar`; `_NsDenoiser` takes `[y_t ‖ y_0_hat ‖ gx]`; `_SigmaNet` rolling-variance MLP; unconditional generation from `N(0, gx)` prior)
 feat: `TMDM` — TMDM-style DDPM with GRU prior-mean network (`_MuNet`); denoiser takes `[y_t ‖ y_0_hat]`; `NsDiffGeneration` / `TMDMGeneration` experiment wrappers
