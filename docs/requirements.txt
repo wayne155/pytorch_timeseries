@@ -1,12 +1,10 @@
-# markdown suport
+# markdown support
 recommonmark
-# markdown table suport
 sphinx-markdown-tables
 
-# theme default rtd
-
-# crate-docs-theme
-sphinx-rtd-theme
+# theme
+furo
+sphinx-design
 
 numpy 
 pandas

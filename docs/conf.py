@@ -30,6 +30,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx_design',
     'ext',
 ]
 
@@ -81,12 +82,29 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
+html_theme_options = {
+    "light_logo": "img/logo_text.jpg",
+    "dark_logo": "img/logo_text.jpg",
+    "sidebar_hide_name": True,
+    "navigation_with_keys": True,
+    "top_of_page_buttons": ["view"],
+    "light_css_variables": {
+        "color-brand-primary": "#2563eb",
+        "color-brand-content": "#2563eb",
+        "color-admonition-background": "rgba(37, 99, 235, 0.05)",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#60a5fa",
+        "color-brand-content": "#60a5fa",
+    },
+}
+
+html_title = "torch-timeseries"
+
 html_static_path = ['_static']
+html_css_files = ['css/custom.css']
 
 
 def setup(app):

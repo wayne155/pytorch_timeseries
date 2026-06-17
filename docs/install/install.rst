@@ -1,32 +1,29 @@
-.. vim: syntax=rst
+Installation
+============
 
-installation
-======================
+``torch-timeseries`` requires Python ≥ 3.8 and a compatible PyTorch installation.
 
-pytorch_timeseries is available for python >= 3.8
+Install via pip
+---------------
 
+Install PyTorch for your CUDA version first (see `pytorch.org <https://pytorch.org/get-started/locally/>`_),
+then install the package:
 
+.. code-block:: bash
 
-install via pip 
-----------------------
+   pip install torch-timeseries
 
-```
-pip install torch-timeseries
-```
+Optional dependencies for graph-based models:
 
-```
-# Optional dependencies (for some graph-based models):
-pip install torch_geometric
-```
+.. code-block:: bash
 
+   pip install torch_geometric torch_scatter
 
-install via conda
-----------------------
-```
-conda install torch-timeseries
-```
+Development install
+-------------------
 
-```
-# Optional dependencies (for some graph-based models):
-conda install torch_geometric
-```
+.. code-block:: bash
+
+   git clone https://github.com/wayne155/pytorch_timeseries
+   cd pytorch_timeseries
+   pip install -e ".[dev]"
