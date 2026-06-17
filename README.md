@@ -199,51 +199,129 @@ shifted copy.
 
 #### Probabilistic forecasting
 
-`ProbForecastExp` adapts the default training paradigm for sample-based
-probabilistic models (diffusion, flows, deep ensembles, ...). It differs from
-point forecasting in three ways:
+Any model that can be called multiple times to produce different predictions
+(MC Dropout, diffusion, deep ensembles) fits into the probabilistic forecasting
+pattern. The full pipeline is: **train → generate N samples → compute quantiles
+→ plot / evaluate**.
 
-1. **Training** — the model computes its own loss (ELBO, diffusion loss, ...),
-   so `_process_train_batch(batch)` returns the loss directly instead of an
-   `(x, y)` pair.
-2. **Inference** — `_process_val_batch(batch)` returns an ensemble
-   `preds` of shape `(batch, pred_len, num_features, num_samples)` plus
-   `truths` of shape `(batch, pred_len, num_features)`.
-3. **Evaluation** — val/test use `fast_val`/`fast_test` non-overlapping
-   windows by default, and metrics are the probabilistic suite from
-   `torch_timeseries.metrics`: `CRPS`, `CRPSSum`, `QICE`, `PICP`, plus
-   `ProbMSE`/`ProbMAE`/`ProbRMSE` on the ensemble mean. Early stopping
-   monitors validation CRPS.
+```python
+import torch
+import torch.nn as nn
+import numpy as np
+import matplotlib.pyplot as plt
+
+from torch_timeseries.dataset import ETTh1
+from torch_timeseries.scaler import StandardScaler
+from torch_timeseries.dataloader.v2 import (
+    ForecastDataModule, WindowConfig, LoaderConfig
+)
+
+# ── Step 1: define a model that returns multiple samples ──────────────────────
+class MCDropoutForecaster(nn.Module):
+    """Linear forecaster with MC Dropout — calling it N times gives N samples."""
+
+    def __init__(self, seq_len: int, pred_len: int, drop: float = 0.15):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(seq_len, 256), nn.ReLU(), nn.Dropout(drop),
+            nn.Linear(256, 128),    nn.ReLU(), nn.Dropout(drop),
+            nn.Linear(128, pred_len),
+        )
+
+    def forward(self, x):                        # x: (B, T, C)
+        return self.net(x.transpose(1, 2)).transpose(1, 2)   # (B, pred_len, C)
+
+    def sample(self, x: torch.Tensor, n: int = 200) -> torch.Tensor:
+        """Return (B, pred_len, C, n) — dropout stays active for diversity."""
+        self.train()
+        with torch.no_grad():
+            return torch.stack([self(x) for _ in range(n)], dim=-1)
+
+# ── Step 2: load data ─────────────────────────────────────────────────────────
+dm = ForecastDataModule(
+    dataset=ETTh1(),
+    scaler=StandardScaler(),
+    window=WindowConfig(window=96, horizon=1, steps=24),
+    loader=LoaderConfig(batch_size=64),
+)
+
+# ── Step 3: train ─────────────────────────────────────────────────────────────
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model  = MCDropoutForecaster(seq_len=96, pred_len=24).to(device)
+opt    = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+for epoch in range(30):
+    model.train()
+    for batch in dm.train_loader:
+        x = batch.x.float().to(device)
+        y = batch.y.float().to(device)
+        opt.zero_grad()
+        nn.MSELoss()(model(x), y).backward()
+        opt.step()
+
+# ── Step 4: generate N samples for one validation window ─────────────────────
+model.eval()
+batch  = next(iter(dm.val_loader))
+x_val  = batch.x[:1].float().to(device)   # (1, 96, 7)
+y_val  = batch.y[:1].float().to(device)   # (1, 24, 7)
+
+samples = model.sample(x_val, n=200)      # (1, 24, 7, 200)
+
+# ── Step 5: compute prediction intervals from sample quantiles ────────────────
+s = samples[0, :, 0, :].cpu().numpy()    # (24, 200) — first feature
+lo90, lo50 = np.percentile(s, [5,  25], axis=1)
+hi90, hi50 = np.percentile(s, [95, 75], axis=1)
+mean_       = s.mean(axis=1)
+
+obs   = x_val[0, :, 0].cpu().numpy()
+truth = y_val[0, :, 0].cpu().numpy()
+t_obs, t_pred = np.arange(96), np.arange(96, 120)
+
+# ── Step 6: plot ──────────────────────────────────────────────────────────────
+fig, ax = plt.subplots(figsize=(11, 3.5))
+ax.plot(t_obs, obs, color="#888", lw=1.1, label="observed")
+ax.plot(t_pred, truth, "--", color="#1f77b4", lw=1.4, label="ground truth")
+ax.plot(t_pred, mean_,       color="#d62728", lw=1.4, label="ensemble mean")
+ax.fill_between(t_pred, lo90, hi90, alpha=0.18, color="#4C72B0", label="90% PI")
+ax.fill_between(t_pred, lo50, hi50, alpha=0.45, color="#4C72B0", label="50% PI")
+ax.axvline(96, color="#999", lw=0.8, ls=":")
+ax.legend(ncol=2, fontsize=8)
+plt.tight_layout()
+```
+
+To use the built-in training loop and probabilistic metrics (CRPS, PICP, QICE),
+subclass `ProbForecastExp` — `_process_val_batch` must return
+`(preds, truths)` where `preds` is `(B, pred_len, C, n_samples)`:
 
 ```python
 from dataclasses import dataclass
-import torch
 from torch_timeseries.experiments import ProbForecastExp
 
 @dataclass
-class MyDiffusionForecast(ProbForecastExp):
-    model_type: str = "MyDiffusion"
+class MyForecast(ProbForecastExp):
+    model_type: str = "MCDropout"
 
     def _init_model(self):
-        self.model = MyDiffusion(...).to(self.device)
+        self.model = MCDropoutForecaster(self.windows, self.pred_len).to(self.device)
 
     def _process_train_batch(self, batch):
-        x = batch.x.to(self.device).float()
-        y = batch.y.to(self.device).float()
-        return self.model.loss(x, y)            # model returns its own loss
+        x = batch.x.float().to(self.device)
+        y = batch.y.float().to(self.device)
+        self.model.train()
+        return nn.MSELoss()(self.model(x), y)
 
     def _process_val_batch(self, batch):
-        x = batch.x.to(self.device).float()
-        y = batch.y.to(self.device).float()
-        preds = self.model.sample(x, n=self.num_samples)  # (B, O, N, S)
+        x = batch.x.float().to(self.device)
+        y = batch.y.float().to(self.device)
+        preds = self.model.sample(x, n=self.num_samples)   # (B, O, C, S)
         return preds, y
 
-exp = MyDiffusionForecast(dataset_type="ETTh1", windows=96, pred_len=96,
-                          num_samples=100, device="cuda:0")
-exp.run(seed=0)   # -> {'crps': ..., 'crps_sum': ..., 'picp': ..., 'qice': ..., ...}
+result = MyForecast(dataset_type="ETTh1", windows=96, pred_len=24,
+                    num_samples=200, device="cuda").run(seed=0)
+# -> {'crps': ..., 'picp': ..., 'qice': ..., 'prob_mse': ..., ...}
 ```
 
-Grey = observed · Blue dashed = ground truth · Orange = ensemble mean · Shaded bands = 25 / 50 / 90% prediction intervals:
+Grey = observed · Blue dashed = ground truth · Red = ensemble mean · Shaded bands = 50 / 90% prediction intervals computed from 200 MC-Dropout samples:
 
 ![Probabilistic forecasting with uncertainty bands](docs/_static/img/prob_forecast.png)
 
