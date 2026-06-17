@@ -204,7 +204,7 @@ class NsDiff(nn.Module):
 
         # Reservoir-sample training windows so generate() can draw realistic gx
         with torch.no_grad():
-            bank = torch.cat([self._x_bank.detach(), x.detach().cpu()], dim=0)
+            bank = torch.cat([self._x_bank.detach().cpu(), x.detach().cpu()], dim=0)
             if bank.shape[0] > self._bank_size:
                 idx = torch.randperm(bank.shape[0])[:self._bank_size]
                 bank = bank[idx]

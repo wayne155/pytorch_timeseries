@@ -18,6 +18,8 @@ from .PSM import PSM
 from .SMAP import SMAP
 from .SimFreqCF import SimFreqCF
 from .SimFreq import SimFreq
+from .Sine import Sine
+from .Stocks import Stocks
 
 forecast_datasets = [
     'Traffic',
@@ -48,6 +50,11 @@ anomaly_datasets = [
 ] 
 
 
+generation_datasets = [
+    'Sine',
+    'Stocks',
+]
+
 synthetic_datasets = [
     'Dummy',
     'DummyGraph',
@@ -55,6 +62,6 @@ synthetic_datasets = [
     'SimFreq'
 ]
 
-__all__ = forecast_datasets + classify_datasets + anomaly_datasets + synthetic_datasets
+__all__ = forecast_datasets + classify_datasets + anomaly_datasets + synthetic_datasets + generation_datasets
 from .custom import CSVDataset, build_dataset
 __all__ += ['CSVDataset', 'build_dataset']
