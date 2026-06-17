@@ -88,21 +88,3 @@ class DLinear(nn.Module):
         return output
 
 
-    # def forecast(self, x_enc):
-    #     return self(x_enc)
-
-    # def imputation(self, x_enc):
-    #     return self(x_enc)
-
-    # def anomaly_detection(self, x_enc):
-    #     return self(x_enc)
-
-    # def classification(self, x_enc):
-    #     # Encoder
-    #     enc_out = self(x_enc)
-    #     # Output
-    #     # (batch_size, seq_length * d_model)
-    #     output = enc_out.reshape(enc_out.shape[0], -1)
-    #     # (batch_size, num_classes)
-    #     output = self.projection(output)
-    #     return output

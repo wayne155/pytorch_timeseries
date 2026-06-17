@@ -2,17 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from einops import rearrange, repeat
 import numpy as np
-
-from math import sqrt
-
-from math import ceil
+from math import sqrt, ceil
 
 class Crossformer(nn.Module):
     """Crossformer — cross-dimension dependency Transformer (Zhang & Yan, ICLR 2023).
@@ -45,7 +36,7 @@ class Crossformer(nn.Module):
     """
     def __init__(self, data_dim, in_len, out_len, seg_len, win_size = 4,
                 factor=10, d_model=512, d_ff = 1024, n_heads=8, e_layers=3,
-                dropout=0.0, baseline = False, device=torch.device('cuda:0')):
+                dropout=0.0, baseline = False):
         super(Crossformer, self).__init__()
         self.data_dim = data_dim
         self.in_len = in_len
@@ -54,8 +45,6 @@ class Crossformer(nn.Module):
         self.merge_win = win_size
 
         self.baseline = baseline
-
-        self.device = device
 
         # The padding operation to handle invisible sgemnet length
         self.pad_in_len = ceil(1.0 * in_len / seg_len) * seg_len
@@ -209,7 +198,7 @@ class DecoderLayer(nn.Module):
         super(DecoderLayer, self).__init__()
         self.self_attention = TwoStageAttentionLayer(out_seg_num, factor, d_model, n_heads, \
                                 d_ff, dropout)    
-        self.cross_attention = AttentionLayer(d_model, n_heads, dropout = dropout)
+        self.cross_attention = _AttentionLayer(d_model, n_heads, dropout=dropout)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
@@ -281,16 +270,13 @@ class Decoder(nn.Module):
 
 
 
-# attention
-class FullAttention(nn.Module):
-    '''
-    The Attention operation
-    '''
+# attention — private to Crossformer; signatures differ from nn.attention
+class _FullAttention(nn.Module):
     def __init__(self, scale=None, attention_dropout=0.1):
-        super(FullAttention, self).__init__()
+        super(_FullAttention, self).__init__()
         self.scale = scale
         self.dropout = nn.Dropout(attention_dropout)
-        
+
     def forward(self, queries, keys, values):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
@@ -299,21 +285,18 @@ class FullAttention(nn.Module):
         scores = torch.einsum("blhe,bshe->bhls", queries, keys)
         A = self.dropout(torch.softmax(scale * scores, dim=-1))
         V = torch.einsum("bhls,bshd->blhd", A, values)
-        
+
         return V.contiguous()
 
 
-class AttentionLayer(nn.Module):
-    '''
-    The Multi-head Self-Attention (MSA) Layer
-    '''
-    def __init__(self, d_model, n_heads, d_keys=None, d_values=None, mix=True, dropout = 0.1):
-        super(AttentionLayer, self).__init__()
+class _AttentionLayer(nn.Module):
+    def __init__(self, d_model, n_heads, d_keys=None, d_values=None, mix=True, dropout=0.1):
+        super(_AttentionLayer, self).__init__()
 
-        d_keys = d_keys or (d_model//n_heads)
-        d_values = d_values or (d_model//n_heads)
+        d_keys = d_keys or (d_model // n_heads)
+        d_values = d_values or (d_model // n_heads)
 
-        self.inner_attention = FullAttention(scale=None, attention_dropout = dropout)
+        self.inner_attention = _FullAttention(scale=None, attention_dropout=dropout)
         self.query_projection = nn.Linear(d_model, d_keys * n_heads)
         self.key_projection = nn.Linear(d_model, d_keys * n_heads)
         self.value_projection = nn.Linear(d_model, d_values * n_heads)
@@ -330,13 +313,9 @@ class AttentionLayer(nn.Module):
         keys = self.key_projection(keys).view(B, S, H, -1)
         values = self.value_projection(values).view(B, S, H, -1)
 
-        out = self.inner_attention(
-            queries,
-            keys,
-            values,
-        )
+        out = self.inner_attention(queries, keys, values)
         if self.mix:
-            out = out.transpose(2,1).contiguous()
+            out = out.transpose(2, 1).contiguous()
         out = out.view(B, L, -1)
 
         return self.out_projection(out)
@@ -349,9 +328,9 @@ class TwoStageAttentionLayer(nn.Module):
     def __init__(self, seg_num, factor, d_model, n_heads, d_ff = None, dropout=0.1):
         super(TwoStageAttentionLayer, self).__init__()
         d_ff = d_ff or 4*d_model
-        self.time_attention = AttentionLayer(d_model, n_heads, dropout = dropout)
-        self.dim_sender = AttentionLayer(d_model, n_heads, dropout = dropout)
-        self.dim_receiver = AttentionLayer(d_model, n_heads, dropout = dropout)
+        self.time_attention = _AttentionLayer(d_model, n_heads, dropout=dropout)
+        self.dim_sender = _AttentionLayer(d_model, n_heads, dropout=dropout)
+        self.dim_receiver = _AttentionLayer(d_model, n_heads, dropout=dropout)
         self.router = nn.Parameter(torch.randn(seg_num, factor, d_model))
         
         self.dropout = nn.Dropout(dropout)
