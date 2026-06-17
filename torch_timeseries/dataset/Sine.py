@@ -36,7 +36,11 @@ class Sine(TimeSeriesDataset):
 
     def _load(self) -> np.ndarray:
         rng = np.random.default_rng(seed=42)
-        t = np.linspace(0, 4 * np.pi, self.n_points)
+        # Scale t so that freq∈[1,5] produces 1–5 full cycles within a
+        # typical 24-step sliding window. With step = 2π/20 per sample,
+        # freq=1 → period 20 steps, freq=5 → period 4 steps.
+        step = 2 * np.pi / 20
+        t = np.arange(self.n_points, dtype=np.float32) * step
         cols = {}
         for i in range(self.n_features):
             freq  = rng.uniform(1.0, 5.0)
