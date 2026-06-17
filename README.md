@@ -540,23 +540,160 @@ Grey = real sequences · Blue = NsDiff-generated sequences:
 
 ![NsDiff generated vs. real](docs/_static/img/nsdiff_generation.png)
 
-### Imputation · Anomaly Detection · Classification
+### Imputation
 
-All three tasks are supported through the built-in experiment runner. See [Run Built-In Models](#run-built-in-models) for full CLI and Python API examples.
+The imputation task randomly masks a fraction of each input window and trains the model to fill in the missing values. Loss is computed only on masked positions. Metrics: MSE, MAE.
+
+```python
+import torch
+import torch.nn as nn
+from dataclasses import dataclass
+from torch_timeseries.experiments import ImputationExp
+
+# ── Custom model ──────────────────────────────────────────────────────────────
+class LinearImputer(nn.Module):
+    """Seq2seq linear model: receives masked input, predicts full window."""
+    def __init__(self, seq_len, n_features):
+        super().__init__()
+        self.proj = nn.Linear(seq_len, seq_len)
+
+    def forward(self, x):          # x: (B, T, C) — zeros at masked positions
+        return self.proj(x.transpose(1, 2)).transpose(1, 2)   # (B, T, C)
+
+# ── Plug into ImputationExp ───────────────────────────────────────────────────
+@dataclass
+class MyImputation(ImputationExp):
+    model_type: str = "LinearImputer"
+
+    def _init_model(self):
+        self.model = LinearImputer(
+            self.windows, self.dataset.num_features
+        ).to(self.device)
+
+    def _process_one_batch(self, batch_masked_x, batch_x, batch_origin_x,
+                           batch_mask, batch_x_date_enc):
+        batch_masked_x = batch_masked_x.to(self.device, dtype=torch.float32)
+        batch_x        = batch_x.to(self.device, dtype=torch.float32)
+        return self.model(batch_masked_x), batch_x
+
+result = MyImputation(
+    dataset_type="ETTh1", windows=96, mask_rate=0.5,
+    epochs=10, device="cuda",
+).run(seed=1)
+# → {'mse': ..., 'mae': ...}
+```
+
+For built-in models use the experiment runner:
 
 ```python
 from torch_timeseries import Experiment
-
-# Imputation
-Experiment(model="DLinear", task="Imputation", dataset="ETTh1").run(seeds=[1])
-
-# Anomaly Detection
-Experiment(model="DLinear", task="AnomalyDetection", dataset="MSL").run(seeds=[1])
-
-# Classification
-Experiment(model="DLinear", task="UEAClassification",
-           dataset="EthanolConcentration").run(seeds=[1])
+Experiment(model="DLinear", task="Imputation", dataset="ETTh1",
+           windows=96, mask_rate=0.5).run(seeds=[1, 2, 3])
 ```
+
+Grey = original · Orange = reconstruction · White gaps = masked (50% random):
+
+![Imputation: masked input vs. reconstruction](docs/_static/img/imputation.png)
+
+### Anomaly Detection
+
+Anomaly detection is reconstruction-based: the model is trained to reconstruct normal windows; at test time, high reconstruction error flags anomalies. The per-timestep MSE is used as the anomaly score and thresholded at a configurable percentile. Metrics: precision, recall, F1.
+
+```python
+from dataclasses import dataclass
+from torch_timeseries.experiments import AnomalyDetectionExp
+
+# ── Custom model (reconstruction) ─────────────────────────────────────────────
+class LinearReconstructor(nn.Module):
+    def __init__(self, seq_len, n_features):
+        super().__init__()
+        self.proj = nn.Linear(seq_len, seq_len)
+
+    def forward(self, x):          # (B, T, C)
+        return self.proj(x.transpose(1, 2)).transpose(1, 2)
+
+@dataclass
+class MyAnomalyDetection(AnomalyDetectionExp):
+    model_type: str = "LinearReconstructor"
+
+    def _init_model(self):
+        self.model = LinearReconstructor(
+            self.windows, self.dataset.num_features
+        ).to(self.device)
+
+    def _process_one_batch(self, batch_x, origin_x, batch_y):
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        return self.model(batch_x), batch_x   # (pred, true)
+
+result = MyAnomalyDetection(
+    dataset_type="MSL", windows=100, anomaly_ratio=0.25,
+    epochs=10, device="cuda",
+).run(seed=1)
+# → {'precision': ..., 'recall': ..., 'f1': ...}
+```
+
+Built-in models:
+
+```python
+Experiment(model="DLinear", task="AnomalyDetection", dataset="MSL",
+           windows=100, anomaly_ratio=0.25).run(seeds=[1, 2, 3])
+```
+
+Blue = signal · Red shading = detected anomalies · Orange = anomaly score · Dashed = threshold:
+
+![Anomaly detection: reconstruction score and detected regions](docs/_static/img/anomaly_detection.png)
+
+### Classification
+
+Sequence classification on the [UEA Time Series Classification Archive](https://www.timeseriesclassification.com/). The dataset is referenced by its archive name; any UEA dataset downloads automatically. Metrics: accuracy.
+
+```python
+from dataclasses import dataclass
+from torch_timeseries.experiments import UEAClassificationExp
+
+# ── Custom model (GRU encoder → class logits) ─────────────────────────────────
+class GRUClassifier(nn.Module):
+    def __init__(self, n_features, n_classes, hidden=64):
+        super().__init__()
+        self.gru  = nn.GRU(n_features, hidden, batch_first=True)
+        self.head = nn.Linear(hidden, n_classes)
+
+    def forward(self, x):          # (B, T, C) → (B, n_classes)
+        _, h = self.gru(x)
+        return self.head(h.squeeze(0))
+
+@dataclass
+class MyClassification(UEAClassificationExp):
+    model_type: str = "GRUClassifier"
+
+    def _init_model(self):
+        self.model = GRUClassifier(
+            self.dataset.num_features, self.dataset.num_classes
+        ).to(self.device)
+
+    def _process_one_batch(self, batch_x, origin_x, batch_y, padding_masks):
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        batch_y = batch_y.to(self.device, dtype=torch.float32)
+        return self.model(batch_x), batch_y.long().squeeze(-1)
+
+# windows must match the dataset's fixed sequence length (varies per UEA dataset)
+result = MyClassification(
+    dataset_type="EthanolConcentration", windows=1751,
+    epochs=30, device="cuda",
+).run(seed=1)
+# → {'accuracy': ...}
+```
+
+Built-in models:
+
+```python
+Experiment(model="DLinear", task="UEAClassification",
+           dataset="EthanolConcentration").run(seeds=[1, 2, 3])
+```
+
+Per-class accuracy on EthanolConcentration (4 classes, DLinear):
+
+![Classification: per-class accuracy](docs/_static/img/classification.png)
 
 ---
 
