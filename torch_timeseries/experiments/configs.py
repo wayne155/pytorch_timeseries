@@ -70,7 +70,7 @@ class TCNConfig:
 @dataclass
 class PatchMixerConfig:
     patch_len: int = 16
-    stride: int = 8
+    patch_stride: int = 8
     d_model: int = 64
     depth: int = 3
     dropout: float = 0.1
@@ -79,8 +79,8 @@ class PatchMixerConfig:
     def validate(self) -> None:
         if self.patch_len <= 0:
             raise ValueError("patch_len must be positive")
-        if self.stride <= 0:
-            raise ValueError("stride must be positive")
+        if self.patch_stride <= 0:
+            raise ValueError("patch_stride must be positive")
         if self.d_model <= 0:
             raise ValueError("d_model must be positive")
         if self.depth <= 0:
