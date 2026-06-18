@@ -1,3 +1,9 @@
+## 0.2.18
+
+test: 30 new tests for `ProbAttention` (Informer's sparse O(L log L) attention) — construction params, context output shape `(B, L, H, E)`, attention weights `(B, H, L, L)` always returned, row sums to 1, short-sequence and factor variants, gradient flow, `AttentionLayer` wrapping
+
+test: 11 new `MCDropoutConfig` tests in `test_new_model_configs.py` — `split_experiment_config` round-trip, validation of d_model/n_heads divisibility, dropout range, num_samples, activation; 1021 tests total
+
 ## 0.2.17
 
 test: 36 new tests for `torch_timeseries.metrics.prob` — `_crps_ensemble` (shape, non-negativity, perfect/constant/single-sample), `CRPS` (scalar, perfect, accumulation, reset, spread ordering), `CRPSSum` (perfect, single-variable=CRPS), `PICP` (full/zero coverage, custom percentiles, accumulation), `QICE` (calibrated/degenerate ensembles, custom bins), `ProbMSE`/`ProbMAE`/`ProbRMSE` (perfect, constant offset, RMSE≥MAE, accumulation), plus export check

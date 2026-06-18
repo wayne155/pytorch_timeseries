@@ -1,7 +1,8 @@
-"""Tests for TCNConfig, PatchMixerConfig, RNNConfig, VanillaTransformerConfig."""
+"""Tests for TCNConfig, PatchMixerConfig, RNNConfig, VanillaTransformerConfig, MCDropoutConfig."""
 import pytest
 
 from torch_timeseries.experiments.configs import (
+    MCDropoutConfig,
     PatchMixerConfig,
     RNNConfig,
     RuntimeConfig,
@@ -192,3 +193,71 @@ class TestVanillaTransformerConfig:
 
     def test_relu_activation_valid(self):
         VanillaTransformerConfig(activation="relu").validate()
+
+
+class TestMCDropoutConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="MCDropout",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "d_model": 128, "n_heads": 4, "e_layers": 2, "d_ff": 256,
+                "dropout": 0.2, "activation": "gelu", "revin": True,
+                "num_samples": 50,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert w.window == 96
+        assert w.steps == 24
+        assert isinstance(m, MCDropoutConfig)
+        assert m.d_model == 128
+        assert m.n_heads == 4
+        assert m.num_samples == 50
+
+    def test_rejects_irrelevant_kwargs(self):
+        with pytest.raises(TypeError, match="individual"):
+            split_experiment_config(
+                model="MCDropout",
+                task="Forecast",
+                kwargs={"windows": 96, "pred_len": 24, "individual": True},
+            )
+
+    def test_validate_d_model_positive(self):
+        cfg = MCDropoutConfig(d_model=0)
+        with pytest.raises(ValueError, match="d_model"):
+            cfg.validate()
+
+    def test_validate_n_heads_divides_d_model(self):
+        cfg = MCDropoutConfig(d_model=256, n_heads=7)
+        with pytest.raises(ValueError, match="n_heads"):
+            cfg.validate()
+
+    def test_validate_activation(self):
+        cfg = MCDropoutConfig(activation="tanh")
+        with pytest.raises(ValueError, match="activation"):
+            cfg.validate()
+
+    def test_validate_dropout_range(self):
+        cfg = MCDropoutConfig(dropout=1.0)
+        with pytest.raises(ValueError, match="dropout"):
+            cfg.validate()
+
+    def test_validate_num_samples_zero(self):
+        cfg = MCDropoutConfig(num_samples=0)
+        with pytest.raises(ValueError, match="num_samples"):
+            cfg.validate()
+
+    def test_validate_num_samples_negative(self):
+        cfg = MCDropoutConfig(num_samples=-5)
+        with pytest.raises(ValueError, match="num_samples"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        MCDropoutConfig().validate()
+
+    def test_relu_activation_valid(self):
+        MCDropoutConfig(activation="relu").validate()
+
+    def test_default_num_samples(self):
+        assert MCDropoutConfig().num_samples == 100
