@@ -1,8 +1,12 @@
 from typing import Dict, Tuple, Type
 
 
-TASK_SUFFIXES = ("Forecast", "Imputation", "UEAClassification", "AnomalyDetection",
-                 "IrregularClassification", "Generation")
+TASK_SUFFIXES = (
+    # Irregular tasks before their regular counterparts (longer suffix wins)
+    "IrregularClassification", "IrregularInterpolation", "IrregularForecast",
+    "Forecast", "Imputation", "UEAClassification", "AnomalyDetection",
+    "Generation",
+)
 
 
 def build_experiment_registry(namespace: dict) -> Dict[Tuple[str, str], Type]:

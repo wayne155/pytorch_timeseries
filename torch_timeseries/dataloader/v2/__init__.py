@@ -24,6 +24,8 @@ The legacy ``SlidingWindowTS`` etc. are unchanged in the parent package.
 from .batch import TSBatch, Time, TimeEncConfig, collate_tsbatch
 from .irregular_batch import IrregularTSBatch, collate_irregular
 from .irregular_classification import IrregularClassificationDataModule, IrregularClassificationConfig
+from .irregular_interpolation import IrregularInterpolationDataModule, IrregularInterpolationConfig
+from .irregular_forecast import IrregularForecastDataModule, IrregularForecastConfig
 from .windowed import WindowedDataset
 from .window import WindowConfig
 from .split import DEFAULT_SPLIT_CONFIGS, SplitConfig, default_split_config
@@ -58,6 +60,10 @@ __all__ = [
     "collate_irregular",
     "IrregularClassificationDataModule",
     "IrregularClassificationConfig",
+    "IrregularInterpolationDataModule",
+    "IrregularInterpolationConfig",
+    "IrregularForecastDataModule",
+    "IrregularForecastConfig",
     "GenerationDataModule",
     "GenerationWindowConfig",
 ]

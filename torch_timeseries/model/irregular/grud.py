@@ -54,7 +54,9 @@ class GRUD(nn.Module):
     """GRU-D: Recurrent Neural Networks for Multivariate Time Series
     with Missing Values (Che et al., 2018).
 
-    forward(x, t, mask) → (B, output_size) logits for classification.
+    When ``t_query`` is None: returns ``(B, output_size)`` logits for classification.
+    When ``t_query`` is provided: returns ``(B, Tq, input_size)`` predictions for
+    interpolation or forecasting (seq2seq mode).
     """
 
     def __init__(
@@ -68,28 +70,42 @@ class GRUD(nn.Module):
         self.cell = GRUDCell(input_size, hidden_size)
         self.drop = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_size, output_size)
+        self.fc_seq2seq = nn.Linear(hidden_size, input_size)   # seq2seq projection
 
     def forward(
         self,
-        x: Tensor,                    # (B, T, F)
-        t: Tensor,                    # (B, T) normalized times
-        mask: Tensor,                 # (B, T, F)
-        x_time: Optional[Tensor] = None,  # ignored in Phase 1
-    ) -> Tensor:                      # (B, output_size)
+        x: Tensor,                          # (B, T, F)
+        t: Tensor,                          # (B, T) normalized times
+        mask: Tensor,                       # (B, T, F)
+        x_time: Optional[Tensor] = None,    # ignored
+        t_query: Optional[Tensor] = None,   # (B, Tq) query times for seq2seq
+    ) -> Tensor:                            # (B, output_size) OR (B, Tq, F)
         B, T, F = x.shape
         h = x.new_zeros(B, self.cell.hidden_size)
         x_last = x.new_zeros(B, F)
-        t_last = x.new_zeros(B, F)  # last observed time per feature
+        t_last = x.new_zeros(B, F)
 
         for step in range(T):
-            x_t = x[:, step, :]                              # (B, F)
-            m_t = mask[:, step, :]                           # (B, F)
-            t_t = t[:, step].unsqueeze(-1).expand(B, F)     # (B, F)
-
-            delta = torch.clamp(t_t - t_last, min=0.0)      # (B, F)
+            x_t = x[:, step, :]
+            m_t = mask[:, step, :]
+            t_t = t[:, step].unsqueeze(-1).expand(B, F)
+            delta = torch.clamp(t_t - t_last, min=0.0)
             h, x_last = self.cell(x_t, m_t, delta, x_last, h)
-
-            # Update last-observed time only at observed positions
             t_last = m_t * t_t + (1.0 - m_t) * t_last
 
-        return self.fc(self.drop(h))
+        if t_query is None:
+            return self.fc(self.drop(h))   # (B, output_size)
+
+        # Seq2seq: for each query time decay the hidden state and project to F features
+        Tq = t_query.shape[1]
+        preds = []
+        for q in range(Tq):
+            t_q = t_query[:, q].unsqueeze(-1).expand(B, F)
+            delta_q = torch.clamp(t_q - t_last, min=0.0)
+            gamma_h = torch.exp(
+                -torch.relu(self.cell.log_gamma_h) *
+                delta_q.mean(dim=-1, keepdim=True).expand_as(h)
+            )
+            h_q = gamma_h * h
+            preds.append(self.fc_seq2seq(self.drop(h_q)))   # (B, F)
+        return torch.stack(preds, dim=1)                     # (B, Tq, F)

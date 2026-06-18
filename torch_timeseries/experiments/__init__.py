@@ -74,7 +74,13 @@ for model_prefix in model_list:
             print(f"Module {module_name} not found.")
 
 from .irregular_classification import IrregularClassificationExp
-from .GRUD import GRUDIrregularClassification
+from .irregular_interpolation import IrregularInterpolationExp
+from .irregular_forecast import IrregularForecastExp
+from .GRUD import (
+    GRUDIrregularClassification,
+    GRUDIrregularInterpolation,
+    GRUDIrregularForecast,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

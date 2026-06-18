@@ -34,12 +34,23 @@ def test_grud_no_nan():
 
 
 def test_grud_gradients_flow():
-    """GRU-D gradients flow to all parameters."""
+    """GRU-D classification-path gradients flow to all used parameters."""
     from torch_timeseries.model.irregular.grud import GRUD
     model = GRUD(input_size=3, hidden_size=16, output_size=2)
     x, t, mask = _make_synthetic_batch(B=2, T=8, F=3)
     logits = model(x, t, mask)
     logits.sum().backward()
     for name, p in model.named_parameters():
-        if p.requires_grad:
+        if p.requires_grad and "fc_seq2seq" not in name:
             assert p.grad is not None, f"No grad for {name}"
+
+
+def test_grud_forward_seq2seq():
+    """GRU-D with t_query returns (B, Tq, F) predictions."""
+    from torch_timeseries.model.irregular.grud import GRUD
+    B, T, F, Tq = 4, 10, 3, 5
+    model = GRUD(input_size=F, hidden_size=16, output_size=2)
+    x, t, mask = _make_synthetic_batch(B, T, F)
+    t_query = torch.linspace(0.5, 1.0, Tq).unsqueeze(0).expand(B, -1)
+    out = model(x, t, mask, t_query=t_query)
+    assert out.shape == (B, Tq, F), f"Expected ({B},{Tq},{F}), got {out.shape}"
