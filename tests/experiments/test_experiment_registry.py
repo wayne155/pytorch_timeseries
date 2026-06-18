@@ -27,6 +27,10 @@ FORECAST_FOUR_TASK_MODELS = [
 
 FORECAST_ONLY_MODELS = ["CATS"]
 
+# MCDropout only registers a ProbForecast task variant; it has no
+# AnomalyDetection / Imputation / UEAClassification wrappers.
+PROB_FORECAST_MODELS = ["MCDropout"]
+
 GENERATION_MODELS = [
     ("TimeGAN", "Generation"),
     ("CSDI", "Generation"),
@@ -63,6 +67,17 @@ class TestRegistryCompleteness:
         cls = get_experiment_class(model, "Forecast")
         assert cls is not None
 
+    @pytest.mark.parametrize("model", PROB_FORECAST_MODELS)
+    def test_prob_forecast_model_registered(self, model):
+        cls = get_experiment_class(model, "Forecast")
+        assert cls is not None
+
+    @pytest.mark.parametrize("model", PROB_FORECAST_MODELS)
+    def test_prob_forecast_model_has_no_other_tasks(self, model):
+        for task in ["AnomalyDetection", "Imputation", "UEAClassification"]:
+            with pytest.raises(NotImplementedError):
+                get_experiment_class(model, task)
+
     @pytest.mark.parametrize("model,task", GENERATION_MODELS)
     def test_generation_model_registered(self, model, task):
         cls = get_experiment_class(model, task)
@@ -78,7 +93,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 90
+        assert len(list_experiments()) >= 91  # +1 for MCDropout/Forecast
 
 
 # ---------------------------------------------------------------------------
