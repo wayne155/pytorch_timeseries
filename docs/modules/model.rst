@@ -1,50 +1,329 @@
 torch_timeseries.model
 ======================
 
-.. contents:: Contents
-    :local:
+20 built-in models covering forecasting and generation.
+Click any card to view the full API — constructor arguments, paper reference, and task support.
 
-This module contains all deep learning models supported by pytorch_timeseries.
-Models are grouped by their primary task; many forecasting models also support
-imputation, anomaly detection, and classification through the built-in
-experiment runner.
+.. list-table:: Task coverage at a glance
+   :widths: 22 12 12 12 12
+   :header-rows: 1
 
+   * - Model
+     - Forecast
+     - Imputation
+     - Anomaly Det.
+     - Classify
+   * - DLinear / NLinear
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+   * - Informer / Autoformer / FEDformer
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+   * - PatchTST / iTransformer
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+   * - TSMixer / Crossformer / SCINet / TimesNet
+     - ✓
+     - ✓
+     - ✓
+     - ✓
+   * - CATS / FITS / FreTS
+     - ✓
+     - —
+     - —
+     - —
+   * - TimeGAN / CSDI / DiffusionTS / TimeDiff / NsDiff / TMDM
+     - —
+     - —
+     - —
+     - — *(generation only)*
+
+
+----
 
 Forecasting Models
 ------------------
 
-These models are designed for supervised forecasting (and multi-task use via
-the experiment runner).  All accept an input window of shape
-``(batch, seq_len, n_features)`` and output predictions of shape
-``(batch, pred_len, n_features)``.
+All forecasting models accept ``(batch, seq_len, n_features)`` input and output
+``(batch, pred_len, n_features)`` predictions.  Most also support imputation,
+anomaly detection, and classification via the built-in experiment runner.
 
-.. currentmodule:: torch_timeseries.model
+.. grid:: 1 2 3 3
+   :gutter: 3
 
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-    :template: autosummary/only_class.rst
+   .. grid-item-card:: DLinear
+      :link: ../generated/torch_timeseries.model.DLinear
+      :link-type: doc
 
-    {% for name in torch_timeseries.model.forecasting_models %}
-      {{ name }}
-    {% endfor %}
+      Decomposes input into trend + seasonal components, then applies an
+      independent linear projection to each. Matches many Transformer
+      baselines at a fraction of the cost.
 
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
+
+   .. grid-item-card:: NLinear
+      :link: ../generated/torch_timeseries.model.NLinear
+      :link-type: doc
+
+      Subtracts the last time step before projection (normalization trick).
+      Extremely lightweight baseline — often hard to beat on univariate data.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
+
+   .. grid-item-card:: Informer
+      :link: ../generated/torch_timeseries.model.Informer
+      :link-type: doc
+
+      ProbSparse self-attention reduces complexity to *O(L log L)*.
+      Distilling encoder layers progressively compress the sequence.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Zhou et al., AAAI 2021 <https://ojs.aaai.org/index.php/AAAI/article/view/17325>`__
+
+   .. grid-item-card:: Autoformer
+      :link: ../generated/torch_timeseries.model.Autoformer
+      :link-type: doc
+
+      Auto-Correlation mechanism discovers period-based dependencies via FFT.
+      Progressive seasonal-trend decomposition in every encoder/decoder layer.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Wu et al., NeurIPS 2021 <https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html>`__
+
+   .. grid-item-card:: FEDformer
+      :link: ../generated/torch_timeseries.model.FEDformer
+      :link-type: doc
+
+      Frequency-enhanced decomposed Transformer. Attention and mixing
+      are performed in the Fourier / Wavelet domain for *O(L)* complexity.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Zhou et al., ICML 2022 <https://proceedings.mlr.press/v162/zhou22g.html>`__
+
+   .. grid-item-card:: PatchTST
+      :link: ../generated/torch_timeseries.model.PatchTST
+      :link-type: doc
+
+      Splits the time series into patches, embeds each as a token, then
+      applies a standard Transformer encoder. Channel-independent by default.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Nie et al., ICLR 2023 <https://openreview.net/forum?id=Jbdc0vTOcol>`__
+
+   .. grid-item-card:: iTransformer
+      :link: ../generated/torch_timeseries.model.iTransformer
+      :link-type: doc
+
+      Inverts the token dimension — each *variable* becomes one token.
+      Attention captures cross-variate correlations; FFN encodes temporal.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Liu et al., ICLR 2024 <https://openreview.net/forum?id=JePfAI8fah>`__
+
+   .. grid-item-card:: TSMixer
+      :link: ../generated/torch_timeseries.model.TSMixer
+      :link-type: doc
+
+      MLP-Mixer architecture alternating time-mixing and feature-mixing
+      layers. No attention — pure MLP with residual connections.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Chen et al., KDD 2023 <https://arxiv.org/abs/2303.06053>`__
+
+   .. grid-item-card:: Crossformer
+      :link: ../generated/torch_timeseries.model.Crossformer
+      :link-type: doc
+
+      Two-Stage Attention Router: cross-time attention on patches, then
+      cross-dimension attention to model inter-variable dependencies.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Zhang & Yan, ICLR 2023 <https://openreview.net/forum?id=vSVLM2j9eie>`__
+
+   .. grid-item-card:: SCINet
+      :link: ../generated/torch_timeseries.model.SCINet
+      :link-type: doc
+
+      Hierarchical downsample-interact-upsample tree. Each node applies
+      sample convolution on the odd/even sub-sequences.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Liu et al., NeurIPS 2022 <https://proceedings.neurips.cc/paper_files/paper/2022/hash/266983d0949aed78a16fa4782237dea7-Abstract-Conference.html>`__
+
+   .. grid-item-card:: TimesNet
+      :link: ../generated/torch_timeseries.model.TimesNet
+      :link-type: doc
+
+      Transforms 1-D time series into 2-D feature maps by exploiting
+      multi-period structure, then applies 2-D convolutions (TimesBlock).
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Wu et al., ICLR 2023 <https://openreview.net/pdf?id=ju_Uqw384Oq>`__
+
+   .. grid-item-card:: CATS
+      :link: ../generated/torch_timeseries.model.CATS
+      :link-type: doc
+
+      Contiguous Adaptive Time Series: extends the context window by
+      generating auxiliary future queries, improving long-horizon accuracy.
+
+      :bdg-primary:`Forecast`
+
+      +++
+      `Lin et al., ICML 2024 <https://arxiv.org/abs/2403.01673>`__
+
+   .. grid-item-card:: FITS
+      :link: ../generated/torch_timeseries.model.FITS
+      :link-type: doc
+
+      Frequency Interpolation: compress the look-back window in the Fourier
+      domain, then interpolate to the prediction horizon — very few params.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Xu et al., ICLR 2024 <https://openreview.net/forum?id=bWcnvZ3qMb>`__
+
+   .. grid-item-card:: FreTS
+      :link: ../generated/torch_timeseries.model.FreTS
+      :link-type: doc
+
+      All-MLP in the frequency domain. Real and imaginary components are
+      mixed separately before converting back to the time domain.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Yi et al., NeurIPS 2023 <https://proceedings.neurips.cc/paper_files/paper/2023/hash/f1d16af76939f476b5f040fd1398c0a3-Abstract-Conference.html>`__
+
+
+----
 
 Generation Models
 -----------------
 
-These models learn to synthesise new time series windows unconditionally.
-Each model exposes a ``loss(x)`` method for training and a
-``generate(n, device)`` method that returns ``(n, seq_len, n_features)``
-tensors of new sequences.
+Generation models learn to synthesise new time-series windows from scratch.
+All expose a ``generate(n, device)`` method returning ``(n, seq_len, n_features)``
+tensors and a ``loss(x)`` method for training.
 
-.. currentmodule:: torch_timeseries.model
+.. grid:: 1 2 3 3
+   :gutter: 3
+
+   .. grid-item-card:: TimeGAN
+      :link: ../generated/torch_timeseries.model.TimeGAN
+      :link-type: doc
+
+      GAN with a supervised loss that aligns the stepwise dynamics of the
+      generator with real data. Embeds sequences before adversarial training.
+
+      :bdg-info:`Generation`
+
+      +++
+      `Yoon et al., NeurIPS 2019 <https://proceedings.neurips.cc/paper/2019/hash/c9efe5f26cd17ba6216bbe2a7d26d490-Abstract.html>`__
+
+   .. grid-item-card:: CSDI
+      :link: ../generated/torch_timeseries.model.CSDI
+      :link-type: doc
+
+      Conditional Score-based Diffusion. A Transformer denoiser conditioned
+      on observed values; handles both generation and imputation.
+
+      :bdg-info:`Generation`
+
+      +++
+      `Tashiro et al., NeurIPS 2021 <https://proceedings.neurips.cc/paper/2021/hash/cfe8504bda37b575c70ee1a8276f3486-Abstract.html>`__
+
+   .. grid-item-card:: DiffusionTS
+      :link: ../generated/torch_timeseries.model.DiffusionTS
+      :link-type: doc
+
+      DDPM denoiser built on trend-seasonal decomposition. Separate Fourier
+      and trend branches are fused before the final prediction.
+
+      :bdg-info:`Generation`
+
+      +++
+      `Yuan & Qiao, ICLR 2024 <https://openreview.net/forum?id=4h1apFjO99>`__
+
+   .. grid-item-card:: TimeDiff
+      :link: ../generated/torch_timeseries.model.TimeDiff
+      :link-type: doc
+
+      Self-guided DDPM — a future-mix conditioning strategy guides denoising
+      without requiring a separate conditioning signal at inference.
+
+      :bdg-info:`Generation`
+
+      +++
+      `Shen & Kwok, ICML 2023 <https://proceedings.mlr.press/v202/shen23d.html>`__
+
+   .. grid-item-card:: NsDiff
+      :link: ../generated/torch_timeseries.model.NsDiff
+      :link-type: doc
+
+      Non-Stationary Diffusion. Adapts the noise schedule to local variance
+      via ``gx`` (rolling standard deviation), denoising with a bidirectional
+      GRU conditioned on ``[y_t ‖ y₀_hat ‖ gx]``.
+
+      :bdg-info:`Generation`
+
+      +++
+      Ye et al. (preprint)
+
+   .. grid-item-card:: TMDM
+      :link: ../generated/torch_timeseries.model.TMDM
+      :link-type: doc
+
+      Temporal Diffusion Model. Uses a GRU prior-mean network (``_MuNet``)
+      to initialise the reverse process, conditioning denoising on
+      ``[y_t ‖ y₀_hat]``.
+
+      :bdg-info:`Generation`
+
+      +++
+      Ye et al. (preprint)
+
+
+.. rubric:: Individual model pages (autogenerated)
 
 .. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-    :template: autosummary/only_class.rst
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/only_class.rst
 
-    {% for name in torch_timeseries.model.generation_models %}
-      {{ name }}
-    {% endfor %}
+   {% for name in torch_timeseries.model.forecasting_models %}
+     {{ name }}
+   {% endfor %}
+   {% for name in torch_timeseries.model.generation_models %}
+     {{ name }}
+   {% endfor %}
