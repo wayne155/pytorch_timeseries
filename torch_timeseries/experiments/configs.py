@@ -49,6 +49,67 @@ class CrossformerConfig:
 
 
 @dataclass
+class TCNConfig:
+    d_model: int = 64
+    num_levels: int = 4
+    kernel_size: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.num_levels <= 0:
+            raise ValueError("num_levels must be positive")
+        if self.kernel_size <= 0:
+            raise ValueError("kernel_size must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
+class PatchMixerConfig:
+    patch_len: int = 16
+    stride: int = 8
+    d_model: int = 64
+    depth: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.patch_len <= 0:
+            raise ValueError("patch_len must be positive")
+        if self.stride <= 0:
+            raise ValueError("stride must be positive")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.depth <= 0:
+            raise ValueError("depth must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
+class RNNConfig:
+    hidden_size: int = 64
+    num_layers: int = 2
+    rnn_type: str = "gru"
+    dropout: float = 0.1
+    bidirectional: bool = False
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.hidden_size <= 0:
+            raise ValueError("hidden_size must be positive")
+        if self.num_layers <= 0:
+            raise ValueError("num_layers must be positive")
+        if self.rnn_type not in ("gru", "lstm", "rnn"):
+            raise ValueError("rnn_type must be one of 'gru', 'lstm', 'rnn'")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class RuntimeConfig:
     data_path: str = "~/.torchtimeseries/data"
     save_dir: str = "./results"
@@ -162,6 +223,9 @@ def split_experiment_config(
     model_configs = {
         ("DLinear", "Forecast"): DLinearConfig,
         ("Crossformer", "Forecast"): CrossformerConfig,
+        ("TCN", "Forecast"): TCNConfig,
+        ("PatchMixer", "Forecast"): PatchMixerConfig,
+        ("RNN", "Forecast"): RNNConfig,
     }
     if (model, task) not in model_configs:
         raise NotImplementedError(
