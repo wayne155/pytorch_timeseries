@@ -63,5 +63,5 @@ synthetic_datasets = [
 ]
 
 __all__ = forecast_datasets + classify_datasets + anomaly_datasets + synthetic_datasets + generation_datasets
-from .custom import CSVDataset, build_dataset
-__all__ += ['CSVDataset', 'build_dataset']
+from .custom import CSVDataset, build_dataset, DataFrameDataset, from_dataframe
+__all__ += ['CSVDataset', 'build_dataset', 'DataFrameDataset', 'from_dataframe']
