@@ -326,3 +326,49 @@ PatchTST (Nie et al., ICLR 2023).
    :template: autosummary/only_class.rst
 
    Patcher
+
+----
+
+MLP Blocks
+----------
+
+Standalone MLP and Mixer building blocks used by various architectures.
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Class
+     - Description
+   * - ``FeedForward``
+     - Two-layer MLP ``(linear → act → dropout → linear → dropout)``,
+       the standard Transformer FFN.  Accepts any ``(*, d_model)`` input.
+       Activation can be ``'relu'``, ``'gelu'``, ``'silu'``, ``'tanh'``, or
+       an ``nn.Module``.
+   * - ``MixerBlock``
+     - Channel-mixing + time-mixing MLP block (TSMixer / MLP-Mixer style).
+       Alternating 1-D MLPs on the time and channel axes with residual
+       connections and layer normalization.
+
+.. code-block:: python
+
+   from torch_timeseries.nn import FeedForward, MixerBlock
+
+   # Drop-in FFN for a Transformer encoder
+   ffn = FeedForward(d_model=256, d_ff=1024, activation='gelu', dropout=0.1)
+   x   = torch.randn(4, 96, 256)
+   out = ffn(x)   # (4, 96, 256)
+
+   # Standalone MLP-Mixer block
+   block = MixerBlock(seq_len=96, d_model=64)
+   out   = block(torch.randn(4, 96, 64))  # (4, 96, 64)
+
+.. currentmodule:: torch_timeseries.nn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/only_class.rst
+
+   FeedForward
+   MixerBlock
