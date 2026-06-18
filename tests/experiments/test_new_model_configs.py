@@ -1,7 +1,8 @@
-"""Tests for TCNConfig, PatchMixerConfig, RNNConfig, VanillaTransformerConfig, MCDropoutConfig."""
+"""Tests for TCNConfig, PatchMixerConfig, RNNConfig, VanillaTransformerConfig, MCDropoutConfig, GaussianConfig."""
 import pytest
 
 from torch_timeseries.experiments.configs import (
+    GaussianConfig,
     MCDropoutConfig,
     PatchMixerConfig,
     RNNConfig,
@@ -261,3 +262,70 @@ class TestMCDropoutConfig:
 
     def test_default_num_samples(self):
         assert MCDropoutConfig().num_samples == 100
+
+
+class TestGaussianConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="Gaussian",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "d_model": 128, "n_heads": 4, "e_layers": 2, "d_ff": 256,
+                "dropout": 0.1, "activation": "gelu", "revin": True,
+                "num_samples": 50,
+                "min_log_sigma": -8.0, "max_log_sigma": 1.5,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert isinstance(m, GaussianConfig)
+        assert m.num_samples == 50
+        assert m.min_log_sigma == -8.0
+        assert m.max_log_sigma == 1.5
+
+    def test_rejects_irrelevant_kwargs(self):
+        with pytest.raises(TypeError, match="individual"):
+            split_experiment_config(
+                model="Gaussian",
+                task="Forecast",
+                kwargs={"windows": 96, "pred_len": 24, "individual": True},
+            )
+
+    def test_validate_d_model_positive(self):
+        cfg = GaussianConfig(d_model=0)
+        with pytest.raises(ValueError, match="d_model"):
+            cfg.validate()
+
+    def test_validate_n_heads_divides_d_model(self):
+        cfg = GaussianConfig(d_model=256, n_heads=7)
+        with pytest.raises(ValueError, match="n_heads"):
+            cfg.validate()
+
+    def test_validate_activation(self):
+        cfg = GaussianConfig(activation="tanh")
+        with pytest.raises(ValueError, match="activation"):
+            cfg.validate()
+
+    def test_validate_num_samples_zero(self):
+        cfg = GaussianConfig(num_samples=0)
+        with pytest.raises(ValueError, match="num_samples"):
+            cfg.validate()
+
+    def test_validate_log_sigma_order(self):
+        cfg = GaussianConfig(min_log_sigma=2.0, max_log_sigma=1.0)
+        with pytest.raises(ValueError, match="min_log_sigma"):
+            cfg.validate()
+
+    def test_validate_log_sigma_equal_raises(self):
+        cfg = GaussianConfig(min_log_sigma=0.0, max_log_sigma=0.0)
+        with pytest.raises(ValueError, match="min_log_sigma"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        GaussianConfig().validate()
+
+    def test_relu_activation_valid(self):
+        GaussianConfig(activation="relu").validate()
+
+    def test_default_num_samples(self):
+        assert GaussianConfig().num_samples == 100
