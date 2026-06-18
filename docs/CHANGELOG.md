@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.7
+
+- Add `mTAN` (Multi-Time Attention Network) — no external deps. Supports classification and seq2seq (interpolation/forecast) via `t_query`.
+- Add `LatentODE` — variational Latent ODE with GRU encoder. All 3 irregular tasks. Requires `torchdiffeq`.
+- Add `NeuralCDE` — Neural Controlled Differential Equation. Classification only. Requires `torchcde`.
+- Add `Raindrop` — graph-guided sensor attention network. Classification only. Requires `torch_geometric`.
+- Add `mTANIrregularClassification`, `mTANIrregularInterpolation`, `mTANIrregularForecast` experiment classes.
+- Add `LatentODEIrregularClassification/Interpolation/Forecast`, `NeuralCDEIrregularClassification`, `RaindropIrregularClassification`.
+- New install extra: ``pip install torch-timeseries[irregular]`` installs ``torchdiffeq``, ``torchcde``, ``torch_geometric``.
+
 ## 0.2.6
 
 - Add `IrregularInterpolationDataModule` + `IrregularInterpolationConfig`: deterministic per-sample query holdout (query points excluded from the input mask).

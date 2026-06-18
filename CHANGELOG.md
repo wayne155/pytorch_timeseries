@@ -1,3 +1,7 @@
+## 0.2.7
+feat: Irregular TS Phase 3 — mTAN, LatentODE (torchdiffeq), NeuralCDE (torchcde), Raindrop (torch_geometric) models; mTAN classification/interpolation/forecast + LatentODE × 3 + NeuralCDE + Raindrop classification experiments
+feat: `pip install torch-timeseries[irregular]` extras group for optional irregular-TS dependencies
+
 ## 0.2.6
 feat: Irregular TS Phase 2 — `IrregularInterpolationDataModule`, `IrregularForecastDataModule`, `MIMIC` load-from-file dataset, `UEAIrregular` synthetic-dropout wrapper, `IrregularWrapper` for regular datasets
 feat: `IrregularInterpolationExp` + `IrregularForecastExp` base experiment classes with masked MSE loss on query points

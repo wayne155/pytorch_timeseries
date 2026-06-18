@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.2.6'
+__version__ = '0.2.7'
 URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
@@ -16,13 +16,17 @@ install_requires = [
     'scikit-learn',
 ]
 
-full_requires =  [
+full_requires = [
     "torch_scatter",
 ]
 
-benchmark_requires = [
-
+irregular_requires = [
+    "torchdiffeq>=0.2.3",
+    "torchcde>=0.2.5",
+    "torch_geometric>=2.0.0",
 ]
+
+benchmark_requires = []
 
 test_requires = [
     'pytest',
@@ -50,6 +54,7 @@ setup(
     install_requires=install_requires,
     extras_require={
         'full': full_requires,
+        'irregular': irregular_requires,
         'benchmark': benchmark_requires,
         'test': test_requires,
         'dev': dev_requires,
