@@ -75,7 +75,11 @@ class IrregularForecastExp(BaseRelevant, BaseIrrelevant, IrregularForecastSettin
 
     def _init_metrics(self) -> None:
         self.metrics = MetricCollection(
-            {"mse": MeanSquaredError(), "mae": MeanAbsoluteError()}
+            {
+                "mse": MeanSquaredError(),
+                "mae": MeanAbsoluteError(),
+                "rmse": MeanSquaredError(squared=False),
+            }
         )
         self.metrics.to(self.device)
 

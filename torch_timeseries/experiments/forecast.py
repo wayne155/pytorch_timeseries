@@ -135,6 +135,7 @@ class ForecastExp(BaseRelevant, BaseIrrelevant, ForecastSettings):
             metrics={
                 "mse": MeanSquaredError(),
                 "mae": MeanAbsoluteError(),
+                "rmse": MeanSquaredError(squared=False),
             }
         )
         self.metrics.to(self.device)
