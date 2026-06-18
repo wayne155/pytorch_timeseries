@@ -24,6 +24,7 @@ An all-in-one deep learning library covering the full spectrum of time series re
 ## Table of Contents
 
 - [Installation](#installation)
+- [Quick start — your own CSV](#quick-start--your-own-csv)
 - [Model Training — Two Ways to Use](#model-training--two-ways-to-use)
   - [Way 1 — Custom pipeline](#way-1--custom-pipeline-bring-your-own-training-loop)
   - [Way 2 — Built-in experiment runner](#way-2--default-training-paradigm-built-in-or-registered-models)
@@ -52,6 +53,59 @@ pip install torch-timeseries
 > **Python 3.8+ required.**
 
 
+
+## Quick start — your own CSV
+
+Have a CSV file and want forecasts in minutes? Three steps:
+
+```
+my_data.csv
+─────────────────────────────
+date,        temp,  humidity
+2023-01-01,  12.3,  65.1
+2023-01-02,  13.1,  67.4
+...
+```
+
+```python
+import torch, torch.nn as nn
+from torch_timeseries.dataset import build_dataset
+from torch_timeseries.scaler import StandardScaler
+from torch_timeseries.dataloader.v2 import ForecastDataModule, WindowConfig
+from torch_timeseries.model import DLinear
+
+# 1. Load — needs a 'date' column; every other column becomes a feature
+dataset = build_dataset(csv="my_data.csv", freq="h")
+
+# 2. Wrap — 96-step look-back, predict the next 24 steps
+dm = ForecastDataModule(
+    dataset=dataset,
+    scaler=StandardScaler(),
+    window=WindowConfig(window=96, horizon=1, steps=24),
+)
+
+# 3. Train
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model  = DLinear(seq_len=96, pred_len=24, enc_in=dataset.num_features).to(device)
+opt    = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+for epoch in range(10):
+    model.train()
+    for batch in dm.train_loader:
+        x, y = batch.x.float().to(device), batch.y.float().to(device)
+        opt.zero_grad(); nn.MSELoss()(model(x), y).backward(); opt.step()
+
+# 4. Predict
+model.eval()
+with torch.no_grad():
+    batch = next(iter(dm.test_loader))
+    preds = model(batch.x.float().to(device))  # (B, 24, num_features)
+    print(preds.shape)  # → torch.Size([32, 24, 2])
+```
+
+Swap `DLinear` for any of the [20 built-in models](https://pytorch-timeseries.readthedocs.io/en/latest/modules/model.html) — the interface is the same.
+
+---
 
 ## Model Training — Two Ways to Use
 
