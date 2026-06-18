@@ -1,3 +1,7 @@
+## 0.2.17
+
+test: 36 new tests for `torch_timeseries.metrics.prob` — `_crps_ensemble` (shape, non-negativity, perfect/constant/single-sample), `CRPS` (scalar, perfect, accumulation, reset, spread ordering), `CRPSSum` (perfect, single-variable=CRPS), `PICP` (full/zero coverage, custom percentiles, accumulation), `QICE` (calibrated/degenerate ensembles, custom bins), `ProbMSE`/`ProbMAE`/`ProbRMSE` (perfect, constant offset, RMSE≥MAE, accumulation), plus export check
+
 ## 0.2.16
 
 feat: `MCDropoutForecaster` model — first concrete `ProbForecastExp` implementation; wraps any dropout-bearing backbone (default: `VanillaTransformer`) and samples *S* stochastic forward passes at inference to produce `(B, pred_len, enc_in, S)` ensembles; `MCDropoutForecast` experiment with MSE training + CRPS/CRPS-sum/PICP/QICE evaluation; `MCDropoutConfig` with divisibility and num_samples validation; `long_term_forecast/mc_dropout.py` reproduce script; 22 model tests
