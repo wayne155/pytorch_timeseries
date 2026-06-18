@@ -81,15 +81,55 @@ class FITSUEAClassification(UEAClassificationExp, FITSParameters):
         self.model = self.model.to(self.device)
 
     def _process_one_batch(self, batch_x, origin_x, batch_y, padding_masks):
-        # inputs:
-        # batch_x: (B, T, N)
-        # batch_y: (B, O, N)
-        # ouputs:
-        # - pred: (B, N)/(B, O, N)
-        # - label: (B, N)/(B, O, N)
         batch_x = batch_x.to(self.device, dtype=torch.float32)
         batch_y = batch_y.to(self.device, dtype=torch.float32)
-        outputs = self.model(
-            batch_x
-        )  # torch.Size([batch_size, output_length, num_nodes])
+        outputs = self.model(batch_x)
         return outputs, batch_y.long().squeeze(-1)
+
+
+@dataclass
+class FITSAnomalyDetection(AnomalyDetectionExp, FITSParameters):
+    model_type: str = "FITS"
+
+    def _init_model(self):
+        self.model = FITS(
+            seq_len=self.windows,
+            pred_len=self.windows,
+            individual=self.individual,
+            enc_in=self.dataset.num_features,
+            cut_freq=self.cut_freq,
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(self, batch_x, origin_x, batch_y):
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        pred, _ = self.model(batch_x)
+        return pred, batch_x
+
+
+@dataclass
+class FITSImputation(ImputationExp, FITSParameters):
+    model_type: str = "FITS"
+
+    def _init_model(self):
+        self.model = FITS(
+            seq_len=self.windows,
+            pred_len=self.windows,
+            individual=self.individual,
+            enc_in=self.dataset.num_features,
+            cut_freq=self.cut_freq,
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(
+        self,
+        batch_masked_x,
+        batch_x,
+        batch_origin_x,
+        batch_mask,
+        batch_x_date_enc,
+    ):
+        batch_masked_x = batch_masked_x.to(self.device, dtype=torch.float32)
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        pred, _ = self.model(batch_masked_x)
+        return pred, batch_x

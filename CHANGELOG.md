@@ -8,6 +8,12 @@ fix: `SinusoidalEmbedding` crash with odd `d_model` — cosine assignment now us
 
 feat: `tests/nn/` — 45 tests for `CausalConv1d`/`TemporalBlock`/`TemporalConvNet` and all four temporal encoding modules (`Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding`, `SinusoidalEmbedding`)
 
+feat: `FreTSAnomalyDetection`, `FreTSImputation`, `FITSAnomalyDetection`, `FITSImputation` experiment wrappers — completing the four-task coverage for FreTS and FITS
+
+feat: export `EarlyStopping` from `torch_timeseries.utils`; add 19 tests covering patience, delta, state serialization, and checkpoint saving
+
+fix: `ImputationExp` and `AnomalyDetectionExp` `_init_metrics()` — add `rmse: MeanSquaredError(squared=False)` to match ForecastExp
+
 ## 0.2.12
 
 feat: `torch_timeseries.augment` — 11 composable time-series augmentation transforms: `Compose`, `Jitter`, `Scale`, `MagnitudeWarp`, `TimeWarp`, `WindowSlice`, `Permute`, `Flip`, `RandomMask`, `RandomApply`, `RandomChoice`; 51 tests

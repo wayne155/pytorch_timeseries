@@ -53,6 +53,8 @@ from .PatchTST import (
 from .FITS import (
     FITSForecast,
     FITSUEAClassification,
+    FITSAnomalyDetection,
+    FITSImputation,
 )
 
 from .CATS import CATSForecast

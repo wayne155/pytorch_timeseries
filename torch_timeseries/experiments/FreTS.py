@@ -78,15 +78,53 @@ class FreTSUEAClassification(UEAClassificationExp, FreTSParameters):
         self.model = self.model.to(self.device)
 
     def _process_one_batch(self, batch_x, origin_x, batch_y, padding_masks):
-        # inputs:
-        # batch_x: (B, T, N)
-        # batch_y: (B, O, N)
-        # ouputs:
-        # - pred: (B, N)/(B, O, N)
-        # - label: (B, N)/(B, O, N)
         batch_x = batch_x.to(self.device, dtype=torch.float32)
         batch_y = batch_y.to(self.device, dtype=torch.float32)
-        outputs = self.model(
-            batch_x
-        )  # torch.Size([batch_size, output_length, num_nodes])
+        outputs = self.model(batch_x)
         return outputs, batch_y.long().squeeze(-1)
+
+
+@dataclass
+class FreTSAnomalyDetection(AnomalyDetectionExp, FreTSParameters):
+    model_type: str = "FreTS"
+
+    def _init_model(self):
+        self.model = FreTS(
+            seq_len=self.windows,
+            pred_len=self.windows,
+            channel_independence=self.channel_independence,
+            enc_in=self.dataset.num_features,
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(self, batch_x, origin_x, batch_y):
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        outputs = self.model(batch_x)
+        return outputs, batch_x
+
+
+@dataclass
+class FreTSImputation(ImputationExp, FreTSParameters):
+    model_type: str = "FreTS"
+
+    def _init_model(self):
+        self.model = FreTS(
+            seq_len=self.windows,
+            pred_len=self.windows,
+            channel_independence=self.channel_independence,
+            enc_in=self.dataset.num_features,
+        )
+        self.model = self.model.to(self.device)
+
+    def _process_one_batch(
+        self,
+        batch_masked_x,
+        batch_x,
+        batch_origin_x,
+        batch_mask,
+        batch_x_date_enc,
+    ):
+        batch_masked_x = batch_masked_x.to(self.device, dtype=torch.float32)
+        batch_x = batch_x.to(self.device, dtype=torch.float32)
+        outputs = self.model(batch_masked_x)
+        return outputs, batch_x
