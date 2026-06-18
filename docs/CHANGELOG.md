@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.8
+
+- Add `SegRNN` — Segment Recurrent Neural Network (Lin et al., ICLR 2024). Divides the look-back window into segments, encodes with a GRU, and iteratively decodes via the IMO strategy. Supports Forecast, Imputation, Anomaly Detection, and Classification.
+- Add `SegRNNForecast`, `SegRNNImputation`, `SegRNNAnomalyDetection`, `SegRNNUEAClassification` experiment wrappers.
+- Add leaderboard reproduce script for SegRNN long-term forecast.
+- Add leaderboard reproduce scripts for GRUD, mTAN, LatentODE on IrregularClassification; GRUD, mTAN on IrregularInterpolation and IrregularForecast.
+- Expose `irregular_models` list from `torch_timeseries.model`.
+- Update model reference docs: 26 models, SegRNN card, irregular task coverage table.
+- Fix CLI help text to list all 26 models and all 9 tasks including irregular variants.
+
 ## 0.2.7
 
 - Add `mTAN` (Multi-Time Attention Network) — no external deps. Supports classification and seq2seq (interpolation/forecast) via `t_query`.

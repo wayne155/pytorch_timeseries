@@ -6,7 +6,13 @@ from torch_timeseries.leaderboard import leaderboard
 
 def _run_experiment():
     if '--model' not in sys.argv or '--task' not in sys.argv:
-        print("Usage: --model [DLinear|Autoformer|...] --task [Forecast|Imputation|UEAClassification|AnomalyDetection]")
+        print("Usage: --model MODEL --task TASK [hyperparams...]")
+        print("  Regular tasks:   Forecast | Imputation | AnomalyDetection | UEAClassification | Generation")
+        print("  Irregular tasks: IrregularClassification | IrregularInterpolation | IrregularForecast")
+        print("  Models: DLinear | NLinear | Informer | Autoformer | FEDformer | PatchTST | iTransformer")
+        print("          TSMixer | Crossformer | SCINet | TimesNet | CATS | FITS | FreTS")
+        print("          GRUD | mTAN | LatentODE | NeuralCDE | Raindrop")
+        print("  Generation models: TimeGAN | CSDI | DiffusionTS | TimeDiff | NsDiff | TMDM")
         print("Or: pytexp leaderboard --results_dir ./results --entries_dir leaderboard/entries")
         return
 

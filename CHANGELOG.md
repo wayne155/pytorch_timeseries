@@ -1,3 +1,9 @@
+## 0.2.8
+feat: `SegRNN` — Segment RNN (Lin et al., ICLR 2024); IMO decoding; channel-independent; `SegRNNForecast/Imputation/AnomalyDetection/UEAClassification`
+feat: leaderboard reproduce scripts for irregular classification/interpolation/forecast (GRUD, mTAN, LatentODE) and SegRNN forecast
+docs: update model.rst to 26 models + SegRNN card + irregular coverage table; add irregular DataModule docs; update README task/model tables
+fix: CLI help text lists all 26 models and 9 tasks
+
 ## 0.2.7
 feat: Irregular TS Phase 3 — mTAN, LatentODE (torchdiffeq), NeuralCDE (torchcde), Raindrop (torch_geometric) models; mTAN classification/interpolation/forecast + LatentODE × 3 + NeuralCDE + Raindrop classification experiments
 feat: `pip install torch-timeseries[irregular]` extras group for optional irregular-TS dependencies

@@ -1,7 +1,7 @@
 torch_timeseries.model
 ======================
 
-25 built-in models covering forecasting, generation, and irregular time series.
+26 built-in models covering forecasting, generation, and irregular time series.
 Click any card to view the full API — constructor arguments, paper reference, and task support.
 
 .. list-table:: Task coverage at a glance — regular time series
@@ -38,6 +38,11 @@ Click any card to view the full API — constructor arguments, paper reference, 
      - —
      - —
      - —
+   * - SegRNN
+     - ✓
+     - ✓
+     - ✓
+     - ✓
    * - TimeGAN / CSDI / DiffusionTS / TimeDiff / NsDiff / TMDM
      - —
      - —
@@ -260,6 +265,20 @@ anomaly detection, and classification via the built-in experiment runner.
 
       +++
       `Yi et al., NeurIPS 2023 <https://proceedings.neurips.cc/paper_files/paper/2023/hash/f1d16af76939f476b5f040fd1398c0a3-Abstract-Conference.html>`__
+
+   .. grid-item-card:: SegRNN
+      :link: ../generated/torch_timeseries.model.SegRNN
+      :link-type: doc
+
+      Segment Recurrent Neural Network. Divides the look-back window into
+      equal-length segments, encodes them with a GRU, then iteratively
+      decodes future segments (IMO strategy). Achieves strong accuracy on
+      long-horizon benchmarks without attention.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Lin et al., ICLR 2024 <https://openreview.net/forum?id=jeqE7rqz2L>`__
 
 
 ----

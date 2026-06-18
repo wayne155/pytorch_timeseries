@@ -53,6 +53,11 @@ NO_GRID = {}
 
 
 MODEL_PARAMS = {
+    "SegRNN": {
+        "d_model": 512,
+        "seg_len": 48,
+        "dropout": 0.5,
+    },
     "GRUD": {
         "hidden_size": 64,
         "dropout": 0.3,
