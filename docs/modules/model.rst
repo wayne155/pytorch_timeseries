@@ -1,7 +1,7 @@
 torch_timeseries.model
 ======================
 
-26 built-in models covering forecasting, generation, and irregular time series.
+27 built-in models covering forecasting, generation, and irregular time series.
 Click any card to view the full API — constructor arguments, paper reference, and task support.
 
 .. list-table:: Task coverage at a glance — regular time series
@@ -38,7 +38,7 @@ Click any card to view the full API — constructor arguments, paper reference, 
      - —
      - —
      - —
-   * - SegRNN
+   * - SegRNN / TimeMixer
      - ✓
      - ✓
      - ✓
@@ -279,6 +279,20 @@ anomaly detection, and classification via the built-in experiment runner.
 
       +++
       `Lin et al., ICLR 2024 <https://openreview.net/forum?id=jeqE7rqz2L>`__
+
+   .. grid-item-card:: TimeMixer
+      :link: ../generated/torch_timeseries.model.TimeMixer
+      :link-type: doc
+
+      Past Decomposable Mixing: downsamples the look-back to multiple scales,
+      mixes seasonal components bottom-up (fine → coarse) and trend components
+      top-down (coarse → fine). A Future Multipredictor Mixing (FMM) layer
+      combines the multi-scale predictions.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Wang et al., ICLR 2024 <https://openreview.net/forum?id=7oLshfEIC2>`__
 
 
 ----

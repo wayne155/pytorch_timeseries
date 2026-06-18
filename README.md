@@ -850,6 +850,8 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 | [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317) | ✅ | ✅ | ✅ | ✅ |
 | [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol) | ✅ | ✅ | ✅ | ✅ |
 | [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah) | ✅ | ✅ | ✅ | ✅ |
+| [SegRNN (2024)](https://openreview.net/forum?id=jeqE7rqz2L) | ✅ | ✅ | ✅ | ✅ |
+| [TimeMixer (2024)](https://openreview.net/forum?id=7oLshfEIC2) | ✅ | ✅ | ✅ | ✅ |
 
 #### Irregular time series
 

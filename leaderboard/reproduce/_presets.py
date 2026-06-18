@@ -58,6 +58,14 @@ MODEL_PARAMS = {
         "seg_len": 48,
         "dropout": 0.5,
     },
+    "TimeMixer": {
+        "n_heads": 4,
+        "d_model": 32,
+        "e_layers": 3,
+        "dropout": 0.1,
+        "down_sampling_window": 2,
+        "down_sampling_layers": 3,
+    },
     "GRUD": {
         "hidden_size": 64,
         "dropout": 0.3,

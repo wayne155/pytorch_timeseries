@@ -1,3 +1,7 @@
+## 0.2.9
+feat: `TimeMixer` — Past Decomposable Mixing + Future Multipredictor Mixing (Wang et al., ICLR 2024); `TimeMixerForecast/Imputation/AnomalyDetection/UEAClassification`
+docs: update model.rst to 27 models + TimeMixer card
+
 ## 0.2.8
 feat: `SegRNN` — Segment RNN (Lin et al., ICLR 2024); IMO decoding; channel-independent; `SegRNNForecast/Imputation/AnomalyDetection/UEAClassification`
 feat: leaderboard reproduce scripts for irregular classification/interpolation/forecast (GRUD, mTAN, LatentODE) and SegRNN forecast

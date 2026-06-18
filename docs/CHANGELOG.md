@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.9
+
+- Add `TimeMixer` — Past Decomposable Mixing (PDM) + Future Multipredictor Mixing (FMM). Multi-scale seasonal/trend mixing with bottom-up seasonal and top-down trend cascades. Supports Forecast, Imputation, Anomaly Detection, and Classification.
+- Add `TimeMixerForecast`, `TimeMixerImputation`, `TimeMixerAnomalyDetection`, `TimeMixerUEAClassification` experiment wrappers.
+- Add leaderboard reproduce script for TimeMixer long-term forecast.
+
 ## 0.2.8
 
 - Add `SegRNN` — Segment Recurrent Neural Network (Lin et al., ICLR 2024). Divides the look-back window into segments, encodes with a GRU, and iteratively decodes via the IMO strategy. Supports Forecast, Imputation, Anomaly Detection, and Classification.
