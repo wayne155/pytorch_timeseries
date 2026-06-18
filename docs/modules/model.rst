@@ -1,7 +1,7 @@
 torch_timeseries.model
 ======================
 
-27 built-in models covering forecasting, generation, and irregular time series.
+28 built-in models covering forecasting, generation, and irregular time series.
 Click any card to view the full API — constructor arguments, paper reference, and task support.
 
 .. list-table:: Task coverage at a glance — regular time series
@@ -38,7 +38,7 @@ Click any card to view the full API — constructor arguments, paper reference, 
      - —
      - —
      - —
-   * - SegRNN / TimeMixer
+   * - SegRNN / TimeMixer / TiDE
      - ✓
      - ✓
      - ✓
@@ -293,6 +293,20 @@ anomaly detection, and classification via the built-in experiment runner.
 
       +++
       `Wang et al., ICLR 2024 <https://openreview.net/forum?id=7oLshfEIC2>`__
+
+   .. grid-item-card:: TiDE
+      :link: ../generated/torch_timeseries.model.TiDE
+      :link-type: doc
+
+      Time-series Dense Encoder. A pure-MLP encoder-decoder: the full
+      look-back is flattened and encoded by stacked residual blocks; the
+      latent is decoded for each future time step and projected to output
+      features. A global residual carries the last observed value forward.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Das et al., TMLR 2023 <https://arxiv.org/abs/2304.08424>`__
 
 
 ----

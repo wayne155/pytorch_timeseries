@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.10
+
+- Add `TiDE` — Time-series Dense Encoder. Pure MLP encoder-decoder: flattens look-back, encodes with stacked residual blocks, decodes to each future step, projects via temporal decoder. Global residual carries the last observed value forward. Supports Forecast, Imputation, Anomaly Detection, and Classification.
+- Add `TiDEForecast`, `TiDEImputation`, `TiDEAnomalyDetection`, `TiDEUEAClassification` experiment wrappers.
+
 ## 0.2.9
 
 - Add `TimeMixer` — Past Decomposable Mixing (PDM) + Future Multipredictor Mixing (FMM). Multi-scale seasonal/trend mixing with bottom-up seasonal and top-down trend cascades. Supports Forecast, Imputation, Anomaly Detection, and Classification.

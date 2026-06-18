@@ -66,6 +66,13 @@ MODEL_PARAMS = {
         "down_sampling_window": 2,
         "down_sampling_layers": 3,
     },
+    "TiDE": {
+        "hidden_size": 256,
+        "num_encoder_layers": 2,
+        "num_decoder_layers": 2,
+        "decoder_output_dim": 8,
+        "dropout": 0.3,
+    },
     "GRUD": {
         "hidden_size": 64,
         "dropout": 0.3,

@@ -1,3 +1,6 @@
+## 0.2.10
+feat: `TiDE` — Time-series Dense Encoder (Das et al., TMLR 2023); `TiDEForecast/Imputation/AnomalyDetection/UEAClassification`
+
 ## 0.2.9
 feat: `TimeMixer` — Past Decomposable Mixing + Future Multipredictor Mixing (Wang et al., ICLR 2024); `TimeMixerForecast/Imputation/AnomalyDetection/UEAClassification`
 docs: update model.rst to 27 models + TimeMixer card

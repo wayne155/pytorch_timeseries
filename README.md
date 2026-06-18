@@ -852,6 +852,7 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 | [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah) | ✅ | ✅ | ✅ | ✅ |
 | [SegRNN (2024)](https://openreview.net/forum?id=jeqE7rqz2L) | ✅ | ✅ | ✅ | ✅ |
 | [TimeMixer (2024)](https://openreview.net/forum?id=7oLshfEIC2) | ✅ | ✅ | ✅ | ✅ |
+| [TiDE (2023)](https://arxiv.org/abs/2304.08424) | ✅ | ✅ | ✅ | ✅ |
 
 #### Irregular time series
 

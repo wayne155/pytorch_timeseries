@@ -57,7 +57,7 @@ from .FITS import (
 
 from .CATS import CATSForecast
 
-model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer']
+model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer', 'TiDE']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']
 for model_prefix in model_list:

@@ -20,6 +20,7 @@ from .NsDiff import NsDiff
 from .TMDM import TMDM
 from .SegRNN import SegRNN
 from .TimeMixer import TimeMixer
+from .TiDE import TiDE
 from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_embedding
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -29,7 +30,7 @@ forecasting_models = [
     "PatchTST", "iTransformer",
     "TSMixer", "Crossformer", "SCINet", "TimesNet",
     "CATS", "FITS", "FreTS",
-    "SegRNN", "TimeMixer",
+    "SegRNN", "TimeMixer", "TiDE",
 ]
 
 generation_models = [
