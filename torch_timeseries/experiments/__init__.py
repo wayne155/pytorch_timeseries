@@ -73,6 +73,13 @@ from .PatchMixer import (
     PatchMixerImputation,
 )
 
+from .RNNForecaster import (
+    RNNForecast,
+    RNNUEAClassification,
+    RNNAnomalyDetection,
+    RNNImputation,
+)
+
 model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer', 'TiDE', 'NHiTS']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']
