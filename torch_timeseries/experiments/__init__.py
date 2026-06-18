@@ -125,6 +125,7 @@ from .NeuralCDE import NeuralCDEIrregularClassification
 from .Raindrop import RaindropIrregularClassification
 
 from .MCDropoutForecaster import MCDropoutForecast
+from .GaussianForecaster import GaussianForecast
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
