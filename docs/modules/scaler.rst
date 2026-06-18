@@ -26,6 +26,13 @@ Unscaled values are available in ``batch.x_raw`` and ``batch.y_raw`` when
    * - ``StandardScaler``
      - Zero-mean, unit-variance normalisation (z-score). Default choice for
        most forecasting and imputation benchmarks.
+   * - ``MinMaxScaler``
+     - Per-feature min–max normalisation to a configurable range (default
+       [0, 1]).  ``feature_range=(lo, hi)`` shifts and clips to [lo, hi].
+       Sensitive to outliers — prefer ``RobustScaler`` for noisy data.
+   * - ``RobustScaler``
+     - Centres by the median and scales by the IQR.  Insensitive to
+       outliers.  ``quantile_range=(25, 75)`` controls the IQR percentiles.
    * - ``MaxAbsScaler``
      - Scales each feature to the range [−1, 1] by dividing by the maximum
        absolute value.  Preserves sparsity and zero entries.

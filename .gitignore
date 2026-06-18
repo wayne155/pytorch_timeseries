@@ -26,6 +26,12 @@ save
 saves
 *.pt
 
+# Un-ignore source-code directories that share a name with data dirs
+!torch_timeseries/results/
+!torch_timeseries/results/**
+!tests/results/
+!tests/results/**
+
 wandb
 
 # dataset suffix
