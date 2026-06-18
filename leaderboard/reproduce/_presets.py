@@ -204,6 +204,10 @@ MODEL_PARAMS = {
         "degree_of_polynomial": 3,
         "num_harmonics": 4,
     },
+    "SparseTSF": {
+        "period": 24,   # daily period for hourly data (ETT, Weather, Traffic)
+        "revin": True,
+    },
     "FreTS": {
         "channel_independence": True,
     },

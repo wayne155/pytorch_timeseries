@@ -134,6 +134,12 @@ from .NBEATS import (
     NBEATSAnomalyDetection,
     NBEATSImputation,
 )
+from .SparseTSF import (
+    SparseTSFForecast,
+    SparseTSFUEAClassification,
+    SparseTSFAnomalyDetection,
+    SparseTSFImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

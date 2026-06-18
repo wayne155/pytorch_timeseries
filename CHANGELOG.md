@@ -1,3 +1,7 @@
+## 0.2.24
+
+feat: `SparseTSF` model — period-based sparse forecasting with ~1K parameters (Chen et al., ICML 2024); downsamples input by period P, applies a tiny linear layer in sparse domain, then upsamples back; RevIN normalisation; supports all 4 tasks; 21 model tests; 1204 tests total
+
 ## 0.2.23
 
 feat: `NBEATS` model — Neural Basis Expansion Analysis for Time Series Forecasting (Oreshkin et al. ICLR 2020); doubly residual stacks of FC blocks with generic/trend(polynomial)/seasonality(Fourier) basis expansion; channel-independent processing; supports all 4 tasks (Forecast, AnomalyDetection, Imputation, UEAClassification); 27 model tests; reproduce scripts for all tasks; 1181 tests total
