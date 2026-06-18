@@ -1,3 +1,25 @@
+## 0.2.12
+
+feat: `torch_timeseries.augment` — 11 composable time-series augmentation transforms: `Compose`, `Jitter`, `Scale`, `MagnitudeWarp`, `TimeWarp`, `WindowSlice`, `Permute`, `Flip`, `RandomMask`, `RandomApply`, `RandomChoice`; 51 tests
+
+feat: `torch_timeseries.metrics` — `SMAPE`, `MASE`, `QuantileLoss` (torchmetrics-compatible) + `naive_seasonal_mae` helper; 18 tests
+
+feat: `torch_timeseries.scaler` — `MinMaxScaler` (configurable feature range) and `RobustScaler` (median + IQR scaling); 21 tests
+
+feat: `torch_timeseries.utils` — `WarmupCosineScheduler`, `WarmupLinearScheduler` (linear warmup + cosine/linear decay); `model_summary()` returning param counts and size in MB; 12 tests
+
+feat: `torch_timeseries.nn.RevIN` — Reversible Instance Normalization (Kim et al. ICLR 2022) with learnable affine parameters; 13 tests
+
+feat: `torch_timeseries.results.ResultsComparator` — aggregate `RunResult` objects across seeds, compute mean±std per metric, render PrettyTable or pandas DataFrame; 12 tests
+
+feat: comprehensive forecasting model tests — shape + gradient flow for all 17 forecasting models; 18 tests
+
+feat: leaderboard reproduce scripts for `SegRNN`, `TimeMixer`, `TiDE`, `NHiTS` in `long_term_forecast/` and `short_term_forecast/`
+
+docs: `augment.rst`, `metrics.rst` pages added; `scaler.rst` and `nn.rst` updated
+
+fix: `FEDformer` `FourierBlock`/`FourierCrossAttention` hardcoded `n_heads=8` causing einsum shape mismatch when `n_heads != 8`
+
 ## 0.2.11
 feat: `NHiTS` — Neural Hierarchical Interpolation (Challu et al., AAAI 2023); `NHiTSForecast/Imputation/AnomalyDetection/UEAClassification`
 
