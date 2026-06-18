@@ -284,3 +284,45 @@ Recurrent Networks for Sequence Modeling*, 2018.
    CausalConv1d
    TemporalBlock
    TemporalConvNet
+
+----
+
+Patching
+--------
+
+Decompose a time series into fixed-length overlapping patches, following
+PatchTST (Nie et al., ICLR 2023).
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Class
+     - Description
+   * - ``Patcher``
+     - Divides a ``(B, L, C)`` sequence into ``(B, N, patch_len, C)`` patches.
+       Supports non-overlapping (``stride=patch_len``), overlapping
+       (``stride < patch_len``), and dense (``stride=1``) configurations.
+       Three padding modes: ``'end'`` (replicate last step), ``'none'`` (no
+       padding), or a constant integer.
+
+.. code-block:: python
+
+   from torch_timeseries.nn import Patcher
+
+   patcher = Patcher(patch_len=16, stride=8)
+   x   = torch.randn(4, 96, 7)   # (B, L, C)
+   out = patcher(x)               # (4, 12, 16, 7) — 12 patches
+
+   # Use inside a Transformer (flatten patch × channel):
+   B, N, P, C = out.shape
+   tokens = out.reshape(B, N, P * C)   # (4, 12, 112)
+
+.. currentmodule:: torch_timeseries.nn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/only_class.rst
+
+   Patcher

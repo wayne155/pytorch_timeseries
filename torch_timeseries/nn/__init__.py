@@ -23,3 +23,4 @@ from .temporal_encoding import (
 )
 from .revin import RevIN
 from .tcn import CausalConv1d, TemporalBlock, TemporalConvNet
+from .patching import Patcher
