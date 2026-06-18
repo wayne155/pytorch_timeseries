@@ -147,6 +147,7 @@
    modules/model
    modules/nn
    modules/augment
+   modules/metrics
 
 .. toctree::
    :maxdepth: 1
