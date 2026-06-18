@@ -33,10 +33,16 @@ class Stocks(TimeSeriesDataset):
 
     def _load(self) -> np.ndarray:
         self.file_path = os.path.join(self.dir, self._FILENAME)
-        self.df = pd.read_csv(self.file_path, header=None)
-        n = len(self.df)
+        raw = pd.read_csv(self.file_path)
+        feature_cols = [c for c in raw.columns if raw[c].dtype.kind in ("f", "i")]
+        values = raw[feature_cols].to_numpy().astype(np.float64)
+        # Per-feature min-max normalisation to [0, 1] (TimeGAN convention).
+        col_min = values.min(axis=0, keepdims=True)
+        col_max = values.max(axis=0, keepdims=True)
+        values = (values - col_min) / (col_max - col_min + 1e-8)
+        n = len(values)
+        self.df = pd.DataFrame(values, columns=feature_cols)
         self.df.insert(0, "date", pd.date_range("2004-08-19", periods=n, freq="B"))
-        self.df.columns = ["date"] + [f"feat_{i}" for i in range(self.df.shape[1] - 1)]
         self.dates = pd.DataFrame({"date": self.df["date"]})
-        self.data  = self.df.drop("date", axis=1).to_numpy().astype(np.float32)
+        self.data  = values.astype(np.float32)
         return self.data
