@@ -148,6 +148,15 @@ MODEL_PARAMS = {
         "modified": True,
         "RIN": True,
     },
+    "VanillaTransformer": {
+        "d_model": 256,
+        "n_heads": 4,
+        "e_layers": 3,
+        "d_ff": 512,
+        "dropout": 0.1,
+        "activation": "gelu",
+        "revin": True,
+    },
     "DLinear": {"individual": False},
     "TCN": {
         "d_model": 64,

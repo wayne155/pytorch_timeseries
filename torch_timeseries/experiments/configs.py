@@ -110,6 +110,33 @@ class RNNConfig:
 
 
 @dataclass
+class VanillaTransformerConfig:
+    d_model: int = 256
+    n_heads: int = 4
+    e_layers: int = 3
+    d_ff: int = 512
+    dropout: float = 0.1
+    activation: str = "gelu"
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+        if self.activation not in ("relu", "gelu"):
+            raise ValueError("activation must be 'relu' or 'gelu'")
+
+
+@dataclass
 class RuntimeConfig:
     data_path: str = "~/.torchtimeseries/data"
     save_dir: str = "./results"
@@ -226,6 +253,7 @@ def split_experiment_config(
         ("TCN", "Forecast"): TCNConfig,
         ("PatchMixer", "Forecast"): PatchMixerConfig,
         ("RNN", "Forecast"): RNNConfig,
+        ("VanillaTransformer", "Forecast"): VanillaTransformerConfig,
     }
     if (model, task) not in model_configs:
         raise NotImplementedError(

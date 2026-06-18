@@ -1,3 +1,13 @@
+## 0.2.15
+
+feat: `VanillaTransformer` model — encoder-only Transformer forecaster built from `torch_timeseries.nn` building blocks (`DataEmbedding` + `Encoder`/`EncoderLayer`/`FullAttention`); supports forecasting, anomaly detection, imputation, and classification (`output_prob`); optional RevIN; `VanillaTransformerForecast`, `VanillaTransformerUEAClassification`, `VanillaTransformerAnomalyDetection`, `VanillaTransformerImputation` experiment wrappers; `VanillaTransformerConfig` with head-count divisibility validation; 26 model tests + 8 config tests
+
+feat: `tests/nn/test_multiwavelet.py` — 30 tests for `MultiWaveletTransform` (self-attention) and `MultiWaveletCross` (cross-attention): construction with both `legendre` and `chebyshev` bases, forward shape, finite outputs, gradient flow, padding behaviors (L_q > L_v, L_q < L_v), softmax activation, multi-CZ-layer stacking
+
+feat: leaderboard reproduce scripts for TCN, PatchMixer, RNN and VanillaTransformer in `anomaly_detection/`, `imputation/`, and `uea_classification/` (12 new scripts); VanillaTransformer also in `long_term_forecast/`
+
+test: 828 tests total (+64 vs 0.2.14)
+
 ## 0.2.14
 
 feat: `TCNForecaster` model — TCN-based multi-task forecaster (forecast, imputation, anomaly detection, classification) using `TemporalConvNet` with optional RevIN normalization; `TCNForecast`, `TCNUEAClassification`, `TCNAnomalyDetection`, `TCNImputation` experiment wrappers; 15 tests

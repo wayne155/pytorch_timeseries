@@ -26,10 +26,11 @@ from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_e
 from .TCNForecaster import TCNForecaster
 from .PatchMixer import PatchMixer
 from .RNNForecaster import RNNForecaster
+from .VanillaTransformer import VanillaTransformer
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
-    "DLinear", "NLinear", "TCNForecaster", "PatchMixer", "RNNForecaster",
+    "DLinear", "NLinear", "TCNForecaster", "PatchMixer", "RNNForecaster", "VanillaTransformer",
     "Informer", "Autoformer", "FEDformer",
     "PatchTST", "iTransformer",
     "TSMixer", "Crossformer", "SCINet", "TimesNet",

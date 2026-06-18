@@ -1,4 +1,4 @@
-"""Tests for TCNConfig, PatchMixerConfig, and RNNConfig split_experiment_config."""
+"""Tests for TCNConfig, PatchMixerConfig, RNNConfig, VanillaTransformerConfig."""
 import pytest
 
 from torch_timeseries.experiments.configs import (
@@ -6,6 +6,7 @@ from torch_timeseries.experiments.configs import (
     RNNConfig,
     RuntimeConfig,
     TCNConfig,
+    VanillaTransformerConfig,
     split_experiment_config,
 )
 
@@ -137,3 +138,57 @@ class TestRNNConfig:
 
     def test_defaults_are_valid(self):
         RNNConfig().validate()
+
+
+class TestVanillaTransformerConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="VanillaTransformer",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "d_model": 128, "n_heads": 4, "e_layers": 2, "d_ff": 256,
+                "dropout": 0.1, "activation": "gelu", "revin": True,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert w.window == 96
+        assert w.steps == 24
+        assert isinstance(m, VanillaTransformerConfig)
+        assert m.d_model == 128
+        assert m.n_heads == 4
+        assert m.e_layers == 2
+
+    def test_rejects_irrelevant_kwargs(self):
+        with pytest.raises(TypeError, match="individual"):
+            split_experiment_config(
+                model="VanillaTransformer",
+                task="Forecast",
+                kwargs={"windows": 96, "pred_len": 24, "individual": True},
+            )
+
+    def test_validate_d_model_positive(self):
+        cfg = VanillaTransformerConfig(d_model=0)
+        with pytest.raises(ValueError, match="d_model"):
+            cfg.validate()
+
+    def test_validate_n_heads_divides_d_model(self):
+        cfg = VanillaTransformerConfig(d_model=256, n_heads=7)
+        with pytest.raises(ValueError, match="n_heads"):
+            cfg.validate()
+
+    def test_validate_activation(self):
+        cfg = VanillaTransformerConfig(activation="sigmoid")
+        with pytest.raises(ValueError, match="activation"):
+            cfg.validate()
+
+    def test_validate_dropout_range(self):
+        cfg = VanillaTransformerConfig(dropout=1.0)
+        with pytest.raises(ValueError, match="dropout"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        VanillaTransformerConfig().validate()
+
+    def test_relu_activation_valid(self):
+        VanillaTransformerConfig(activation="relu").validate()

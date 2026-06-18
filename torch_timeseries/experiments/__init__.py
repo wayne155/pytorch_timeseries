@@ -80,6 +80,13 @@ from .RNNForecaster import (
     RNNImputation,
 )
 
+from .VanillaTransformer import (
+    VanillaTransformerForecast,
+    VanillaTransformerUEAClassification,
+    VanillaTransformerAnomalyDetection,
+    VanillaTransformerImputation,
+)
+
 model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer', 'TiDE', 'NHiTS']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']
