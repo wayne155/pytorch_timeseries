@@ -66,6 +66,13 @@ from .TCNForecaster import (
     TCNImputation,
 )
 
+from .PatchMixer import (
+    PatchMixerForecast,
+    PatchMixerUEAClassification,
+    PatchMixerAnomalyDetection,
+    PatchMixerImputation,
+)
+
 model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer', 'TiDE', 'NHiTS']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']

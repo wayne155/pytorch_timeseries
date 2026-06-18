@@ -24,10 +24,11 @@ from .TiDE import TiDE
 from .NHiTS import NHiTS
 from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_embedding
 from .TCNForecaster import TCNForecaster
+from .PatchMixer import PatchMixer
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
-    "DLinear", "NLinear", "TCNForecaster",
+    "DLinear", "NLinear", "TCNForecaster", "PatchMixer",
     "Informer", "Autoformer", "FEDformer",
     "PatchTST", "iTransformer",
     "TSMixer", "Crossformer", "SCINet", "TimesNet",
