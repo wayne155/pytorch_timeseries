@@ -25,3 +25,6 @@ from .revin import RevIN
 from .tcn import CausalConv1d, TemporalBlock, TemporalConvNet
 from .patching import Patcher
 from .mlp import FeedForward, MixerBlock
+from .augmentation import (
+    Jitter, Scaling, Flip, WindowCutout, MagnitudeWarp, TimeWarp, Compose,
+)
