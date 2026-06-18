@@ -4,10 +4,10 @@
    <div class="hero">
      <div class="hero-title">torch-timeseries</div>
      <p class="hero-subtitle">
-       A research toolkit covering <strong>six time-series tasks</strong> — forecasting,
-       probabilistic forecasting, generation, imputation, anomaly detection, and
-       classification — with 20 built-in models, ready-made datasets, and a two-line
-       experiment runner.
+       A research toolkit covering <strong>nine time-series tasks</strong> — forecasting,
+       probabilistic forecasting, generation, imputation, anomaly detection, classification,
+       irregular classification, irregular interpolation, and irregular forecasting — with
+       20+ built-in models, ready-made datasets, and a two-line experiment runner.
      </p>
      <div class="hero-badges">
        <a href="https://pypi.org/project/torch-timeseries/"><img src="https://img.shields.io/pypi/v/torch-timeseries?color=2563eb&style=flat-square" alt="PyPI"/></a>

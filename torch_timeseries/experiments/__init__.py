@@ -81,6 +81,18 @@ from .GRUD import (
     GRUDIrregularInterpolation,
     GRUDIrregularForecast,
 )
+from .mTAN import (
+    mTANIrregularClassification,
+    mTANIrregularInterpolation,
+    mTANIrregularForecast,
+)
+from .LatentODE import (
+    LatentODEIrregularClassification,
+    LatentODEIrregularInterpolation,
+    LatentODEIrregularForecast,
+)
+from .NeuralCDE import NeuralCDEIrregularClassification
+from .Raindrop import RaindropIrregularClassification
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

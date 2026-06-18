@@ -310,6 +310,65 @@ accepted — it downloads automatically.
    ).run(seed=1)
    print(result)   # {'accuracy': ...}
 
+Irregular Time Series — Interpolation and Forecasting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Handle real-world clinical or sensor datasets where observations arrive at
+irregular timestamps with per-feature missingness. Use
+``IrregularInterpolationDataModule`` to reconstruct held-out query points, or
+``IrregularForecastDataModule`` to predict future irregular observations.
+
+.. code-block:: python
+
+   import torch
+   import torch.nn as nn
+   from dataclasses import dataclass
+   from torch_timeseries.dataset.irregular import PhysioNet2012
+   from torch_timeseries.dataloader.v2 import (
+       IrregularInterpolationDataModule, IrregularInterpolationConfig,
+       SplitConfig, LoaderConfig,
+   )
+   from torch_timeseries.scaler import StandardScaler
+
+   ds = PhysioNet2012(root="./data")
+
+   dm = IrregularInterpolationDataModule(
+       dataset=ds,
+       scaler=StandardScaler(),
+       window=IrregularInterpolationConfig(query_rate=0.2),
+       split=SplitConfig(train=0.7, val=0.1, test=0.2),
+       loader=LoaderConfig(batch_size=32),
+   )
+
+   # batch fields: x (B,T,F), t (B,T), mask (B,T,F),
+   #               y (B,Tq,F), t_query (B,Tq), query_mask (B,Tq,F)
+   batch = next(iter(dm.train_loader))
+
+Use the built-in GRU-D model and experiment runner:
+
+.. code-block:: python
+
+   from torch_timeseries.experiments.GRUD import GRUDIrregularInterpolation
+
+   result = GRUDIrregularInterpolation(
+       dataset_type="PhysioNet2012", hidden_size=64,
+       epochs=50, batch_size=64, device="cuda",
+   ).run(seed=1)
+   print(result)   # {'mse': ..., 'mae': ...}
+
+For forecasting, swap in ``IrregularForecastDataModule``
+(``obs_frac`` controls how much of each sequence is used as context):
+
+.. code-block:: python
+
+   from torch_timeseries.experiments.GRUD import GRUDIrregularForecast
+
+   result = GRUDIrregularForecast(
+       dataset_type="PhysioNet2012", obs_frac=0.7,
+       hidden_size=64, epochs=50, device="cuda",
+   ).run(seed=1)
+   print(result)   # {'mse': ..., 'mae': ...}
+
 Time Series Generation with Diffusion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
