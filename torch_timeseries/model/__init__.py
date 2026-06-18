@@ -27,6 +27,7 @@ from .TCNForecaster import TCNForecaster
 from .PatchMixer import PatchMixer
 from .RNNForecaster import RNNForecaster
 from .VanillaTransformer import VanillaTransformer
+from .MCDropoutForecaster import MCDropoutForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
@@ -36,6 +37,10 @@ forecasting_models = [
     "TSMixer", "Crossformer", "SCINet", "TimesNet",
     "CATS", "FITS", "FreTS",
     "SegRNN", "TimeMixer", "TiDE", "NHiTS",
+]
+
+prob_forecasting_models = [
+    "MCDropoutForecaster",
 ]
 
 generation_models = [

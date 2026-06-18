@@ -1,3 +1,7 @@
+## 0.2.16
+
+feat: `MCDropoutForecaster` model — first concrete `ProbForecastExp` implementation; wraps any dropout-bearing backbone (default: `VanillaTransformer`) and samples *S* stochastic forward passes at inference to produce `(B, pred_len, enc_in, S)` ensembles; `MCDropoutForecast` experiment with MSE training + CRPS/CRPS-sum/PICP/QICE evaluation; `MCDropoutConfig` with divisibility and num_samples validation; `long_term_forecast/mc_dropout.py` reproduce script; 22 model tests
+
 ## 0.2.15
 
 feat: `VanillaTransformer` model — encoder-only Transformer forecaster built from `torch_timeseries.nn` building blocks (`DataEmbedding` + `Encoder`/`EncoderLayer`/`FullAttention`); supports forecasting, anomaly detection, imputation, and classification (`output_prob`); optional RevIN; `VanillaTransformerForecast`, `VanillaTransformerUEAClassification`, `VanillaTransformerAnomalyDetection`, `VanillaTransformerImputation` experiment wrappers; `VanillaTransformerConfig` with head-count divisibility validation; 26 model tests + 8 config tests

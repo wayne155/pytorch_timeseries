@@ -124,6 +124,8 @@ from .LatentODE import (
 from .NeuralCDE import NeuralCDEIrregularClassification
 from .Raindrop import RaindropIrregularClassification
 
+from .MCDropoutForecaster import MCDropoutForecast
+
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
 from .CSDI import CSDIGeneration
