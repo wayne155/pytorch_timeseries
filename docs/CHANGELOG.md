@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.6
+
+- Add `IrregularInterpolationDataModule` + `IrregularInterpolationConfig`: deterministic per-sample query holdout (query points excluded from the input mask).
+- Add `IrregularForecastDataModule` + `IrregularForecastConfig`: obs_frac timespan split into context window and future targets.
+- Add `MIMIC` load-from-file dataset (requires credentialed PhysioNet access).
+- Add `UEAIrregular`: wraps any UEA dataset with synthetic timestamp dropout.
+- Add `IrregularWrapper`: wraps any `TimeSeriesDataset` with per-window dropout.
+- Add `IrregularInterpolationExp` + `IrregularForecastExp` experiment base classes (masked MSE on held-out and future query points).
+- Add `GRUDIrregularInterpolation` + `GRUDIrregularForecast` combo experiment classes.
+- GRU-D: seq2seq mode — `forward(x, t, mask, t_query) → (B, Tq, F)`.
+
 ## 0.2.5
 
 - Add temporal encoding classes to `torch_timeseries.nn`: `Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding` (RoPE), `SinusoidalEmbedding`.

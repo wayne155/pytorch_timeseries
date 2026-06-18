@@ -1,3 +1,9 @@
+## 0.2.6
+feat: Irregular TS Phase 2 — `IrregularInterpolationDataModule`, `IrregularForecastDataModule`, `MIMIC` load-from-file dataset, `UEAIrregular` synthetic-dropout wrapper, `IrregularWrapper` for regular datasets
+feat: `IrregularInterpolationExp` + `IrregularForecastExp` base experiment classes with masked MSE loss on query points
+feat: `GRUDIrregularInterpolation` + `GRUDIrregularForecast` combo experiment classes
+model: GRU-D seq2seq mode — `forward(x, t, mask, t_query) → (B, Tq, F)` via hidden-state decay and `fc_seq2seq` projection
+
 ## 0.2.5
 feat: temporal encoding — `Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding`, `SinusoidalEmbedding` added to `torch_timeseries.nn`
 docs: model reference section in Sphinx docs with paper citations and Args for all 20 models; nn temporal encoding section

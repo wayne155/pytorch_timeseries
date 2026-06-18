@@ -51,6 +51,9 @@ named batches.
    ImputationDataModule
    AnomalyDataModule
    UEADataModule
+   IrregularClassificationDataModule
+   IrregularInterpolationDataModule
+   IrregularForecastDataModule
 
 Configuration Objects
 ---------------------
@@ -67,6 +70,9 @@ loading behaviour.
    SplitConfig
    LoaderConfig
    UEAWindowConfig
+   IrregularClassificationConfig
+   IrregularInterpolationConfig
+   IrregularForecastConfig
 
 Legacy Dataloaders
 ------------------
