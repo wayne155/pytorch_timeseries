@@ -73,6 +73,14 @@ MODEL_PARAMS = {
         "decoder_output_dim": 8,
         "dropout": 0.3,
     },
+    "NHiTS": {
+        "n_stacks": 3,
+        "n_blocks": 1,
+        "n_theta": 512,
+        "mlp_units": 512,
+        "n_layers": 2,
+        "dropout": 0.1,
+    },
     "GRUD": {
         "hidden_size": 64,
         "dropout": 0.3,

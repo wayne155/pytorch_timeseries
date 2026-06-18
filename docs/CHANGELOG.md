@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.11
+
+- Add `NHiTS` — Neural Hierarchical Interpolation for Time Series (Challu et al., AAAI 2023). Doubly-residual stacks with geometrically-increasing pool sizes; each block applies MLP with backcast subtraction and forecast accumulation. Supports Forecast, Imputation, Anomaly Detection, and Classification.
+- Add `NHiTSForecast`, `NHiTSImputation`, `NHiTSAnomalyDetection`, `NHiTSUEAClassification` experiment wrappers.
+
 ## 0.2.10
 
 - Add `TiDE` — Time-series Dense Encoder. Pure MLP encoder-decoder: flattens look-back, encodes with stacked residual blocks, decodes to each future step, projects via temporal decoder. Global residual carries the last observed value forward. Supports Forecast, Imputation, Anomaly Detection, and Classification.

@@ -1,3 +1,6 @@
+## 0.2.11
+feat: `NHiTS` — Neural Hierarchical Interpolation (Challu et al., AAAI 2023); `NHiTSForecast/Imputation/AnomalyDetection/UEAClassification`
+
 ## 0.2.10
 feat: `TiDE` — Time-series Dense Encoder (Das et al., TMLR 2023); `TiDEForecast/Imputation/AnomalyDetection/UEAClassification`
 

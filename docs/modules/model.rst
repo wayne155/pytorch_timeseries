@@ -1,7 +1,7 @@
 torch_timeseries.model
 ======================
 
-28 built-in models covering forecasting, generation, and irregular time series.
+29 built-in models covering forecasting, generation, and irregular time series.
 Click any card to view the full API — constructor arguments, paper reference, and task support.
 
 .. list-table:: Task coverage at a glance — regular time series
@@ -38,7 +38,7 @@ Click any card to view the full API — constructor arguments, paper reference, 
      - —
      - —
      - —
-   * - SegRNN / TimeMixer / TiDE
+   * - SegRNN / TimeMixer / TiDE / NHiTS
      - ✓
      - ✓
      - ✓
@@ -307,6 +307,20 @@ anomaly detection, and classification via the built-in experiment runner.
 
       +++
       `Das et al., TMLR 2023 <https://arxiv.org/abs/2304.08424>`__
+
+   .. grid-item-card:: NHiTS
+      :link: ../generated/torch_timeseries.model.NHiTS
+      :link-type: doc
+
+      Neural Hierarchical Interpolation for Time Series. Stacks of blocks
+      with geometrically-increasing pool sizes decompose the signal at
+      multiple temporal scales. Each block applies a doubly-residual MLP
+      (backcast subtraction + forecast accumulation).
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Challu et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26253>`__
 
 
 ----
