@@ -227,3 +227,60 @@ Instance normalization utilities for distribution-shift robustness.
    :template: autosummary/only_class.rst
 
    RevIN
+
+----
+
+Temporal Convolutional Networks
+--------------------------------
+
+Causal dilated convolutional building blocks for sequence modelling. TCNs
+achieve the same sequence-to-sequence mapping as RNNs but are fully
+parallelisable over the time axis during training.
+
+Reference: Bai et al., *An Empirical Evaluation of Generic Convolutional and
+Recurrent Networks for Sequence Modeling*, 2018.
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Class
+     - Description
+   * - ``CausalConv1d``
+     - 1-D dilated causal convolution.  Left-pads so the output length always
+       equals the input length.  The output at time ``t`` depends only on
+       inputs ``≤ t``.
+   * - ``TemporalBlock``
+     - One TCN residual block: two :class:`CausalConv1d` layers (ReLU +
+       Dropout) with a residual skip connection.  A 1×1 projection is added
+       automatically when input and output channels differ.
+   * - ``TemporalConvNet``
+     - Full TCN: a stack of :class:`TemporalBlock` layers with exponentially
+       increasing dilation (``2^0, 2^1, …``).  The receptive field grows as
+       ``1 + 2 × (k-1) × (2^n - 1)`` where ``k`` is the kernel size and
+       ``n`` is the number of levels.
+
+.. code-block:: python
+
+   from torch_timeseries.nn import TemporalConvNet
+
+   # Input: (B, C, L) — channels-first convention (same as Conv1d)
+   tcn = TemporalConvNet(in_channels=7, num_channels=[64, 64, 64], kernel_size=3)
+
+   x   = torch.randn(4, 7, 96)       # (B, in_channels, L)
+   out = tcn(x)                       # (4, 64, 96)
+
+   # For (B, L, C) inputs — transpose before and after
+   x_blc = torch.randn(4, 96, 7)
+   out_blc = tcn(x_blc.transpose(1, 2)).transpose(1, 2)  # (4, 96, 64)
+
+.. currentmodule:: torch_timeseries.nn
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/only_class.rst
+
+   CausalConv1d
+   TemporalBlock
+   TemporalConvNet
