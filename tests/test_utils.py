@@ -7,7 +7,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from torch_timeseries.utils import EarlyStopping, count_parameters, model_summary
+from torch_timeseries.utils import EarlyStopping, count_parameters, model_summary, set_seed
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -157,6 +157,55 @@ class TestModelSummary:
         info = model_summary(model)
         expected_mb = 65792 * 4 / 1024 / 1024
         assert math.isclose(info["size_mb"], expected_mb, rel_tol=1e-5)
+
+
+# ── set_seed ──────────────────────────────────────────────────────────────────
+
+class TestSetSeed:
+    def test_reproducible_torch(self):
+        set_seed(42)
+        a = torch.randn(5)
+        set_seed(42)
+        b = torch.randn(5)
+        assert torch.allclose(a, b)
+
+    def test_reproducible_numpy(self):
+        import numpy as np
+        set_seed(42)
+        a = np.random.randn(5)
+        set_seed(42)
+        b = np.random.randn(5)
+        assert np.allclose(a, b)
+
+    def test_reproducible_python_random(self):
+        import random
+        set_seed(42)
+        a = [random.random() for _ in range(5)]
+        set_seed(42)
+        b = [random.random() for _ in range(5)]
+        assert a == b
+
+    def test_different_seeds_differ(self):
+        set_seed(0)
+        a = torch.randn(5)
+        set_seed(1)
+        b = torch.randn(5)
+        assert not torch.allclose(a, b)
+
+    def test_deterministic_flag(self):
+        import torch.backends.cudnn as cudnn
+        set_seed(42, deterministic=True)
+        assert cudnn.deterministic is True
+        assert cudnn.benchmark is False
+
+    def test_non_deterministic_flag_unchanged(self):
+        import torch.backends.cudnn as cudnn
+        prev_det = cudnn.deterministic
+        prev_bench = cudnn.benchmark
+        set_seed(42, deterministic=False)
+        # should not change cudnn settings when deterministic=False
+        assert cudnn.deterministic == prev_det
+        assert cudnn.benchmark == prev_bench
 
 
 # ── count_parameters ──────────────────────────────────────────────────────────
