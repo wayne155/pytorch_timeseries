@@ -191,3 +191,39 @@ Signal decomposition layers used by Autoformer, FEDformer, DLinear and others.
    MovingAvg
    SeriesDecomp
    SeriesDecompMulti
+
+----
+
+Normalization
+-------------
+
+Instance normalization utilities for distribution-shift robustness.
+
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Class
+     - Description
+   * - ``RevIN``
+     - Reversible Instance Normalization (Kim et al., ICLR 2022).
+       Normalises the look-back window per instance and channel, runs the
+       model on normalised inputs, then reverses the transformation on the
+       forecast output.  Learnable affine parameters (γ, β) are applied
+       after normalization.
+
+.. code-block:: python
+
+   from torch_timeseries.nn import RevIN
+
+   revin = RevIN(num_features=7)
+   x_norm = revin(x, mode="norm")      # x: (B, T, C)
+   pred_norm = model(x_norm)           # (B, H, C)
+   pred = revin(pred_norm, mode="denorm")
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../generated
+   :template: autosummary/only_class.rst
+
+   RevIN

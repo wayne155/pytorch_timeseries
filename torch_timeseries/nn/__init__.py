@@ -21,3 +21,4 @@ from .temporal_encoding import (
     RotaryEmbedding,
     SinusoidalEmbedding,
 )
+from .revin import RevIN
