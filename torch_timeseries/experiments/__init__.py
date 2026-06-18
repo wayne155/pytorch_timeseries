@@ -127,6 +127,7 @@ from .Raindrop import RaindropIrregularClassification
 from .MCDropoutForecaster import MCDropoutForecast
 from .GaussianForecaster import GaussianForecast
 from .StudentTForecaster import StudentTForecast
+from .QuantileForecaster import QuantileForecast
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

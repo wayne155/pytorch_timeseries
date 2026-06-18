@@ -1,3 +1,7 @@
+## 0.2.22
+
+feat: `QuantileForecaster` model — non-parametric distributional head that jointly trains K quantile predictions using pinball loss; at inference returns sorted quantile outputs as `(B, pred_len, N, K)` ensemble compatible with probabilistic metrics; validates quantile ordering/range at construction; `QuantileForecast` experiment, `QuantileConfig`, reproduce script, 29 model tests; 1152 tests total
+
 ## 0.2.21
 
 feat: `StudentTForecaster` model — heteroscedastic Student-T distributional head that wraps any point backbone; outputs `(mu, log_sigma, log_nu)` trained with Student-T NLL (`torch.distributions.StudentT`); heavy-tailed predictive distribution captures outliers better than Gaussian; at inference samples StudentT(ν, μ, σ) to produce `(B, pred_len, N, S)` ensemble; `StudentTForecast` experiment, `StudentTConfig` with log-sigma and log-nu clamp validation, reproduce script, 24 model tests; 1099 tests total
