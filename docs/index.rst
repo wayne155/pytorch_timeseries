@@ -27,51 +27,45 @@
 
    .. grid-item-card:: Forecasting
       :img-top: _static/img/forecast_custom_pipeline.png
-      :link: get-started/quickstart
+      :link: notes/introduction
       :link-type: doc
 
-      Predict future values from historical context. Use ``ForecastDataModule``
-      with any model — linear, attention-based, or MLP-mixer.
+      Predict future values from historical context.
 
    .. grid-item-card:: Probabilistic Forecasting
       :img-top: _static/img/prob_forecast.png
-      :link: concepts/experiments
+      :link: notes/introduction
       :link-type: doc
 
-      Quantify uncertainty with calibrated prediction intervals. ``ProbForecastExp``
-      reports CRPS, QICE, PICP and more.
+      Calibrated prediction intervals via MC Dropout or diffusion.
 
    .. grid-item-card:: Generation
       :img-top: _static/img/nsdiff_generation.png
-      :link: concepts/experiments
+      :link: notes/introduction
       :link-type: doc
 
-      Synthesise realistic time-series via diffusion. Six models including
-      NsDiff, TMDM, TimeGAN, CSDI and DiffusionTS.
+      Synthesise realistic sequences via NsDiff, TMDM, TimeGAN and more.
 
    .. grid-item-card:: Imputation
       :img-top: _static/img/imputation.png
-      :link: concepts/experiments
+      :link: notes/introduction
       :link-type: doc
 
       Reconstruct missing values under random or block masking.
-      ``ImputationExp`` handles masking and metric computation automatically.
 
    .. grid-item-card:: Anomaly Detection
       :img-top: _static/img/anomaly_detection.png
-      :link: concepts/experiments
+      :link: notes/introduction
       :link-type: doc
 
-      Detect anomalies from reconstruction error. ``AnomalyDetectionExp``
-      reports precision, recall and F1 against ground-truth labels.
+      Flag anomalies from reconstruction error with precision/recall/F1.
 
    .. grid-item-card:: Classification
       :img-top: _static/img/classification.png
-      :link: concepts/experiments
+      :link: notes/introduction
       :link-type: doc
 
-      Label multivariate time-series from the UEA archive.
-      ``UEAClassificationExp`` wraps sktime datasets and reports accuracy.
+      Label multivariate sequences from the UEA archive.
 
 
 .. raw:: html
@@ -80,7 +74,6 @@
    <p class="section-label">20 Built-in Models</p>
 
    <div class="model-showcase">
-
      <div class="model-group">
        <div class="model-group-header forecast-header">
          <span class="model-group-icon">📈</span>
@@ -105,7 +98,6 @@
        </div>
        <p class="model-group-note">Most models also support imputation, anomaly detection &amp; classification.</p>
      </div>
-
      <div class="model-group">
        <div class="model-group-header gen-header">
          <span class="model-group-icon">✨</span>
@@ -122,122 +114,28 @@
        </div>
        <p class="model-group-note">GAN · Score-based diffusion · Non-stationary DDPM</p>
      </div>
-
    </div>
 
    <div class="section-divider"></div>
-   <p class="section-label">Key Features</p>
 
-
-.. grid:: 2 2 3 3
-   :gutter: 3
-
-   .. grid-item-card:: Two usage modes
-      :text-align: center
-
-      .. raw:: html
-
-         <div class="feature-icon">⚡</div>
-
-      **Way 1** — drop-in DataModules for your own training loop.
-      **Way 2** — one-line ``Experiment`` runner with automatic result persistence.
-
-   .. grid-item-card:: Temporal encodings
-      :text-align: center
-
-      .. raw:: html
-
-         <div class="feature-icon">📐</div>
-
-      ``Time2Vec``, ``LearnableFourierFeatures``, ``RotaryEmbedding`` (RoPE) and
-      ``SinusoidalEmbedding`` — all in ``torch_timeseries.nn``.
-
-   .. grid-item-card:: Leaderboards & grids
-      :text-align: center
-
-      .. raw:: html
-
-         <div class="feature-icon">📊</div>
-
-      Grid-search over models × datasets × seeds. Save, compare and render
-      leaderboard tables automatically.
-
-
-.. raw:: html
-
-   <div class="section-divider"></div>
-   <p class="section-label">Quick Start</p>
-
-
-.. tab-set::
-
-   .. tab-item:: Experiment runner
-
-      .. code-block:: python
-
-         from torch_timeseries import Experiment
-
-         results = Experiment(
-             model="PatchTST",
-             task="Forecast",
-             dataset="ETTh1",
-             windows=96,
-             pred_len=96,
-         ).run(seeds=[1, 2, 3])
-
-         print(results[0].metrics)   # MAE, MSE, RMSE, MAPE, MSPE
-
-   .. tab-item:: Custom pipeline
-
-      .. code-block:: python
-
-         from torch_timeseries.dataset import ETTh1
-         from torch_timeseries.dataloader.v2 import ForecastDataModule, WindowConfig
-
-         dm = ForecastDataModule(
-             dataset=ETTh1("./data"),
-             window=WindowConfig(window=96, horizon=1, steps=96),
-         )
-
-         for batch in dm.train_loader:
-             x = batch.x.float()   # (B, 96, C)
-             y = batch.y.float()   # (B, 96, C)
-
-   .. tab-item:: CLI
-
-      .. code-block:: bash
-
-         # Run 3 seeds of PatchTST on ETTh1
-         pytexp --model PatchTST --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
-
-         # Compare saved results
-         pytexp compare --save_dir ./results --task Forecast
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Installation & Getting Started
-   :hidden:
-
-   install/install
-   get-started/quickstart
 
 .. toctree::
    :maxdepth: 2
-   :caption: Concepts
+   :caption: Notes
    :hidden:
-   :titlesonly:
 
+   install/install
+   notes/introduction
+   notes/create_dataset
+   concepts/dataloader
    concepts/experiments
    concepts/results-and-artifacts
-   concepts/dataloader
-   concepts/architecture
    leaderboard/index
    changelog
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: Package Reference
    :hidden:
    :titlesonly:
 
