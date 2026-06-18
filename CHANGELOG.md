@@ -1,3 +1,9 @@
+## 0.2.19
+
+fix: `ProbForecastExp` — add `_build_model()` / `_init_model()` bridge so subclasses declare `_build_model()` and the base class wires it to `self.model.to(device)` automatically; fix `MCDropoutForecast._build_model()` to use `self.dataset.num_features` instead of nonexistent `self.num_features`
+
+test: 13 end-to-end tests for `MCDropoutForecast` — setup/metrics init, single-batch train loss (finite, backwarda pass), val-batch shape `(B, pred_len, N, S)`, full `run()` returning all 7 probabilistic metrics; 1036 tests total
+
 ## 0.2.18
 
 test: 30 new tests for `ProbAttention` (Informer's sparse O(L log L) attention) — construction params, context output shape `(B, L, H, E)`, attention weights `(B, H, L, L)` always returned, row sums to 1, short-sequence and factor variants, gradient flow, `AttentionLayer` wrapping

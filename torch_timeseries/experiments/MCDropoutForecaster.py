@@ -46,7 +46,7 @@ class MCDropoutForecast(MCDropoutParameters, ProbForecastExp):
         backbone = VanillaTransformer(
             seq_len=self.windows,
             pred_len=self.pred_len,
-            enc_in=self.num_features,
+            enc_in=self.dataset.num_features,
             d_model=self.d_model,
             n_heads=self.n_heads,
             e_layers=self.e_layers,

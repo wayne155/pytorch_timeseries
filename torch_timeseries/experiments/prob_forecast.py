@@ -113,6 +113,17 @@ class ProbForecastExp(ForecastExp):
         print(f"test steps:  {self.test_steps} (fast_test={self.fast_test})")
 
     # ------------------------------------------------------------------ #
+    # model construction                                                 #
+    # ------------------------------------------------------------------ #
+
+    def _build_model(self):
+        """Build and return the model.  Subclasses must override this."""
+        raise NotImplementedError("Subclasses must implement _build_model()")
+
+    def _init_model(self):
+        self.model = self._build_model().to(self.device)
+
+    # ------------------------------------------------------------------ #
     # subclass contract                                                  #
     # ------------------------------------------------------------------ #
 
