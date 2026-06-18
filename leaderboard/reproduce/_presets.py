@@ -44,6 +44,8 @@ UEA_DATASETS = [
     "UWaveGestureLibrary",
 ]
 
+IRREGULAR_DATASETS = ["PhysioNet2012", "PhysioNet2019"]
+
 LONG_TERM_GRID = {"pred_len": [96, 192, 336, 720]}
 SHORT_TERM_GRID = {"pred_len": [24, 48, 96]}
 IMPUTATION_GRID = {"mask_rate": [0.125, 0.25, 0.375, 0.5]}
@@ -51,6 +53,21 @@ NO_GRID = {}
 
 
 MODEL_PARAMS = {
+    "GRUD": {
+        "hidden_size": 64,
+        "dropout": 0.3,
+    },
+    "mTAN": {
+        "hidden_size": 64,
+        "num_ref_points": 16,
+        "num_heads": 4,
+        "dropout": 0.3,
+    },
+    "LatentODE": {
+        "hidden_size": 64,
+        "latent_size": 32,
+        "dropout": 0.3,
+    },
     "Autoformer": {
         "d_ff": 2048,
         "factor": 1,
@@ -158,6 +175,12 @@ def params_for(model: str, task_name: str) -> dict:
         params.update({"windows": 96, "spacing": 100, "anomaly_ratio": 0.25})
     elif task_name == "uea_classification":
         params.update({"windows": 96})
+    elif task_name == "irregular_classification":
+        pass  # no extra task params needed — dataset drives shape
+    elif task_name == "irregular_interpolation":
+        params.update({"query_rate": 0.2})
+    elif task_name == "irregular_forecast":
+        params.update({"obs_frac": 0.7})
     else:
         raise ValueError(f"Unknown reproduce task: {task_name}")
 
