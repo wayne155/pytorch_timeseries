@@ -177,6 +177,16 @@ MODEL_PARAMS = {
         "revin": True,
         "num_samples": 50,
     },
+    "StudentT": {
+        "d_model": 256,
+        "n_heads": 4,
+        "e_layers": 3,
+        "d_ff": 512,
+        "dropout": 0.1,
+        "activation": "gelu",
+        "revin": True,
+        "num_samples": 50,
+    },
     "FreTS": {
         "channel_independence": True,
     },

@@ -1,3 +1,7 @@
+## 0.2.21
+
+feat: `StudentTForecaster` model — heteroscedastic Student-T distributional head that wraps any point backbone; outputs `(mu, log_sigma, log_nu)` trained with Student-T NLL (`torch.distributions.StudentT`); heavy-tailed predictive distribution captures outliers better than Gaussian; at inference samples StudentT(ν, μ, σ) to produce `(B, pred_len, N, S)` ensemble; `StudentTForecast` experiment, `StudentTConfig` with log-sigma and log-nu clamp validation, reproduce script, 24 model tests; 1099 tests total
+
 ## 0.2.20
 
 feat: `GaussianForecaster` model — heteroscedastic Gaussian distributional head (Kendall & Gal, 2017) that wraps any point backbone; outputs `(mu, log_sigma)` trained with Gaussian NLL; at inference samples N(μ, σ²) to produce `(B, pred_len, N, S)` ensemble; `GaussianForecast` experiment, `GaussianConfig` with log-sigma clamp validation, reproduce script, 26 model tests

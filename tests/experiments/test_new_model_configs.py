@@ -7,6 +7,7 @@ from torch_timeseries.experiments.configs import (
     PatchMixerConfig,
     RNNConfig,
     RuntimeConfig,
+    StudentTConfig,
     TCNConfig,
     VanillaTransformerConfig,
     split_experiment_config,
@@ -329,3 +330,83 @@ class TestGaussianConfig:
 
     def test_default_num_samples(self):
         assert GaussianConfig().num_samples == 100
+
+
+class TestStudentTConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="StudentT",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "d_model": 128, "n_heads": 4, "e_layers": 2, "d_ff": 256,
+                "dropout": 0.1, "activation": "gelu", "revin": True,
+                "num_samples": 50,
+                "min_log_sigma": -8.0, "max_log_sigma": 1.5,
+                "min_log_nu": 0.8, "max_log_nu": 3.0,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert isinstance(m, StudentTConfig)
+        assert m.num_samples == 50
+        assert m.min_log_sigma == -8.0
+        assert m.max_log_sigma == 1.5
+        assert m.min_log_nu == 0.8
+        assert m.max_log_nu == 3.0
+
+    def test_rejects_irrelevant_kwargs(self):
+        with pytest.raises(TypeError, match="individual"):
+            split_experiment_config(
+                model="StudentT",
+                task="Forecast",
+                kwargs={"windows": 96, "pred_len": 24, "individual": True},
+            )
+
+    def test_validate_d_model_positive(self):
+        cfg = StudentTConfig(d_model=0)
+        with pytest.raises(ValueError, match="d_model"):
+            cfg.validate()
+
+    def test_validate_n_heads_divides_d_model(self):
+        cfg = StudentTConfig(d_model=256, n_heads=7)
+        with pytest.raises(ValueError, match="n_heads"):
+            cfg.validate()
+
+    def test_validate_activation(self):
+        cfg = StudentTConfig(activation="tanh")
+        with pytest.raises(ValueError, match="activation"):
+            cfg.validate()
+
+    def test_validate_num_samples_zero(self):
+        cfg = StudentTConfig(num_samples=0)
+        with pytest.raises(ValueError, match="num_samples"):
+            cfg.validate()
+
+    def test_validate_log_sigma_order(self):
+        cfg = StudentTConfig(min_log_sigma=2.0, max_log_sigma=1.0)
+        with pytest.raises(ValueError, match="min_log_sigma"):
+            cfg.validate()
+
+    def test_validate_log_sigma_equal_raises(self):
+        cfg = StudentTConfig(min_log_sigma=0.0, max_log_sigma=0.0)
+        with pytest.raises(ValueError, match="min_log_sigma"):
+            cfg.validate()
+
+    def test_validate_log_nu_order(self):
+        cfg = StudentTConfig(min_log_nu=3.0, max_log_nu=1.0)
+        with pytest.raises(ValueError, match="min_log_nu"):
+            cfg.validate()
+
+    def test_validate_log_nu_equal_raises(self):
+        cfg = StudentTConfig(min_log_nu=2.0, max_log_nu=2.0)
+        with pytest.raises(ValueError, match="min_log_nu"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        StudentTConfig().validate()
+
+    def test_relu_activation_valid(self):
+        StudentTConfig(activation="relu").validate()
+
+    def test_default_num_samples(self):
+        assert StudentTConfig().num_samples == 100

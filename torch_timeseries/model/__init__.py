@@ -29,6 +29,7 @@ from .RNNForecaster import RNNForecaster
 from .VanillaTransformer import VanillaTransformer
 from .MCDropoutForecaster import MCDropoutForecaster
 from .GaussianForecaster import GaussianForecaster
+from .StudentTForecaster import StudentTForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
@@ -43,6 +44,7 @@ forecasting_models = [
 prob_forecasting_models = [
     "MCDropoutForecaster",
     "GaussianForecaster",
+    "StudentTForecaster",
 ]
 
 generation_models = [
