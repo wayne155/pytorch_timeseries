@@ -5,15 +5,16 @@ URL = 'https://github.com/wayne155/pytorch_timeseries'
 
 install_requires = [
     'tqdm',
-    'numpy' ,
+    'numpy',
     'pandas',
-    "einops",
-    "torch",
+    'einops',
+    'torch',
     'sktime>=0.29.0',
-    "torchmetrics>=1.1.1",
-    "fire>=0.5.0",
-    "PyYAML",
+    'torchmetrics>=1.1.1',
+    'fire>=0.5.0',
+    'PyYAML',
     'scikit-learn',
+    'prettytable',
 ]
 
 full_requires = [

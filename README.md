@@ -16,7 +16,7 @@
 
 # pytorch_timeseries
 
-An all-in-one deep learning library covering the full spectrum of time series research tasks — **forecasting, probabilistic forecasting, imputation, anomaly detection, classification, and generation** — with datasets that download automatically, a highly customisable data pipeline, and a one-command experiment runner.
+An all-in-one deep learning library covering the full spectrum of time series research tasks — **forecasting, probabilistic forecasting, imputation, anomaly detection, classification, generation, and irregular time series** — with datasets that download automatically, a highly customisable data pipeline, and a one-command experiment runner.
 [Full documentation](https://pytorch-timeseries.readthedocs.io/en/latest/).
 
 ---
@@ -396,7 +396,7 @@ shifted copy.
 
 ## Time Series Tasks
 
-This library covers **six time series tasks** out of the box. Each task has its own experiment class, metrics, and evaluation protocol.
+This library covers **nine time series tasks** out of the box. Each task has its own experiment class, metrics, and evaluation protocol.
 
 ### Forecasting
 
@@ -749,6 +749,66 @@ Per-class accuracy on EthanolConcentration (4 classes, DLinear):
 
 ![Classification: per-class accuracy](docs/_static/img/classification.png)
 
+### Irregular Time Series
+
+Handles asynchronously sampled sequences where observations have arbitrary timestamps and may be missing entirely. Three sub-tasks are supported: **classification**, **interpolation** (reconstruct held-out observations), and **forecasting** (predict future observations after a time-split).
+
+Install optional extras for LatentODE / NeuralCDE / Raindrop:
+
+```bash
+pip install "torch-timeseries[irregular]"
+```
+
+```python
+import torch
+from dataclasses import dataclass
+from torch_timeseries.dataset.irregular import PhysioNet2012
+from torch_timeseries.experiments import IrregularInterpolationExp
+from torch_timeseries.model.irregular import mTAN
+
+# ── Interpolation: hold out 20 % of observations; model reconstructs them ────
+@dataclass
+class mTANInterp(IrregularInterpolationExp):
+    model_type: str = "mTAN"
+    hidden_size: int = 64
+    num_ref_points: int = 16
+    num_heads: int = 4
+
+    def _init_model(self):
+        self.model = mTAN(
+            input_size=self.dm.num_features,
+            hidden_size=self.hidden_size,
+            num_ref_points=self.num_ref_points,
+            num_heads=self.num_heads,
+        ).to(self.device)
+
+result = mTANInterp(
+    dataset_type="PhysioNet2012",
+    query_rate=0.2,
+    epochs=30, device="cuda",
+).run(seed=1)
+# → {'mse': ..., 'mae': ...}
+```
+
+Built-in experiment combos:
+
+```python
+from torch_timeseries.experiments import (
+    mTANIrregularInterpolation,
+    GRUDIrregularForecast,
+    LatentODEIrregularClassification,
+)
+
+# mTAN interpolation on PhysioNet 2012
+mTANIrregularInterpolation(dataset_type="PhysioNet2012", epochs=30).run(seed=1)
+
+# GRU-D irregular forecast
+GRUDIrregularForecast(dataset_type="PhysioNet2012", obs_frac=0.6, epochs=30).run(seed=1)
+
+# Latent ODE classification (requires torchdiffeq)
+LatentODEIrregularClassification(dataset_type="PhysioNet2012", epochs=30).run(seed=1)
+```
+
 ---
 
 ## Development Milestones
@@ -768,13 +828,19 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 ### Implemented Tasks
 
 - [x] Forecast
+- [x] Probabilistic Forecast
 - [x] Imputation
 - [x] Anomaly Detection
 - [x] Classification (UEA datasets)
 - [x] Generation
+- [x] Irregular Classification
+- [x] Irregular Interpolation
+- [x] Irregular Forecasting
 - [ ] Contribute your own task!
 
 ### Implemented Models
+
+#### Regular time series
 
 | Models | Forecasting | Imputation | Anomaly | Classification |
 | ------ | ----------- | ---------- | ------- | -------------- |
@@ -784,6 +850,16 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 | [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317) | ✅ | ✅ | ✅ | ✅ |
 | [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol) | ✅ | ✅ | ✅ | ✅ |
 | [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah) | ✅ | ✅ | ✅ | ✅ |
+
+#### Irregular time series
+
+| Models | Irr. Classify | Interpolation | Irr. Forecast | Extra deps |
+| ------ | ------------- | ------------- | ------------- | ---------- |
+| [GRU-D (2018)](https://www.nature.com/articles/s41598-018-24271-9) | ✅ | ✅ | ✅ | — |
+| [mTAN (2021)](https://openreview.net/forum?id=4c0J6lwQ4_) | ✅ | ✅ | ✅ | — |
+| [LatentODE (2019)](https://proceedings.neurips.cc/paper/2019/hash/42a6845a557bef704ad8ac9cb4461d43-Abstract.html) | ✅ | ✅ | ✅ | torchdiffeq |
+| [NeuralCDE (2020)](https://proceedings.neurips.cc/paper/2020/hash/4a5876b450b45371f6cfe5047ac8cd45-Abstract.html) | ✅ | | | torchcde |
+| [Raindrop (2022)](https://openreview.net/forum?id=Kwm8I7dU-l5) | ✅ | | | torch_geometric |
 
 
 

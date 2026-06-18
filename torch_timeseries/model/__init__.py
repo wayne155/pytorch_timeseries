@@ -19,6 +19,7 @@ from .TimeDiff import TimeDiff
 from .NsDiff import NsDiff
 from .TMDM import TMDM
 from .diffusion_utils import GaussianDiffusion, make_beta_schedule, sinusoidal_embedding
+from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
     "DLinear", "NLinear",
@@ -31,3 +32,5 @@ forecasting_models = [
 generation_models = [
     "TimeGAN", "CSDI", "DiffusionTS", "TimeDiff", "NsDiff", "TMDM",
 ]
+
+irregular_models = ["GRUD", "mTAN", "LatentODE", "NeuralCDE", "Raindrop"]

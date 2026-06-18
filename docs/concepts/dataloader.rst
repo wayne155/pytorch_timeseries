@@ -84,6 +84,53 @@ features and predict another.
        target_columns=["OT"],
    )
 
+Irregular Time Series DataModules
+----------------------------------
+
+Irregular datasets have variable-length samples with per-observation timestamps.
+All irregular DataModules yield ``IrregularTSBatch`` objects.
+
+**IrregularClassificationDataModule** — classifies variable-length samples.
+
+**IrregularInterpolationDataModule** — holds out a random fraction of
+observations per sample (``query_rate``) and asks the model to reconstruct them.
+
+.. code-block:: python
+
+   from torch_timeseries.dataloader.v2 import (
+       IrregularInterpolationDataModule,
+       IrregularInterpolationConfig,
+   )
+   from torch_timeseries.dataset.irregular import PhysioNet2012
+
+   dm = IrregularInterpolationDataModule(
+       dataset=PhysioNet2012(),
+       config=IrregularInterpolationConfig(query_rate=0.2, batch_size=32),
+   )
+   batch = next(iter(dm.train_loader))
+   # batch.x       — (B, T_obs, F)  observed values
+   # batch.t       — (B, T_obs)     observation timestamps
+   # batch.mask    — (B, T_obs, F)  1 = present, 0 = missing
+   # batch.y       — (B, T_q, F)    query target values
+   # batch.t_query — (B, T_q)       query timestamps
+   # batch.query_mask — (B, T_q, F) which query channels are valid
+
+**IrregularForecastDataModule** — splits each sample at ``obs_frac`` of the
+time span; observations before the split are the input, observations after are
+the targets.
+
+.. code-block:: python
+
+   from torch_timeseries.dataloader.v2 import (
+       IrregularForecastDataModule,
+       IrregularForecastConfig,
+   )
+
+   dm = IrregularForecastDataModule(
+       dataset=PhysioNet2012(),
+       config=IrregularForecastConfig(obs_frac=0.7, batch_size=32),
+   )
+
 Supported v2 Families
 ---------------------
 
@@ -93,7 +140,9 @@ The package includes v2 DataModule families for:
 - imputation;
 - anomaly detection;
 - UEA classification;
-- irregular classification.
+- irregular classification;
+- irregular interpolation;
+- irregular forecasting.
 
 The public shape is intentionally similar across tasks: create a task-specific
 window/config object, pass split and loader settings, then iterate named

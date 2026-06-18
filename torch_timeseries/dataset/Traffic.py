@@ -42,7 +42,7 @@ class Traffic(TimeSeriesDataset):
     def _load(self) -> np.ndarray:
         self.file_name = os.path.join(self.dir, 'traffic.txt')
         self.df = pd.read_csv(self.file_name, header=None)
-        self.df['date'] = pd.date_range(start='01/01/2015 00:00', periods=self.length, freq='1H')  # '5T' for 5 minutes
+        self.df['date'] = pd.date_range(start='01/01/2015 00:00', periods=self.length, freq='h')
         self.dates =  pd.DataFrame({'date': self.df['date'] })
 
         # self.dates = pd.DataFrame({'date':self.df.date})

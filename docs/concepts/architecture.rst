@@ -33,6 +33,9 @@ Examples:
 - ``ImputationDataModule``
 - ``AnomalyDataModule``
 - ``UEADataModule``
+- ``IrregularClassificationDataModule``
+- ``IrregularInterpolationDataModule``
+- ``IrregularForecastDataModule``
 
 Named Batches
 -------------
