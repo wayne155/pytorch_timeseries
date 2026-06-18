@@ -59,6 +59,13 @@ from .FITS import (
 
 from .CATS import CATSForecast
 
+from .TCNForecaster import (
+    TCNForecast,
+    TCNUEAClassification,
+    TCNAnomalyDetection,
+    TCNImputation,
+)
+
 model_list = ['iTransformer','TSMixer','TimesNet', 'SCINet', 'Crossformer', 'FITS', 'FreTS', 'SegRNN', 'TimeMixer', 'TiDE', 'NHiTS']
 
 class_suffixes = ['AnomalyDetection', 'Forecast', 'Imputation', 'UEAClassification']
