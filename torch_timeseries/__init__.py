@@ -22,6 +22,7 @@ except OSError:
 import torch_timeseries.dataset
 import torch_timeseries.dataloader
 import torch_timeseries.model
+import torch_timeseries.augment
 from .cli.exp import exp
 from .results import RunResult, LocalBackend, WandbBackend
 from .experiment import Experiment, register_model

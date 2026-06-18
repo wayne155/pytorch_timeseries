@@ -146,6 +146,7 @@
    modules/scaler
    modules/model
    modules/nn
+   modules/augment
 
 .. toctree::
    :maxdepth: 1
