@@ -55,6 +55,12 @@ Transforms
      - Zero-out each time step independently with probability ``p``
        (masking is broadcast across channels). Controlled by ``p``
        (default 0.1).
+   * - ``RandomApply``
+     - Apply a single transform with probability ``p`` (default 0.5);
+       pass through unchanged otherwise.
+   * - ``RandomChoice``
+     - Apply exactly one transform chosen uniformly (or by optional
+       ``weights``) from a list.
 
 .. currentmodule:: torch_timeseries.augment
 
@@ -72,6 +78,8 @@ Transforms
    Permute
    Flip
    RandomMask
+   RandomApply
+   RandomChoice
 
 ----
 

@@ -11,7 +11,8 @@ classification with neural networks", PLOS ONE 2021.
 """
 from __future__ import annotations
 
-from typing import List
+import random
+from typing import List, Optional
 
 import torch
 import torch.nn.functional as F
@@ -244,3 +245,62 @@ class RandomMask:
             torch.full(x.shape[:-1] + (1,), 1 - self.p, device=x.device)
         )
         return x * mask
+
+
+class RandomApply:
+    """Apply a transform with probability ``p``; otherwise pass through.
+
+    Useful for building augmentation policies where each augmentation is
+    optional.
+
+    Args:
+        transform: Augmentation to apply.
+        p (float): Probability of applying the transform. Default: 0.5.
+
+    Example::
+
+        aug = Compose([
+            RandomApply(Jitter(sigma=0.1), p=0.5),
+            RandomApply(Scale(sigma=0.2), p=0.3),
+        ])
+    """
+
+    def __init__(self, transform, p: float = 0.5):
+        assert 0.0 <= p <= 1.0
+        self.transform = transform
+        self.p = p
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        if random.random() < self.p:
+            return self.transform(x)
+        return x
+
+
+class RandomChoice:
+    """Apply exactly one randomly-chosen transform from a list.
+
+    Each transform is selected with uniform probability unless ``weights``
+    are provided.
+
+    Args:
+        transforms: List of augmenters to choose from.
+        weights: Optional list of relative weights (not required to sum to 1).
+            Default: uniform.
+
+    Example::
+
+        aug = RandomChoice([Jitter(), Scale(), Flip()])
+        x_aug = aug(x)
+    """
+
+    def __init__(self, transforms: List, weights: Optional[List[float]] = None):
+        assert len(transforms) >= 1
+        if weights is not None:
+            assert len(weights) == len(transforms)
+            assert all(w > 0 for w in weights)
+        self.transforms = transforms
+        self.weights = weights
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        t = random.choices(self.transforms, weights=self.weights, k=1)[0]
+        return t(x)

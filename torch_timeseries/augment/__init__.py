@@ -23,6 +23,8 @@ from .transforms import (
     Permute,
     Flip,
     RandomMask,
+    RandomApply,
+    RandomChoice,
 )
 
 __all__ = [
@@ -35,4 +37,6 @@ __all__ = [
     "Permute",
     "Flip",
     "RandomMask",
+    "RandomApply",
+    "RandomChoice",
 ]

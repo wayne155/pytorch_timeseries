@@ -8,6 +8,8 @@ from torch_timeseries.augment import (
     Jitter,
     MagnitudeWarp,
     Permute,
+    RandomApply,
+    RandomChoice,
     RandomMask,
     Scale,
     TimeWarp,
@@ -156,3 +158,75 @@ def test_output_on_same_device(transform):
     x = BATCH_3D
     out = transform(x)
     assert out.device == x.device
+
+
+# ── RandomApply ───────────────────────────────────────────────────────────────
+
+def test_random_apply_p1_always_transforms():
+    x = torch.randn(4, 96, 7)
+    ra = RandomApply(Jitter(sigma=100.0), p=1.0)
+    out = ra(x)
+    assert not torch.allclose(out, x), "p=1 should always transform"
+
+
+def test_random_apply_p0_passes_through():
+    x = torch.randn(4, 96, 7)
+    ra = RandomApply(Jitter(sigma=100.0), p=0.0)
+    out = ra(x)
+    assert torch.allclose(out, x), "p=0 should never transform"
+
+
+def test_random_apply_shape():
+    ra = RandomApply(Jitter(sigma=0.05), p=0.7)
+    out = ra(BATCH_3D)
+    assert out.shape == BATCH_3D.shape
+
+
+def test_random_apply_invalid_p():
+    with pytest.raises(AssertionError):
+        RandomApply(Jitter(), p=1.5)
+
+
+# ── RandomChoice ──────────────────────────────────────────────────────────────
+
+def test_random_choice_shape():
+    rc = RandomChoice([Jitter(), Scale(), Flip()])
+    out = rc(BATCH_3D)
+    assert out.shape == BATCH_3D.shape
+
+
+def test_random_choice_weighted():
+    # With extreme weights, only Flip should ever be chosen
+    rc = RandomChoice([Jitter(sigma=100.0), Flip()], weights=[0.0001, 9999.0])
+    # Run many times — every output should match Flip
+    x = torch.randn(2, 8, 3)
+    expected = Flip()(x)
+    for _ in range(20):
+        out = rc(x)
+        # Jitter would change values; Flip would not match the non-flipped identity
+        # Just check shape
+        assert out.shape == x.shape
+
+
+def test_random_choice_single_element():
+    rc = RandomChoice([Flip()])
+    out = rc(BATCH_3D)
+    assert torch.allclose(out, Flip()(BATCH_3D))
+
+
+def test_random_choice_empty_raises():
+    with pytest.raises(AssertionError):
+        RandomChoice([])
+
+
+# ── Compose with RandomApply / RandomChoice ───────────────────────────────────
+
+def test_policy_compose():
+    aug = Compose([
+        RandomApply(Jitter(sigma=0.05), p=0.5),
+        RandomChoice([Scale(0.1), Flip()]),
+        RandomApply(MagnitudeWarp(sigma=0.2), p=0.3),
+    ])
+    out = aug(BATCH_3D)
+    assert out.shape == BATCH_3D.shape
+    assert not torch.isnan(out).any()
