@@ -26,20 +26,23 @@ def get_frequency_modes(seq_len, modes=64, mode_select_method='random'):
 
 # ########## fourier layer #############
 class FourierBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, seq_len, modes=0, mode_select_method='random'):
+    def __init__(self, in_channels, out_channels, seq_len, modes=0,
+                 mode_select_method='random', n_heads=8):
         super(FourierBlock, self).__init__()
         print('fourier enhanced block used!')
         """
-        1D Fourier block. It performs representation learning on frequency domain, 
-        it does FFT, linear transform, and Inverse FFT.    
+        1D Fourier block. It performs representation learning on frequency domain,
+        it does FFT, linear transform, and Inverse FFT.
         """
         # get modes on frequency domain
         self.index = get_frequency_modes(seq_len, modes=modes, mode_select_method=mode_select_method)
         print('modes={}, index={}'.format(modes, self.index))
 
+        self.n_heads = n_heads
         self.scale = (1 / (in_channels * out_channels))
         self.weights1 = nn.Parameter(
-            self.scale * torch.rand(8, in_channels // 8, out_channels // 8, len(self.index), dtype=torch.cfloat))
+            self.scale * torch.rand(n_heads, in_channels // n_heads, out_channels // n_heads,
+                                    len(self.index), dtype=torch.cfloat))
 
     # Complex multiplication
     def compl_mul1d(self, input, weights):
@@ -63,16 +66,17 @@ class FourierBlock(nn.Module):
 
 # ########## Fourier Cross Former ####################
 class FourierCrossAttention(nn.Module):
-    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=64, mode_select_method='random',
-                 activation='tanh', policy=0):
+    def __init__(self, in_channels, out_channels, seq_len_q, seq_len_kv, modes=64,
+                 mode_select_method='random', activation='tanh', policy=0, n_heads=8):
         super(FourierCrossAttention, self).__init__()
         print(' fourier enhanced cross attention used!')
         """
-        1D Fourier Cross Attention layer. It does FFT, linear transform, attention mechanism and Inverse FFT.    
+        1D Fourier Cross Attention layer. It does FFT, linear transform, attention mechanism and Inverse FFT.
         """
         self.activation = activation
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.n_heads = n_heads
         # get modes for queries and keys (& values) on frequency domain
         self.index_q = get_frequency_modes(seq_len_q, modes=modes, mode_select_method=mode_select_method)
         self.index_kv = get_frequency_modes(seq_len_kv, modes=modes, mode_select_method=mode_select_method)
@@ -82,7 +86,8 @@ class FourierCrossAttention(nn.Module):
 
         self.scale = (1 / (in_channels * out_channels))
         self.weights1 = nn.Parameter(
-            self.scale * torch.rand(8, in_channels // 8, out_channels // 8, len(self.index_q), dtype=torch.cfloat))
+            self.scale * torch.rand(n_heads, in_channels // n_heads, out_channels // n_heads,
+                                    len(self.index_q), dtype=torch.cfloat))
 
     # Complex multiplication
     def compl_mul1d(self, input, weights):

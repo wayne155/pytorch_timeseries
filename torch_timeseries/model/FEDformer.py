@@ -95,18 +95,21 @@ class FEDformer(nn.Module):
                                             out_channels=d_model,
                                             seq_len=self.seq_len,
                                             modes=modes,
-                                            mode_select_method=mode_select)
+                                            mode_select_method=mode_select,
+                                            n_heads=n_heads)
             decoder_self_att = FourierBlock(in_channels=d_model,
                                             out_channels=d_model,
                                             seq_len=self.seq_len//2+self.pred_len,
                                             modes=modes,
-                                            mode_select_method=mode_select)
+                                            mode_select_method=mode_select,
+                                            n_heads=n_heads)
             decoder_cross_att = FourierCrossAttention(in_channels=d_model,
                                                       out_channels=d_model,
                                                       seq_len_q=self.seq_len//2+self.pred_len,
                                                       seq_len_kv=self.seq_len,
                                                       modes=modes,
-                                                      mode_select_method=mode_select)
+                                                      mode_select_method=mode_select,
+                                                      n_heads=n_heads)
         # Encoder
         enc_modes = int(min(modes, seq_len//2))
         dec_modes = int(min(modes, (seq_len//2+pred_len)//2))
