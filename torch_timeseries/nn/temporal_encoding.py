@@ -219,7 +219,7 @@ class SinusoidalEmbedding(nn.Module):
         div = (torch.arange(0, d_model, 2, dtype=torch.float)
                * (-math.log(10000.0) / d_model)).exp()
         pe[:, 0::2] = torch.sin(pos * div)
-        pe[:, 1::2] = torch.cos(pos * div)
+        pe[:, 1::2] = torch.cos(pos * div[: d_model // 2])
         self.register_buffer("pe", pe.unsqueeze(0))   # (1, max_len, d_model)
 
     def forward(self, x: Tensor) -> Tensor:

@@ -22,3 +22,4 @@ from .temporal_encoding import (
     SinusoidalEmbedding,
 )
 from .revin import RevIN
+from .tcn import CausalConv1d, TemporalBlock, TemporalConvNet

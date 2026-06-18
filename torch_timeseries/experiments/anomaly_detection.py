@@ -119,6 +119,7 @@ class AnomalyDetectionExp(BaseRelevant, BaseIrrelevant, AnomalyDetectionSettings
         self.metrics = MetricCollection(
             metrics={
                 "mse": MeanSquaredError(),
+                "rmse": MeanSquaredError(squared=False),
                 "mae": MeanAbsoluteError(),
             }
         )

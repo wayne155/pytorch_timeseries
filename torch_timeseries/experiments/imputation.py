@@ -114,6 +114,7 @@ class ImputationExp(BaseRelevant, BaseIrrelevant, ImputationSettings):
         self.metrics = MetricCollection(
             metrics={
                 "mse": MeanSquaredError(),
+                "rmse": MeanSquaredError(squared=False),
                 "mae": MeanAbsoluteError(),
             }
         )

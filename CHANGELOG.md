@@ -1,3 +1,13 @@
+## 0.2.13
+
+feat: `torch_timeseries.nn.CausalConv1d`, `TemporalBlock`, `TemporalConvNet` — TCN building blocks with causal dilated convolutions and exponential receptive field growth (Bai et al., 2018); 22 tests
+
+fix: `torch_timeseries.experiments.ImputationExp` and `AnomalyDetectionExp` — add `rmse` metric (`MeanSquaredError(squared=False)`) to `_init_metrics()`, matching the pattern already in `ForecastExp` and irregular experiments
+
+fix: `SinusoidalEmbedding` crash with odd `d_model` — cosine assignment now uses `div[:d_model//2]` to avoid size mismatch
+
+feat: `tests/nn/` — 45 tests for `CausalConv1d`/`TemporalBlock`/`TemporalConvNet` and all four temporal encoding modules (`Time2Vec`, `LearnableFourierFeatures`, `RotaryEmbedding`, `SinusoidalEmbedding`)
+
 ## 0.2.12
 
 feat: `torch_timeseries.augment` — 11 composable time-series augmentation transforms: `Compose`, `Jitter`, `Scale`, `MagnitudeWarp`, `TimeWarp`, `WindowSlice`, `Permute`, `Flip`, `RandomMask`, `RandomApply`, `RandomChoice`; 51 tests
