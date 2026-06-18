@@ -196,6 +196,14 @@ MODEL_PARAMS = {
         "activation": "gelu",
         "revin": True,
     },
+    "NBEATS": {
+        "stack_types": ["trend", "seasonality", "generic"],
+        "num_blocks": 3,
+        "hidden_size": 256,
+        "expansion_coefficient_dim": 32,
+        "degree_of_polynomial": 3,
+        "num_harmonics": 4,
+    },
     "FreTS": {
         "channel_independence": True,
     },

@@ -31,6 +31,7 @@ from .MCDropoutForecaster import MCDropoutForecaster
 from .GaussianForecaster import GaussianForecaster
 from .StudentTForecaster import StudentTForecaster
 from .QuantileForecaster import QuantileForecaster
+from .NBEATS import NBEATS
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
@@ -40,6 +41,7 @@ forecasting_models = [
     "TSMixer", "Crossformer", "SCINet", "TimesNet",
     "CATS", "FITS", "FreTS",
     "SegRNN", "TimeMixer", "TiDE", "NHiTS",
+    "NBEATS",
 ]
 
 prob_forecasting_models = [

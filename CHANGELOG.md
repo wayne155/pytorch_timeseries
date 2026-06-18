@@ -1,3 +1,7 @@
+## 0.2.23
+
+feat: `NBEATS` model — Neural Basis Expansion Analysis for Time Series Forecasting (Oreshkin et al. ICLR 2020); doubly residual stacks of FC blocks with generic/trend(polynomial)/seasonality(Fourier) basis expansion; channel-independent processing; supports all 4 tasks (Forecast, AnomalyDetection, Imputation, UEAClassification); 27 model tests; reproduce scripts for all tasks; 1181 tests total
+
 ## 0.2.22
 
 feat: `QuantileForecaster` model — non-parametric distributional head that jointly trains K quantile predictions using pinball loss; at inference returns sorted quantile outputs as `(B, pred_len, N, K)` ensemble compatible with probabilistic metrics; validates quantile ordering/range at construction; `QuantileForecast` experiment, `QuantileConfig`, reproduce script, 29 model tests; 1152 tests total

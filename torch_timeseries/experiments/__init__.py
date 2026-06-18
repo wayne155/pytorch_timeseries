@@ -128,6 +128,12 @@ from .MCDropoutForecaster import MCDropoutForecast
 from .GaussianForecaster import GaussianForecast
 from .StudentTForecaster import StudentTForecast
 from .QuantileForecaster import QuantileForecast
+from .NBEATS import (
+    NBEATSForecast,
+    NBEATSUEAClassification,
+    NBEATSAnomalyDetection,
+    NBEATSImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
