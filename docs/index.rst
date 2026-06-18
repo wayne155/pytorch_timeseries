@@ -130,6 +130,8 @@
    concepts/dataloader
    concepts/experiments
    concepts/results-and-artifacts
+   notes/advanced
+   concepts/architecture
    leaderboard/index
    changelog
 
@@ -152,3 +154,8 @@
    :titlesonly:
 
    contribute/quick-contribute
+
+.. toctree::
+   :hidden:
+
+   get-started/quickstart
