@@ -1,3 +1,19 @@
+## 0.2.14
+
+feat: `TCNForecaster` model — TCN-based multi-task forecaster (forecast, imputation, anomaly detection, classification) using `TemporalConvNet` with optional RevIN normalization; `TCNForecast`, `TCNUEAClassification`, `TCNAnomalyDetection`, `TCNImputation` experiment wrappers; 15 tests
+
+feat: `PatchMixer` model — patch-based MLP-Mixer forecaster (channel-independent); combines `Patcher` + `MixerBlock` with optional RevIN; all four task wrappers; 14 tests
+
+feat: `torch_timeseries.nn.augmentation` — 6 time-series augmentation modules (`Jitter`, `Scaling`, `Flip`, `WindowCutout`, `MagnitudeWarp`, `TimeWarp`) plus `Compose`, all as `nn.Module` subclasses applied only during `model.training`; 33 tests
+
+feat: `torch_timeseries.nn.Patcher` — patch extraction module `(B, L, C) → (B, N, patch_len, C)` with `'start'`/`'end'`/`'none'` padding modes
+
+feat: `torch_timeseries.nn.FeedForward`, `MixerBlock` — standard Transformer FFN and TSMixer-style time+channel MLP-Mixer block
+
+feat: `torch_timeseries.nn.set_seed` — seeds Python random, NumPy, and PyTorch CPU/CUDA; optional cuDNN determinism flag; 6 tests
+
+test: 721 tests total (+133 vs 0.2.13) — new coverage for `FullAttention`, `AttentionLayer`, `AutoCorrelation`, `AutoCorrelationLayer`, `MovingAvg`, `SeriesDecomp`, `SeriesDecompMulti`, all embedding classes, `ConvLayer`, `EncoderLayer`, `Encoder`, `DecoderLayer`, `Decoder`, `Inception_Block_V1/V2`, `EarlyStopping`, `model_summary`
+
 ## 0.2.13
 
 feat: `torch_timeseries.nn.CausalConv1d`, `TemporalBlock`, `TemporalConvNet` — TCN building blocks with causal dilated convolutions and exponential receptive field growth (Bai et al., 2018); 22 tests
