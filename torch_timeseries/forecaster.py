@@ -587,6 +587,197 @@ class Forecaster:
         fc.history_ = payload.get("history", [])
         return fc
 
+    # ── convenience ───────────────────────────────────────────────────────────
+
+    def fit_predict(self, X_train, X_context, *, val_split: float = 0.1) -> np.ndarray:
+        """Fit on *X_train*, then predict from *X_context* in one call.
+
+        Returns
+        -------
+        np.ndarray
+            Forecast array with shape ``(pred_len, C)`` or
+            ``(B, pred_len, C)`` for a batch context.
+        """
+        return self.fit(X_train, val_split=val_split).predict(X_context)
+
+    def cross_validate(
+        self,
+        X,
+        *,
+        n_splits: int = 5,
+        val_split: float = 0.1,
+    ) -> Dict[str, float]:
+        """Walk-forward (expanding-window) cross-validation.
+
+        The series is partitioned into ``n_splits + 1`` roughly equal chunks.
+        For fold *k* (0-indexed), the model trains on chunks ``0..k+1`` and is
+        evaluated on chunk ``k+2`` (using the same scoring as :meth:`score`).
+        This mirrors real deployment where training always precedes the test
+        window.
+
+        Parameters
+        ----------
+        X:
+            Full time series, shape ``(N, C)``.
+        n_splits:
+            Number of folds.  More splits mean smaller test chunks.
+        val_split:
+            Fraction held out for early-stopping within each training window.
+
+        Returns
+        -------
+        dict
+            ``{"mean_mse": float, "std_mse": float, "mean_mae": float,
+            "std_mae": float, "mean_rmse": float, "std_rmse": float,
+            "mean_smape": float, "std_smape": float, "n_splits_used": int}``
+        """
+        X = _to_numpy(X)
+        if X.ndim == 1:
+            X = X[:, None]
+        N = len(X)
+        min_len = self.seq_len + self.pred_len
+        fold_size = N // (n_splits + 2)
+
+        if fold_size < min_len:
+            raise ValueError(
+                f"Fold size ({fold_size}) is smaller than seq_len + pred_len "
+                f"({min_len}). Provide more data or reduce n_splits / seq_len."
+            )
+
+        fold_results: List[Dict[str, float]] = []
+        for k in range(n_splits):
+            train_end = fold_size * (k + 2)
+            test_end = min(train_end + fold_size, N)
+
+            X_train = X[:train_end]
+            X_test = X[train_end:test_end]
+
+            if len(X_train) < min_len or len(X_test) < min_len:
+                continue
+
+            fc = Forecaster(
+                self.model_spec,
+                seq_len=self.seq_len,
+                pred_len=self.pred_len,
+                device=str(self.device),
+                epochs=self.epochs,
+                batch_size=self.batch_size,
+                lr=self.lr,
+                patience=self.patience,
+                normalize=self.normalize,
+                verbose=False,
+                scheduler=self.scheduler,
+                **self.model_kwargs,
+            )
+            fc.fit(X_train, val_split=val_split)
+            fold_results.append(fc.score(X_test))
+
+        if not fold_results:
+            raise ValueError(
+                "No valid folds completed.  Provide more data or reduce "
+                "n_splits / seq_len / pred_len."
+            )
+
+        metric_keys = [k for k in fold_results[0] if k not in ("error",)]
+        out: Dict[str, float] = {}
+        for key in metric_keys:
+            vals = [r[key] for r in fold_results if key in r]
+            out[f"mean_{key}"] = float(np.mean(vals))
+            out[f"std_{key}"] = float(np.std(vals))
+        out["n_splits_used"] = len(fold_results)
+        return out
+
+    def plot_history(self, *, ax=None):
+        """Plot training and validation loss curves from the last :meth:`fit`.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        ax:
+            An existing ``matplotlib.axes.Axes`` to draw on.  If *None*
+            (default) a new figure and axes are created.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        self._check_fitted()
+        if not self.history_:
+            raise RuntimeError("Training history is empty.  Call fit() first.")
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_history(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        epochs = [h["epoch"] for h in self.history_]
+        train_losses = [h["train_loss"] for h in self.history_]
+        val_losses = [h["val_loss"] for h in self.history_]
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(8, 4))
+
+        ax.plot(epochs, train_losses, label="train_loss")
+        ax.plot(epochs, val_losses, label="val_loss", linestyle="--")
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel("Loss (MSE)")
+        name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
+        ax.set_title(f"{name} — Training Curve")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
+    # ── sklearn-compatible params ─────────────────────────────────────────────
+
+    def get_params(self, deep: bool = True) -> dict:
+        """Return hyperparameters as a dict (scikit-learn compatible).
+
+        Returns
+        -------
+        dict
+            All constructor parameters plus any extra ``model_kwargs``.
+        """
+        params = {
+            "model": self.model_spec,
+            "seq_len": self.seq_len,
+            "pred_len": self.pred_len,
+            "device": str(self.device),
+            "epochs": self.epochs,
+            "batch_size": self.batch_size,
+            "lr": self.lr,
+            "patience": self.patience,
+            "normalize": self.normalize,
+            "verbose": self.verbose,
+            "scheduler": self.scheduler,
+        }
+        params.update(self.model_kwargs)
+        return params
+
+    def set_params(self, **params) -> "Forecaster":
+        """Set hyperparameters (scikit-learn compatible).
+
+        Parameters are applied directly as attributes; unknown keys are added
+        to ``model_kwargs``.  Returns ``self`` so calls can be chained.
+        """
+        _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
+                   "patience", "normalize", "verbose", "scheduler"}
+        for k, v in params.items():
+            if k == "model":
+                self.model_spec = v
+            elif k == "device":
+                self.device = torch.device(v)
+            elif k in _direct:
+                setattr(self, k, v)
+            else:
+                self.model_kwargs[k] = v
+        return self
+
     # ── internal helpers ──────────────────────────────────────────────────────
 
     def _eval_loss(self, loader: DataLoader, loss_fn: nn.Module) -> float:

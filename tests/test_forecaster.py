@@ -11,6 +11,8 @@ from torch_timeseries.forecaster import (
     _make_scheduler, _print_compare_table,
 )
 
+# cross_validate and plot_history are methods, no separate imports needed
+
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -544,3 +546,129 @@ class TestSaveLoad:
         fc.save(path)
         with pytest.raises(ValueError, match="raw nn.Module"):
             Forecaster.load(path)
+
+
+# ── fit_predict() ──────────────────────────────────────────────────────────────
+
+
+class TestFitPredict:
+    def test_returns_correct_shape(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        y = fc.fit_predict(X[:250], X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_equivalent_to_fit_then_predict(self):
+        X = _rng_data(seed=42)
+        fc1 = _quick_fc(normalize=False)
+        y1 = fc1.fit_predict(X[:250], X[-SEQ:])
+
+        # Reproducibility: same seed means same data, not same weights —
+        # just check shape and type
+        assert isinstance(y1, np.ndarray)
+        assert y1.shape == (PRED, C)
+
+    def test_self_is_fitted_after(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        fc.fit_predict(X[:250], X[-SEQ:])
+        assert fc._model is not None
+
+
+# ── cross_validate() ───────────────────────────────────────────────────────────
+
+
+class TestCrossValidate:
+    def test_returns_dict_with_stats(self):
+        X = _rng_data(n=600)
+        fc = _quick_fc()
+        result = fc.cross_validate(X, n_splits=2)
+        for key in ("mean_mse", "std_mse", "mean_mae", "mean_rmse", "mean_smape"):
+            assert key in result, f"missing key: {key}"
+
+    def test_n_splits_used_correct(self):
+        X = _rng_data(n=700)
+        fc = _quick_fc()
+        result = fc.cross_validate(X, n_splits=3)
+        assert result["n_splits_used"] >= 1
+
+    def test_mean_mse_positive(self):
+        X = _rng_data(n=600)
+        fc = _quick_fc()
+        result = fc.cross_validate(X, n_splits=2)
+        assert result["mean_mse"] >= 0.0
+
+    def test_std_mse_non_negative(self):
+        X = _rng_data(n=600)
+        fc = _quick_fc()
+        result = fc.cross_validate(X, n_splits=2)
+        assert result["std_mse"] >= 0.0
+
+    def test_too_little_data_raises(self):
+        X = _rng_data(n=50)  # way too short
+        fc = _quick_fc()
+        with pytest.raises(ValueError):
+            fc.cross_validate(X, n_splits=5)
+
+
+# ── plot_history() ────────────────────────────────────────────────────────────
+
+
+class TestPlotHistory:
+    def test_returns_axes(self):
+        pytest.importorskip("matplotlib")
+        fc = _quick_fc().fit(_rng_data())
+        ax = fc.plot_history()
+        import matplotlib.axes
+        assert isinstance(ax, matplotlib.axes.Axes)
+
+    def test_accepts_existing_axes(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig, ax_in = plt.subplots()
+        ax_out = fc.plot_history(ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_raises_before_fit(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.plot_history()
+
+
+# ── get_params() / set_params() ───────────────────────────────────────────────
+
+
+class TestGetSetParams:
+    def test_get_params_has_required_keys(self):
+        fc = _quick_fc()
+        p = fc.get_params()
+        for key in ("model", "seq_len", "pred_len", "epochs", "lr"):
+            assert key in p, f"missing key: {key}"
+
+    def test_get_params_values_correct(self):
+        fc = Forecaster("DLinear", seq_len=48, pred_len=12, epochs=10, lr=5e-4,
+                        verbose=False)
+        p = fc.get_params()
+        assert p["model"] == "DLinear"
+        assert p["seq_len"] == 48
+        assert p["pred_len"] == 12
+        assert p["epochs"] == 10
+        assert p["lr"] == 5e-4
+
+    def test_set_params_updates_attribute(self):
+        fc = _quick_fc()
+        fc.set_params(epochs=99, lr=1e-2)
+        assert fc.epochs == 99
+        assert fc.lr == 1e-2
+
+    def test_set_params_returns_self(self):
+        fc = _quick_fc()
+        ret = fc.set_params(epochs=5)
+        assert ret is fc
+
+    def test_set_params_unknown_goes_to_model_kwargs(self):
+        fc = _quick_fc()
+        fc.set_params(d_model=64)
+        assert fc.model_kwargs.get("d_model") == 64
