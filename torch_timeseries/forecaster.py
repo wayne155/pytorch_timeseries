@@ -6933,6 +6933,222 @@ class Forecaster:
 
         return {"Q": Q, "df": k, "p_value": p_value}
 
+    # ------------------------------------------------------------------
+    # lag_plot — scatter x[t] vs x[t-lag] to visualise autocorrelation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def lag_plot(X, *, lag: int = 1, channel: int = 0, ax=None, title: str = None):
+        """Scatter plot of ``X[t]`` vs ``X[t-lag]`` for a single channel.
+
+        A circular cloud indicates no autocorrelation; a diagonal band confirms
+        positive autocorrelation (AR behaviour).
+
+        Example::
+
+            Forecaster.lag_plot(X_train, lag=1, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        arr = np.asarray(X)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        y = arr[lag:]
+        x = arr[:-lag]
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(5, 5))
+        else:
+            fig = ax.get_figure()
+        ax.scatter(x, y, alpha=0.4, s=10)
+        ax.set_xlabel(f"X[t-{lag}]")
+        ax.set_ylabel("X[t]")
+        ax.set_title(title or f"Lag plot (lag={lag}, channel={channel})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # seasonal_plot — overlaid annual/weekly/etc. season lines
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def seasonal_plot(X, period: int, *, channel: int = 0, ax=None, title: str = None,
+                      cmap: str = "viridis", alpha: float = 0.6, linewidth: float = 1.0):
+        """Overlay each *period*-length season as a separate line.
+
+        Reveals repeating patterns (daily / weekly / yearly seasonality).
+        Incomplete final cycles are silently dropped.
+
+        Example::
+
+            # daily pattern for hourly data (period=24)
+            Forecaster.seasonal_plot(X_train, period=24, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        arr = np.asarray(X)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        n_complete = len(arr) // period
+        if n_complete < 1:
+            raise ValueError(f"Data length {len(arr)} < period {period}")
+        seasons = arr[: n_complete * period].reshape(n_complete, period)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(9, 4))
+        else:
+            fig = ax.get_figure()
+        cmap_obj = plt.get_cmap(cmap)
+        t = np.arange(period)
+        for i, row in enumerate(seasons):
+            color = cmap_obj(i / max(n_complete - 1, 1))
+            ax.plot(t, row, color=color, alpha=alpha, linewidth=linewidth)
+        sm = plt.cm.ScalarMappable(cmap=cmap_obj,
+                                   norm=plt.Normalize(vmin=0, vmax=n_complete - 1))
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, label="Cycle index")
+        ax.set_xlabel("Position within period")
+        ax.set_ylabel(f"Channel {channel}")
+        ax.set_title(title or f"Seasonal plot (period={period})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # hyperparameter_search — random search over a parameter grid
+    # ------------------------------------------------------------------
+
+    def hyperparameter_search(self, X_train, X_val, param_grid: dict, *,
+                              n_iter: int = 10, metric: str = "mse",
+                              verbose: bool = False):
+        """Random hyperparameter search via cloned :class:`Forecaster` instances.
+
+        *param_grid* maps constructor-argument names to lists of candidate values.
+        Each trial draws one value per key uniformly at random, fits a clone, and
+        evaluates on *X_val*.  Returns a list of result dicts sorted by *metric*::
+
+            results = fc.hyperparameter_search(
+                X_train, X_val,
+                {"lr": [1e-4, 5e-4, 1e-3], "batch_size": [16, 32, 64]},
+                n_iter=12,
+                metric="mae",
+            )
+            best = results[0]
+            print(best["params"], best["score"])
+        """
+        rng = np.random.default_rng(0)
+        records = []
+        for i in range(n_iter):
+            params = {k: rng.choice(v).item() if hasattr(rng.choice(v), "item") else rng.choice(v)
+                      for k, v in param_grid.items()}
+            # build a clone with overrides
+            import copy
+            init_kwargs = dict(
+                seq_len=self.seq_len,
+                pred_len=self.pred_len,
+                epochs=self.epochs,
+                batch_size=self.batch_size,
+                lr=self.lr,
+                patience=self.patience,
+                verbose=verbose,
+                device=str(self.device),
+                loss=self.loss,
+                scheduler=self.scheduler,
+                grad_clip=self.grad_clip,
+                weight_decay=self.weight_decay,
+                warm_start=False,
+            )
+            init_kwargs.update(params)
+            fc = Forecaster(copy.deepcopy(self.model_spec), **init_kwargs)
+            fc.fit(X_train)
+            scores = fc.evaluate(X_val)
+            records.append({"params": params, "score": scores.get(metric, float("nan")), **scores})
+        records.sort(key=lambda r: r["score"])
+        return records
+
+    # ------------------------------------------------------------------
+    # to_lagged_features — build ML-ready lagged feature matrix
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def to_lagged_features(X, lags, *, target_col: int = 0, dropna: bool = True):
+        """Create a supervised learning feature matrix from lagged values.
+
+        Each row contains the lagged values of all channels and the
+        concurrent *target_col* as the label.  Useful for testing classical
+        ML baselines (sklearn regressors) on time-series data.
+
+        Returns ``(features, targets)`` numpy arrays::
+
+            X_feat, y = Forecaster.to_lagged_features(data, lags=[1, 2, 3, 7])
+            from sklearn.linear_model import Ridge
+            Ridge().fit(X_feat, y)
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        T, C = arr.shape
+        max_lag = max(lags)
+        rows = []
+        for t in range(max_lag, T):
+            row = np.concatenate([arr[t - lag] for lag in lags])
+            rows.append(row)
+        features = np.array(rows, dtype=np.float32)
+        targets  = arr[max_lag:, target_col]
+        if dropna:
+            valid = np.all(np.isfinite(features), axis=1) & np.isfinite(targets)
+            features = features[valid]
+            targets  = targets[valid]
+        return features, targets
+
+    # ------------------------------------------------------------------
+    # predict_bootstrap — bootstrap CI from multiple re-fits
+    # ------------------------------------------------------------------
+
+    def predict_bootstrap(self, X_train, X_test, *, n_boot: int = 10,
+                          ci: float = 0.9):
+        """Bootstrap confidence interval on predictions by training *n_boot* clones.
+
+        Each clone is fit on a bootstrap resample of *X_train* (block
+        bootstrap with block size ``seq_len`` to respect temporal structure).
+        Returns a dict::
+
+            {
+                "mean"  : (pred_len, C) — bootstrap mean forecast,
+                "lower" : (pred_len, C) — lower CI bound,
+                "upper" : (pred_len, C) — upper CI bound,
+                "preds" : (n_boot, pred_len, C) — all individual predictions,
+            }
+
+        Example::
+
+            result = fc.predict_bootstrap(X_train, X_test, n_boot=20, ci=0.9)
+            plt.fill_between(t, result["lower"][:,0], result["upper"][:,0], alpha=0.3)
+        """
+        self._check_fitted()
+        T = len(X_train)
+        block = max(1, self.seq_len)
+        n_blocks = T // block
+        rng = np.random.default_rng(42)
+        preds = []
+        for _ in range(n_boot):
+            idx = np.concatenate([
+                np.arange(b * block, (b + 1) * block)
+                for b in rng.integers(0, n_blocks, size=n_blocks)
+            ])[:T]
+            X_boot = X_train[idx]
+            fc = self.clone()
+            fc.fit(X_boot)
+            p = fc.predict(X_test[-self.seq_len:])
+            preds.append(p)
+        preds = np.stack(preds, axis=0)   # (n_boot, pred_len, C)
+        alpha = (1 - ci) / 2
+        lower = np.quantile(preds, alpha, axis=0)
+        upper = np.quantile(preds, 1 - alpha, axis=0)
+        mean  = preds.mean(axis=0)
+        return {"mean": mean, "lower": lower, "upper": upper, "preds": preds}
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

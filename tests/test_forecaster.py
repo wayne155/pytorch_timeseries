@@ -3215,6 +3215,124 @@ class TestLjungBox:
             _quick_fc().ljung_box(self.X)
 
 
+class TestLagPlot:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.lag_plot(X, lag=1, channel=0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_lag(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.lag_plot(X, lag=5)
+        plt.close("all")
+        assert fig is not None
+
+    def test_1d_input(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)[:, 0]
+        fig = Forecaster.lag_plot(X, lag=2)
+        plt.close("all")
+        assert fig is not None
+
+
+class TestSeasonalPlot:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=120)
+        fig = Forecaster.seasonal_plot(X, period=12)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_too_short_raises(self):
+        X = _rng_data(n=5)
+        with pytest.raises(ValueError):
+            Forecaster.seasonal_plot(X, period=24)
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=120)
+        fig = Forecaster.seasonal_plot(X, period=12, title="Seasons")
+        ax = fig.get_axes()[0]
+        assert "Seasons" in ax.get_title()
+        plt.close("all")
+
+
+class TestHyperparameterSearch:
+    def test_returns_list_sorted_by_metric(self):
+        X = _rng_data(n=200)
+        fc = _quick_fc()
+        results = fc.hyperparameter_search(
+            X[:140], X[140:],
+            {"lr": [1e-3, 5e-4]},
+            n_iter=2, metric="mse",
+        )
+        assert isinstance(results, list)
+        assert len(results) == 2
+        assert all("params" in r for r in results)
+        scores = [r["score"] for r in results]
+        assert scores == sorted(scores)
+
+    def test_params_keys_in_results(self):
+        X = _rng_data(n=200)
+        fc = _quick_fc()
+        results = fc.hyperparameter_search(
+            X[:140], X[140:],
+            {"lr": [1e-3]},
+            n_iter=1,
+        )
+        assert "lr" in results[0]["params"]
+
+
+class TestToLaggedFeatures:
+    def test_shapes(self):
+        X = _rng_data(n=100)
+        feats, targets = Forecaster.to_lagged_features(X, lags=[1, 2, 3])
+        max_lag = 3
+        assert feats.shape == (100 - max_lag, C * 3)
+        assert targets.shape == (100 - max_lag,)
+
+    def test_1d_input(self):
+        X = _rng_data(n=50)[:, 0]
+        feats, targets = Forecaster.to_lagged_features(X, lags=[1, 2])
+        assert feats.shape == (48, 2)
+
+    def test_no_nans_after_dropna(self):
+        X = _rng_data(n=100)
+        X[5, 0] = np.nan
+        feats, targets = Forecaster.to_lagged_features(X, lags=[1, 2], dropna=True)
+        assert np.all(np.isfinite(feats))
+
+
+class TestPredictBootstrap:
+    def test_returns_dict(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.predict_bootstrap(_rng_data(n=200), _rng_data(n=200), n_boot=3)
+        assert set(result.keys()) == {"mean", "lower", "upper", "preds"}
+
+    def test_shapes(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.predict_bootstrap(_rng_data(n=200), _rng_data(n=200), n_boot=3)
+        assert result["preds"].shape == (3, PRED, C)
+        assert result["mean"].shape  == (PRED, C)
+
+    def test_lower_leq_upper(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.predict_bootstrap(_rng_data(n=200), _rng_data(n=200), n_boot=3)
+        assert (result["lower"] <= result["upper"]).all()
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().predict_bootstrap(_rng_data(n=200), _rng_data(n=200))
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
