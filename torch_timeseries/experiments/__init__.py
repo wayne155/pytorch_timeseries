@@ -208,6 +208,12 @@ from .DishTS import (
     DishTSAnomalyDetection,
     DishTSImputation,
 )
+from .MambaForecaster import (
+    MambaForecasterForecast,
+    MambaForecasterUEAClassification,
+    MambaForecasterAnomalyDetection,
+    MambaForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

@@ -45,6 +45,7 @@ from .MICN import MICN
 from .TFT import TFT
 from .FiLM import FiLM
 from .DishTS import DishTS
+from .MambaForecaster import MambaForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -68,6 +69,7 @@ forecasting_models = [
     "TFT",
     "FiLM",
     "DishTS",
+    "MambaForecaster",
 ]
 
 prob_forecasting_models = [

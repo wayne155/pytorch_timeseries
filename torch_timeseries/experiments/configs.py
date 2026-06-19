@@ -336,6 +336,25 @@ class ETSformerConfig:
 
 
 @dataclass
+class MambaForecasterConfig:
+    d_model: int = 64
+    d_state: int = 16
+    e_layers: int = 2
+    dropout: float = 0.05
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_state <= 0:
+            raise ValueError("d_state must be positive")
+        if self.e_layers < 1:
+            raise ValueError("e_layers must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class DishTSConfig:
     d_model: int = 256
     n_heads: int = 8
@@ -781,6 +800,10 @@ def split_experiment_config(
         ("DishTS", "AnomalyDetection"): DishTSConfig,
         ("DishTS", "Imputation"): DishTSConfig,
         ("DishTS", "UEAClassification"): DishTSConfig,
+        ("MambaForecaster", "Forecast"): MambaForecasterConfig,
+        ("MambaForecaster", "AnomalyDetection"): MambaForecasterConfig,
+        ("MambaForecaster", "Imputation"): MambaForecasterConfig,
+        ("MambaForecaster", "UEAClassification"): MambaForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

@@ -297,6 +297,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "dish_hidden": 64,
     },
+    "MambaForecaster": {
+        "d_model": 64,
+        "d_state": 16,
+        "e_layers": 2,
+        "dropout": 0.05,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
