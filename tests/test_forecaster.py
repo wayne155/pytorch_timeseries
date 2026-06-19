@@ -2947,6 +2947,104 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestAutocorrelation:
+    def test_returns_two_arrays(self):
+        X = _rng_data(n=100)
+        lags, acf = Forecaster.autocorrelation(X, max_lag=20)
+        assert lags.shape == (21,)
+        assert acf.shape == (21,)
+
+    def test_lag_zero_is_one(self):
+        X = _rng_data(n=100)
+        _, acf = Forecaster.autocorrelation(X)
+        assert abs(acf[0] - 1.0) < 1e-6
+
+    def test_acf_bounded(self):
+        X = _rng_data(n=100)
+        _, acf = Forecaster.autocorrelation(X)
+        assert np.all(np.abs(acf) <= 1.0 + 1e-6)
+
+    def test_1d_input(self):
+        X = np.random.default_rng(0).standard_normal(100).astype(np.float32)
+        lags, acf = Forecaster.autocorrelation(X, max_lag=10)
+        assert lags.shape == (11,)
+
+    def test_custom_channel(self):
+        X = _rng_data(n=100)
+        _, acf0 = Forecaster.autocorrelation(X, channel=0)
+        _, acf1 = Forecaster.autocorrelation(X, channel=1)
+        # different channels → different ACF
+        assert not np.allclose(acf0, acf1)
+
+
+class TestPlotAcf:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_acf(X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_acf(X, title="ACF Test")
+        ax = fig.get_axes()[0]
+        assert "ACF Test" in ax.get_title()
+        plt.close("all")
+
+
+class TestSpectralDensity:
+    def test_returns_two_arrays(self):
+        X = _rng_data(n=100)
+        freqs, psd = Forecaster.spectral_density(X)
+        assert freqs.shape == psd.shape
+
+    def test_freqs_range(self):
+        X = _rng_data(n=100)
+        freqs, _ = Forecaster.spectral_density(X)
+        assert freqs[0] >= 0.0
+        assert freqs[-1] <= 0.5 + 1e-9
+
+    def test_psd_nonnegative(self):
+        X = _rng_data(n=100)
+        _, psd = Forecaster.spectral_density(X)
+        assert (psd >= 0).all()
+
+    def test_custom_n_fft(self):
+        X = _rng_data(n=100)
+        freqs, psd = Forecaster.spectral_density(X, n_fft=64)
+        assert len(freqs) == 33  # rfftfreq(64) → 33 bins
+
+    def test_1d_input(self):
+        X = np.random.default_rng(0).standard_normal(100).astype(np.float32)
+        freqs, psd = Forecaster.spectral_density(X)
+        assert freqs.shape == psd.shape
+
+
+class TestPlotSpectralDensity:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_spectral_density(X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_spectral_density(X, title="PSD Test")
+        ax = fig.get_axes()[0]
+        assert "PSD Test" in ax.get_title()
+        plt.close("all")
+
+
 class TestAnomalyScore:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

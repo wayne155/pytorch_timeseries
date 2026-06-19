@@ -4087,6 +4087,187 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    @staticmethod
+    def autocorrelation(
+        X: np.ndarray,
+        *,
+        max_lag: int = 40,
+        channel: int = 0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute sample autocorrelation function (ACF) for one channel.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T,)`` or ``(T, C)``.
+        max_lag:
+            Maximum lag to compute (default ``40``).
+        channel:
+            Channel to use when *X* is 2-D (default ``0``).
+
+        Returns
+        -------
+        lags : np.ndarray  shape ``(max_lag + 1,)``
+        acf  : np.ndarray  shape ``(max_lag + 1,)``
+        """
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        n = len(ts)
+        ts = ts - ts.mean()
+        c0 = float(np.dot(ts, ts))
+        lags = np.arange(max_lag + 1)
+        acf = np.array(
+            [float(np.dot(ts[: n - k], ts[k:])) / c0 if k < n else 0.0 for k in lags]
+        )
+        return lags, acf
+
+    @staticmethod
+    def plot_acf(
+        X: np.ndarray,
+        *,
+        max_lag: int = 40,
+        channel: int = 0,
+        ax=None,
+        title: Optional[str] = None,
+        significance_level: float = 0.05,
+    ):
+        """Plot the sample ACF with confidence bands.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T,)`` or ``(T, C)``.
+        max_lag:
+            Maximum lag (default ``40``).
+        channel:
+            Channel index for multivariate input.
+        ax:
+            Matplotlib axes (created if ``None``).
+        title:
+            Axes title.
+        significance_level:
+            Two-tailed significance level for the confidence band (default
+            ``0.05`` → 95 % CI).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_acf()") from exc
+
+        lags, acf = Forecaster.autocorrelation(X, max_lag=max_lag, channel=channel)
+        n = len(X)
+        # approximate normal quantile via erf⁻¹ — avoids scipy dependency
+        p = 1 - significance_level / 2
+        # Beasley-Springer-Moro approximation for the normal quantile
+        c = [2.515517, 0.802853, 0.010328]
+        d = [1.432788, 0.189269, 0.001308]
+        t = np.sqrt(-2.0 * np.log(1 - p))
+        z = t - (c[0] + c[1] * t + c[2] * t ** 2) / (1 + d[0] * t + d[1] * t ** 2 + d[2] * t ** 3)
+        ci = z / np.sqrt(n)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+
+        ax.vlines(lags, 0, acf, linewidth=1.5)
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.axhline(ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.axhline(-ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("ACF")
+        ax.set_title(title or f"Autocorrelation (channel {channel})")
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def spectral_density(
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+        n_fft: Optional[int] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute the one-sided power spectral density via FFT.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T,)`` or ``(T, C)``.
+        channel:
+            Channel index for multivariate input.
+        n_fft:
+            FFT size.  Defaults to ``len(X)``.
+
+        Returns
+        -------
+        freqs : np.ndarray  normalised frequencies in ``[0, 0.5]``
+        psd   : np.ndarray  power spectral density (same length as *freqs*)
+        """
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        n = n_fft or len(ts)
+        spec = np.abs(np.fft.rfft(ts, n=n)) ** 2
+        freqs = np.fft.rfftfreq(n)
+        return freqs, spec
+
+    @staticmethod
+    def plot_spectral_density(
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+        n_fft: Optional[int] = None,
+        ax=None,
+        title: Optional[str] = None,
+        log_scale: bool = True,
+    ):
+        """Plot the one-sided power spectral density.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T,)`` or ``(T, C)``.
+        channel:
+            Channel index.
+        n_fft:
+            FFT size.
+        ax:
+            Matplotlib axes (created if ``None``).
+        title:
+            Axes title.
+        log_scale:
+            Use a log-scale y-axis (default ``True``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_spectral_density()") from exc
+
+        freqs, psd = Forecaster.spectral_density(X, channel=channel, n_fft=n_fft)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot(freqs, psd, linewidth=0.9)
+        if log_scale:
+            ax.set_yscale("log")
+        ax.set_xlabel("Normalised frequency")
+        ax.set_ylabel("Power")
+        ax.set_title(title or f"Power spectral density (channel {channel})")
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
