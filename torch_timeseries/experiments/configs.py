@@ -346,6 +346,26 @@ class FilterNetConfig:
 
 
 @dataclass
+class iMambaConfig:
+    d_model: int = 128
+    d_state: int = 16
+    e_layers: int = 3
+    d_ff: int = 256
+    dropout: float = 0.05
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_state <= 0:
+            raise ValueError("d_state must be positive")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class SMambaConfig:
     d_model: int = 64
     d_state: int = 16
@@ -960,6 +980,10 @@ def split_experiment_config(
         ("SMamba", "AnomalyDetection"): SMambaConfig,
         ("SMamba", "Imputation"): SMambaConfig,
         ("SMamba", "UEAClassification"): SMambaConfig,
+        ("iMamba", "Forecast"): iMambaConfig,
+        ("iMamba", "AnomalyDetection"): iMambaConfig,
+        ("iMamba", "Imputation"): iMambaConfig,
+        ("iMamba", "UEAClassification"): iMambaConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

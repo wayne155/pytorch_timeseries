@@ -250,6 +250,12 @@ from .SMamba import (
     SMambaAnomalyDetection,
     SMambaImputation,
 )
+from .iMamba import (
+    iMambaForecast,
+    iMambaUEAClassification,
+    iMambaAnomalyDetection,
+    iMambaImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

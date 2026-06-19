@@ -351,6 +351,14 @@ MODEL_PARAMS = {
         "dropout": 0.05,
         "revin": True,
     },
+    "iMamba": {
+        "d_model": 128,
+        "d_state": 16,
+        "e_layers": 3,
+        "d_ff": 256,
+        "dropout": 0.05,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
