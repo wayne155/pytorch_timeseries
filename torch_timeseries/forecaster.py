@@ -592,7 +592,8 @@ class Forecaster:
         mse = total_mse / n_elements
         mae = total_mae / n_elements
         smape = total_smape / n_elements
-        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+        result = {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+        return result
 
     # ── utilities ─────────────────────────────────────────────────────────────
 
@@ -812,6 +813,71 @@ class Forecaster:
         if created_fig:
             plt.tight_layout()
         return ax
+
+    def compare_horizons(
+        self,
+        X,
+        *,
+        horizons: List[int],
+        val_split: float = 0.1,
+        verbose: bool = True,
+    ) -> Dict[int, Dict[str, float]]:
+        """Train and score the same model class across multiple forecast horizons.
+
+        For each horizon in *horizons*, a fresh clone of the current
+        :class:`Forecaster` is trained and scored on *X*.  This reveals how
+        model performance degrades (or remains stable) as the prediction window
+        grows.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)``.
+        horizons:
+            List of ``pred_len`` values to evaluate.
+        val_split:
+            Val fraction passed to each clone's :meth:`fit`.
+        verbose:
+            Print per-horizon progress.
+
+        Returns
+        -------
+        dict
+            ``{pred_len: {"mse": float, "mae": float, "rmse": float,
+                          "smape": float, "elapsed_s": float}, ...}``
+            Sorted by ascending ``pred_len``.
+
+        Examples
+        --------
+        >>> results = fc.compare_horizons(X, horizons=[6, 12, 24, 48])
+        >>> for h, m in results.items():
+        ...     print(f"pred_len={h:3d}  MSE={m['mse']:.4f}")
+        """
+        results: Dict[int, Dict[str, float]] = {}
+        for h in sorted(horizons):
+            fc = self.clone()
+            fc.pred_len = h
+            if verbose:
+                print(f"  horizon={h}")
+            try:
+                t0 = time.perf_counter()
+                fc.fit(X, val_split=val_split)
+                elapsed = time.perf_counter() - t0
+                metrics = fc.score(X)
+                metrics["elapsed_s"] = elapsed
+            except Exception as exc:
+                if verbose:
+                    print(f"  ERROR at horizon {h}: {exc}")
+                metrics = {
+                    "mse": float("inf"),
+                    "mae": float("inf"),
+                    "rmse": float("inf"),
+                    "smape": float("inf"),
+                    "elapsed_s": float("nan"),
+                    "error": str(exc),
+                }
+            results[h] = metrics
+        return results
 
     def benchmark(
         self,

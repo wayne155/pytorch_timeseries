@@ -1492,3 +1492,39 @@ class TestToOnnx:
     def test_raises_before_fit(self, tmp_path):
         with pytest.raises(RuntimeError, match="not fitted"):
             _quick_fc().to_onnx(str(tmp_path / "model.onnx"))
+
+
+# ── compare_horizons() ────────────────────────────────────────────────────────
+
+
+class TestCompareHorizons:
+    def test_returns_dict_keyed_by_horizon(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        results = fc.compare_horizons(X, horizons=[4, 8], verbose=False)
+        assert set(results.keys()) == {4, 8}
+
+    def test_each_horizon_has_metrics(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        results = fc.compare_horizons(X, horizons=[4], verbose=False)
+        for key in ("mse", "mae", "rmse", "smape"):
+            assert key in results[4]
+
+    def test_sorted_by_horizon(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        results = fc.compare_horizons(X, horizons=[8, 4, 12], verbose=False)
+        assert list(results.keys()) == sorted([4, 8, 12])
+
+    def test_mse_positive(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        results = fc.compare_horizons(X, horizons=[4], verbose=False)
+        assert results[4]["mse"] >= 0.0
+
+    def test_elapsed_s_present(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        results = fc.compare_horizons(X, horizons=[4], verbose=False)
+        assert "elapsed_s" in results[4]
