@@ -1096,6 +1096,105 @@ class Forecaster:
             buffer[-1] = next_step
         return np.stack(generated)  # (steps, C)
 
+    def plot_scenarios(
+        self,
+        mc_result: Dict[str, np.ndarray],
+        *,
+        channel: int = 0,
+        X_context=None,
+        n_scenarios_to_plot: int = 20,
+        ax=None,
+        title: Optional[str] = None,
+        alpha_scenarios: float = 0.08,
+    ):
+        """Fan chart of Monte Carlo scenario trajectories.
+
+        Visualises the output of :meth:`montecarlo_forecast`: individual
+        scenario lines, the mean trajectory, and the inter-quantile band.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        mc_result:
+            Dict returned by :meth:`montecarlo_forecast`.
+        channel:
+            Channel index to plot (default ``0``).
+        X_context:
+            Optional context window, shape ``(seq_len, C)``, plotted to the
+            left of the forecast region.
+        n_scenarios_to_plot:
+            How many raw scenario lines to draw (default 20).
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+        alpha_scenarios:
+            Transparency of individual scenario lines (default 0.08).
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_scenarios(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        mean = mc_result["mean"][:, channel]
+        scenarios = mc_result["scenarios"][:, :, channel]
+        steps = len(mean)
+        pred_t = np.arange(0, steps)
+
+        q_keys = sorted(mc_result["quantiles"].keys())
+        n_q = len(q_keys)
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(10, 4))
+
+        # Context
+        if X_context is not None:
+            ctx = np.asarray(X_context)
+            if ctx.ndim == 1:
+                ctx = ctx[:, None]
+            n_ctx = len(ctx)
+            ax.plot(np.arange(-n_ctx, 0), ctx[:, channel],
+                    color="steelblue", label="context")
+
+        # Individual scenario lines
+        n_plot = min(n_scenarios_to_plot, len(scenarios))
+        for s in scenarios[:n_plot]:
+            ax.plot(pred_t, s, color="grey", alpha=alpha_scenarios, linewidth=0.6)
+
+        # Inter-quantile bands
+        if n_q >= 2:
+            lo = mc_result["quantiles"][q_keys[0]][:, channel]
+            hi = mc_result["quantiles"][q_keys[-1]][:, channel]
+            ax.fill_between(pred_t, lo, hi, alpha=0.15, color="tomato",
+                            label=f"[{q_keys[0]:.0%}, {q_keys[-1]:.0%}]")
+
+        # Mean trajectory
+        ax.plot(pred_t, mean, color="tomato", linewidth=1.5, label="mean")
+        ax.axvline(0, color="grey", linestyle=":", linewidth=0.8)
+
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — scenario fan chart (ch {channel})")
+        ax.set_xlabel("Timestep")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def montecarlo_forecast(
         self,
         X_seed,

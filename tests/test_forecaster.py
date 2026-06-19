@@ -2087,6 +2087,42 @@ class TestCompareHorizons:
 # ── partial_fit() ─────────────────────────────────────────────────────────────
 
 
+class TestPlotScenarios:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        seed = _rng_data(n=SEQ)
+        self.mc = self.fc.montecarlo_forecast(seed, steps=10, n_scenarios=10)
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_scenarios(self.mc)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_scenarios(self.mc, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_with_context(self):
+        import matplotlib.axes
+        ctx = _rng_data(n=SEQ)
+        ax = self.fc.plot_scenarios(self.mc, X_context=ctx)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_scenarios(self.mc, title="Fan Chart")
+        assert ax.get_title() == "Fan Chart"
+        plt.close("all")
+
+
 class TestMontecarloForecast:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())
