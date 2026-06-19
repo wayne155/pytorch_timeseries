@@ -2000,6 +2000,53 @@ class TestMakeForecaster:
 # ── reset() ───────────────────────────────────────────────────────────────────
 
 
+class TestAddRemoveCallback:
+    def test_add_callback_returns_self(self):
+        fc = _quick_fc()
+        cb = lambda fc, d: None
+        assert fc.add_callback(cb) is fc
+
+    def test_callback_fires_during_fit(self):
+        calls = []
+        fc = _quick_fc()
+        fc.add_callback(lambda f, d: calls.append(d["epoch"]))
+        fc.fit(_rng_data())
+        assert len(calls) > 0
+
+    def test_callback_receives_epoch_dict(self):
+        keys_seen = []
+        fc = _quick_fc()
+        fc.add_callback(lambda f, d: keys_seen.extend(d.keys()))
+        fc.fit(_rng_data())
+        for k in ("epoch", "train_loss", "val_loss"):
+            assert k in keys_seen
+
+    def test_remove_callback(self):
+        calls = []
+        fc = _quick_fc()
+        cb = lambda f, d: calls.append(1)
+        fc.add_callback(cb)
+        fc.remove_callback(cb)
+        fc.fit(_rng_data())
+        assert calls == []
+
+    def test_remove_callback_returns_self(self):
+        fc = _quick_fc()
+        cb = lambda f, d: None
+        fc.add_callback(cb)
+        assert fc.remove_callback(cb) is fc
+
+    def test_remove_unknown_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(ValueError, match="not found"):
+            fc.remove_callback(lambda f, d: None)
+
+    def test_add_non_callable_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(TypeError):
+            fc.add_callback("not_a_function")
+
+
 class TestReset:
     def test_reset_unfits_model(self):
         fc = _quick_fc().fit(_rng_data())

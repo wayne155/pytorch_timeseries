@@ -1982,6 +1982,52 @@ class Forecaster:
         self.history_ = []
         return self
 
+    def add_callback(self, fn) -> "Forecaster":
+        """Register a callback to be called after each training epoch.
+
+        The callback receives ``(forecaster, epoch_dict)`` where *epoch_dict*
+        contains at least ``epoch``, ``train_loss``, and ``val_loss``.
+
+        Parameters
+        ----------
+        fn:
+            Callable with signature ``fn(forecaster, epoch_dict) -> None``.
+
+        Returns
+        -------
+        self
+        """
+        if not callable(fn):
+            raise TypeError(f"callback must be callable; got {type(fn).__name__}.")
+        self.callbacks.append(fn)
+        return self
+
+    def remove_callback(self, fn) -> "Forecaster":
+        """Unregister a previously added callback.
+
+        Parameters
+        ----------
+        fn:
+            The exact callable passed to :meth:`add_callback`.
+
+        Returns
+        -------
+        self
+
+        Raises
+        ------
+        ValueError
+            If *fn* is not registered.
+        """
+        try:
+            self.callbacks.remove(fn)
+        except ValueError:
+            raise ValueError(
+                "Callback not found in registered callbacks.  "
+                "Pass the same object that was given to add_callback()."
+            )
+        return self
+
     def inspect_layers(self) -> str:
         """Return a formatted string describing the model's layer structure.
 
