@@ -1497,6 +1497,95 @@ class Forecaster:
         return {**base, "mase": mase}
 
     @staticmethod
+    def diff(X, order: int = 1, lag: int = 1) -> np.ndarray:
+        """Apply differencing to remove trends / seasonality.
+
+        Computes ``X[t] - X[t - lag]`` repeated *order* times.  The output
+        has ``order * lag`` fewer timesteps than the input.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)`` or ``(N,)``.
+        order:
+            Number of differencing passes (default 1).
+        lag:
+            Lag for each pass (default 1 = consecutive differences).
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(N - order * lag, C)`` (or squeezed for 1-D input).
+        """
+        X_np = np.asarray(X, dtype=float)
+        squeeze = X_np.ndim == 1
+        if squeeze:
+            X_np = X_np[:, None]
+        for _ in range(order):
+            X_np = X_np[lag:] - X_np[:-lag]
+        return X_np.squeeze(1) if squeeze else X_np
+
+    @staticmethod
+    def undiff(
+        X_diff,
+        X_orig,
+        order: int = 1,
+        lag: int = 1,
+    ) -> np.ndarray:
+        """Invert differencing applied by :meth:`diff`.
+
+        Reconstructs the original scale by cumulatively summing the
+        differenced series starting from the last *lag* values of the
+        original series.
+
+        Parameters
+        ----------
+        X_diff:
+            Differenced series, shape ``(M, C)`` or ``(M,)``.
+        X_orig:
+            Original series *before* differencing, shape ``(N, C)`` or
+            ``(N,)``.  Only the last ``order * lag`` rows are used.
+        order:
+            Number of differencing passes used in :meth:`diff`.
+        lag:
+            Lag used in :meth:`diff`.
+
+        Returns
+        -------
+        np.ndarray
+            Reconstructed series, shape ``(M, C)``.
+        """
+        Xd = np.asarray(X_diff, dtype=float)
+        Xo = np.asarray(X_orig, dtype=float)
+        squeeze = Xd.ndim == 1
+        if squeeze:
+            Xd = Xd[:, None]
+        if Xo.ndim == 1:
+            Xo = Xo[:, None]
+
+        # Precompute forward-diff intermediates so we have the correct seeds
+        # for each un-diff pass.
+        inter = [Xo]
+        curr = Xo
+        for _ in range(order):
+            curr = curr[lag:] - curr[:-lag]
+            inter.append(curr)
+
+        result = Xd.copy()
+        for lv in range(order - 1, -1, -1):
+            seed = inter[lv][:lag]      # (lag, C) — first lag rows at this level
+            M = len(result)
+            out = np.empty((M + lag, result.shape[1]))
+            out[:lag] = seed
+            for t in range(lag, M + lag):
+                out[t] = out[t - lag] + result[t - lag]
+            result = out                # keep full output (including seed prepend)
+
+        # Strip the leading order*lag rows that came from the seed values
+        result = result[order * lag:]
+        return result.squeeze(1) if squeeze else result
+
+    @staticmethod
     def compute_metrics(
         y_true,
         y_pred,

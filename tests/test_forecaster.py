@@ -2914,6 +2914,50 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestDiffUndiff:
+    def test_diff_shape_order1(self):
+        X = _rng_data(n=100)
+        out = Forecaster.diff(X, order=1, lag=1)
+        assert out.shape == (99, C)
+
+    def test_diff_shape_order2(self):
+        X = _rng_data(n=100)
+        out = Forecaster.diff(X, order=2, lag=1)
+        assert out.shape == (98, C)
+
+    def test_diff_lag(self):
+        X = _rng_data(n=100)
+        out = Forecaster.diff(X, order=1, lag=7)
+        assert out.shape == (93, C)
+
+    def test_diff_1d_input(self):
+        X = np.random.default_rng(0).standard_normal(100)
+        out = Forecaster.diff(X, order=1)
+        assert out.shape == (99,)
+
+    def test_diff_constant_series_gives_zeros(self):
+        X = np.ones((50, 2))
+        out = Forecaster.diff(X, order=1)
+        np.testing.assert_allclose(out, 0.0)
+
+    def test_undiff_inverts_diff(self):
+        X = _rng_data(n=100)
+        Xd = Forecaster.diff(X, order=1, lag=1)
+        Xr = Forecaster.undiff(Xd, X, order=1, lag=1)
+        np.testing.assert_allclose(Xr, X[1:], atol=1e-8)
+
+    def test_undiff_inverts_order2(self):
+        X = _rng_data(n=100)
+        Xd = Forecaster.diff(X, order=2, lag=1)
+        Xr = Forecaster.undiff(Xd, X, order=2, lag=1)
+        np.testing.assert_allclose(Xr, X[2:], atol=1e-7)
+
+    def test_static_callable_without_instance(self):
+        X = _rng_data(n=50)
+        out = Forecaster.diff(X)
+        assert out.shape[0] == 49
+
+
 class TestComputeMetrics:
     def test_returns_expected_keys(self):
         y = _rng_data(n=10)
