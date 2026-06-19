@@ -409,6 +409,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "KANForecaster": {
+        "hidden": 64,
+        "e_layers": 2,
+        "degree": 5,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

@@ -292,6 +292,12 @@ from .HDMixer import (
     HDMixerAnomalyDetection,
     HDMixerImputation,
 )
+from .KANForecaster import (
+    KANForecasterForecast,
+    KANForecasterUEAClassification,
+    KANForecasterAnomalyDetection,
+    KANForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

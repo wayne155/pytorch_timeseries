@@ -374,6 +374,25 @@ class RetForecasterConfig:
 
 
 @dataclass
+class KANForecasterConfig:
+    hidden: int = 64
+    e_layers: int = 2
+    degree: int = 5
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.hidden <= 0:
+            raise ValueError("hidden must be positive")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.degree < 1:
+            raise ValueError("degree must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HDMixerConfig:
     patch_sizes: list = field(default_factory=lambda: [4, 8, 16])
     d_model: int = 64
@@ -1142,6 +1161,10 @@ def split_experiment_config(
         ("HDMixer", "AnomalyDetection"): HDMixerConfig,
         ("HDMixer", "Imputation"): HDMixerConfig,
         ("HDMixer", "UEAClassification"): HDMixerConfig,
+        ("KANForecaster", "Forecast"): KANForecasterConfig,
+        ("KANForecaster", "AnomalyDetection"): KANForecasterConfig,
+        ("KANForecaster", "Imputation"): KANForecasterConfig,
+        ("KANForecaster", "UEAClassification"): KANForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
