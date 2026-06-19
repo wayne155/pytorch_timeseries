@@ -9000,6 +9000,181 @@ class Forecaster:
         var_resid = np.var(resid) + 1e-15
         return float(var_trend / (var_trend + var_resid))
 
+    # ------------------------------------------------------------------
+    # hodrick_prescott_filter — trend/cycle decomposition (pure numpy)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def hodrick_prescott_filter(X, *, lam: float = 1600, channel: int = 0):
+        """Hodrick-Prescott filter for trend/cycle decomposition.
+
+        Minimises ``Σ(y_t − τ_t)² + λ · Σ(Δ²τ_t)²`` to extract a smooth
+        trend *τ* and cycle *c = y − τ*.  Pure numpy — no scipy required.
+
+        Common *lam* values: annual=100, quarterly=1600, monthly=14400.
+
+        Returns ``(trend, cycle)`` 1-D arrays of the same length as *X*::
+
+            trend, cycle = Forecaster.hodrick_prescott_filter(X_train, lam=1600)
+            plt.plot(trend)
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        # Build second-difference matrix D2 (T-2, T)
+        diag  = np.ones(T)
+        D1    = np.diag(diag[:-1], k=-1) * -1 + np.eye(T)
+        D1    = D1[1:]                         # (T-1, T)
+        D2    = -D1[:-1] + D1[1:]              # (T-2, T)
+        # HP normal equations: (I + lam * D2'D2) tau = y
+        H     = np.eye(T) + lam * D2.T @ D2
+        trend = np.linalg.solve(H, arr)
+        cycle = arr - trend
+        return trend.astype(np.float32), cycle.astype(np.float32)
+
+    # ------------------------------------------------------------------
+    # exponential_smoothing — single / Holt's double ES
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def exponential_smoothing(X, *, alpha: float = 0.3, beta: float = None,
+                               channel: int = 0):
+        """Simple or Holt's (double) exponential smoothing.
+
+        *alpha* is the level smoothing parameter.  If *beta* is given, applies
+        Holt's linear method with trend.  Returns a 1-D array of smoothed
+        values (same length as input, first value = first observation)::
+
+            smoothed = Forecaster.exponential_smoothing(X_train, alpha=0.2)
+            plt.plot(smoothed)
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        out   = np.empty(T, dtype=np.float64)
+        level = arr[0]
+        trend_val = 0.0 if beta is not None else None
+        out[0] = level
+        for t in range(1, T):
+            if beta is None:
+                level = alpha * arr[t] + (1 - alpha) * level
+            else:
+                prev_level = level
+                level = alpha * arr[t] + (1 - alpha) * (level + trend_val)
+                trend_val = beta * (level - prev_level) + (1 - beta) * trend_val
+            out[t] = level if trend_val is None else level + trend_val
+        return out.astype(np.float32)
+
+    # ------------------------------------------------------------------
+    # correlation_network — channel correlation graph above threshold
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def correlation_network(X, *, threshold: float = 0.5, n_bins: int = 30):
+        """Build a correlation graph among channels.
+
+        Computes the Pearson correlation matrix and returns edges where
+        ``|ρ| ≥ threshold`` as a list of ``(i, j, correlation)`` tuples::
+
+            edges = Forecaster.correlation_network(X_train, threshold=0.3)
+            for i, j, r in edges:
+                print(f"ch{i} — ch{j}: r={r:.3f}")
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        C = arr.shape[1]
+        # Pearson correlation matrix
+        arr_c = arr - arr.mean(axis=0)
+        norms = np.sqrt((arr_c ** 2).sum(axis=0)) + 1e-15
+        corr  = (arr_c.T @ arr_c) / np.outer(norms, norms)
+        edges = []
+        for i in range(C):
+            for j in range(i + 1, C):
+                if abs(corr[i, j]) >= threshold:
+                    edges.append((i, j, float(corr[i, j])))
+        edges.sort(key=lambda e: abs(e[2]), reverse=True)
+        return edges
+
+    @staticmethod
+    def plot_correlation_network(X, *, threshold: float = 0.3,
+                                  channel_names=None, ax=None, title: str = None):
+        """Network plot of channel correlations above *threshold*.
+
+        Nodes are channels; edges are coloured by correlation strength
+        (red = positive, blue = negative).  Node positions are arranged in
+        a circle.
+
+        Example::
+
+            Forecaster.plot_correlation_network(X_train, threshold=0.3)
+        """
+        import matplotlib.pyplot as plt
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        C = arr.shape[1]
+        labels = channel_names or [f"ch{i}" for i in range(C)]
+        edges  = Forecaster.correlation_network(arr, threshold=threshold)
+        # circular layout
+        angles  = np.linspace(0, 2 * np.pi, C, endpoint=False)
+        pos     = {i: (np.cos(angles[i]), np.sin(angles[i])) for i in range(C)}
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(6, 6))
+        else:
+            fig = ax.get_figure()
+        # draw edges
+        for i, j, r in edges:
+            xi, yi = pos[i]; xj, yj = pos[j]
+            color = "tomato" if r > 0 else "steelblue"
+            lw    = 0.5 + 2.5 * abs(r)
+            ax.plot([xi, xj], [yi, yj], color=color, linewidth=lw, alpha=0.7)
+        # draw nodes
+        for i, (x, y) in pos.items():
+            ax.scatter(x, y, s=200, zorder=5, color="white", edgecolors="black", linewidths=1.5)
+            ax.text(x * 1.12, y * 1.12, labels[i], ha="center", va="center", fontsize=9)
+        ax.set_xlim(-1.4, 1.4); ax.set_ylim(-1.4, 1.4)
+        ax.axis("off")
+        ax.set_title(title or f"Correlation network (threshold={threshold})")
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # z_normalize / z_denormalize — per-channel z-score normalization
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def z_normalize(X):
+        """Z-score normalise *X* per channel.
+
+        Returns ``(X_normed, mean, std)`` where *mean* and *std* are 1-D
+        arrays of shape ``(C,)``::
+
+            X_normed, mu, sigma = Forecaster.z_normalize(X_train)
+            X_test_normed       = (X_test - mu) / (sigma + 1e-8)
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        mu  = arr.mean(axis=0)
+        sig = arr.std(axis=0) + 1e-8
+        return (arr - mu) / sig, mu, sig
+
+    @staticmethod
+    def z_denormalize(X_normed, mean, std):
+        """Reverse :meth:`z_normalize`::
+
+            X_back = Forecaster.z_denormalize(X_normed, mu, sigma)
+        """
+        arr = np.asarray(X_normed, dtype=np.float32)
+        mu  = np.asarray(mean,     dtype=np.float32)
+        sig = np.asarray(std,      dtype=np.float32)
+        return arr * sig + mu
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

@@ -4292,6 +4292,110 @@ class TestTrendStrength:
         assert isinstance(ts, float)
 
 
+class TestHodrickPrescottFilter:
+    def test_returns_two_arrays(self):
+        X = _rng_data(n=200)
+        trend, cycle = Forecaster.hodrick_prescott_filter(X, lam=100, channel=0)
+        assert trend.shape == (200,) and cycle.shape == (200,)
+
+    def test_trend_plus_cycle_equals_original(self):
+        X = _rng_data(n=100)
+        trend, cycle = Forecaster.hodrick_prescott_filter(X, lam=100, channel=0)
+        arr = X[:, 0].astype(np.float32)
+        np.testing.assert_allclose(trend + cycle, arr, atol=1e-4)
+
+    def test_1d_input(self):
+        X = _rng_data(n=100)[:, 0]
+        trend, cycle = Forecaster.hodrick_prescott_filter(X, lam=100)
+        assert trend.shape == (100,)
+
+
+class TestExponentialSmoothing:
+    def test_single_es_shape(self):
+        X = _rng_data(n=200)
+        out = Forecaster.exponential_smoothing(X, alpha=0.3, channel=0)
+        assert out.shape == (200,)
+
+    def test_double_es_shape(self):
+        X = _rng_data(n=200)
+        out = Forecaster.exponential_smoothing(X, alpha=0.3, beta=0.1, channel=0)
+        assert out.shape == (200,)
+
+    def test_first_value_matches_input(self):
+        X = _rng_data(n=100)
+        out = Forecaster.exponential_smoothing(X, alpha=0.5, channel=0)
+        assert out[0] == pytest.approx(float(X[0, 0]), abs=1e-5)
+
+    def test_1d_input(self):
+        X = _rng_data(n=100)[:, 0]
+        out = Forecaster.exponential_smoothing(X, alpha=0.3)
+        assert out.shape == (100,)
+
+
+class TestCorrelationNetwork:
+    def test_returns_list(self):
+        X = _rng_data(n=200)
+        edges = Forecaster.correlation_network(X, threshold=0.0)
+        assert isinstance(edges, list)
+
+    def test_threshold_zero_all_edges(self):
+        X = _rng_data(n=200)
+        edges = Forecaster.correlation_network(X, threshold=0.0)
+        assert len(edges) == C * (C - 1) // 2
+
+    def test_high_threshold_fewer_edges(self):
+        X = _rng_data(n=200)
+        edges_low  = Forecaster.correlation_network(X, threshold=0.0)
+        edges_high = Forecaster.correlation_network(X, threshold=0.99)
+        assert len(edges_high) <= len(edges_low)
+
+    def test_edge_format(self):
+        X = _rng_data(n=200)
+        edges = Forecaster.correlation_network(X, threshold=0.0)
+        if edges:
+            i, j, r = edges[0]
+            assert isinstance(i, int) and isinstance(j, int)
+            assert -1.0 <= r <= 1.0
+
+
+class TestPlotCorrelationNetwork:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_correlation_network(X, threshold=0.0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestZNormalize:
+    def test_shape_preserved(self):
+        X = _rng_data(n=200)
+        X_n, mu, sig = Forecaster.z_normalize(X)
+        assert X_n.shape == X.shape
+
+    def test_mu_near_zero_after_normalize(self):
+        X = _rng_data(n=200)
+        X_n, mu, sig = Forecaster.z_normalize(X)
+        np.testing.assert_allclose(X_n.mean(axis=0), np.zeros(C), atol=1e-5)
+
+    def test_std_near_one_after_normalize(self):
+        X = _rng_data(n=200)
+        X_n, mu, sig = Forecaster.z_normalize(X)
+        np.testing.assert_allclose(X_n.std(axis=0), np.ones(C), atol=1e-4)
+
+    def test_roundtrip(self):
+        X = _rng_data(n=200)
+        X_n, mu, sig = Forecaster.z_normalize(X)
+        X_back = Forecaster.z_denormalize(X_n, mu, sig)
+        np.testing.assert_allclose(X_back, X, atol=1e-5)
+
+    def test_1d_becomes_2d(self):
+        X = _rng_data(n=100)[:, 0]
+        X_n, mu, sig = Forecaster.z_normalize(X)
+        assert X_n.ndim == 2
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
