@@ -50,6 +50,7 @@ from .ModernTCN import ModernTCN
 from .RLinear import RLinear
 from .FilterNet import FilterNet
 from .CARD import CARD
+from .Pathformer import Pathformer
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -78,6 +79,7 @@ forecasting_models = [
     "RLinear",
     "FilterNet",
     "CARD",
+    "Pathformer",
 ]
 
 prob_forecasting_models = [

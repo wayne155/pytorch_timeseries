@@ -238,6 +238,12 @@ from .CARD import (
     CARDAnomalyDetection,
     CARDImputation,
 )
+from .Pathformer import (
+    PathformerForecast,
+    PathformerUEAClassification,
+    PathformerAnomalyDetection,
+    PathformerImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

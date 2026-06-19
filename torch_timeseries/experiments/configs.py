@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from typing import Dict, Optional, Tuple, Union
 
 from torch_timeseries.dataloader.v2 import SplitConfig, TimeEncConfig, WindowConfig
@@ -343,6 +343,33 @@ class FilterNetConfig:
     def validate(self) -> None:
         if self.num_filters < 1:
             raise ValueError("num_filters must be >= 1")
+
+
+@dataclass
+class PathformerConfig:
+    patch_sizes: list = field(default_factory=lambda: [4, 8, 16])
+    d_model: int = 64
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if len(self.patch_sizes) < 1:
+            raise ValueError("patch_sizes must have at least one element")
+        if any(p < 1 for p in self.patch_sizes):
+            raise ValueError("all patch sizes must be positive")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
 
 
 @dataclass
@@ -894,6 +921,10 @@ def split_experiment_config(
         ("CARD", "AnomalyDetection"): CARDConfig,
         ("CARD", "Imputation"): CARDConfig,
         ("CARD", "UEAClassification"): CARDConfig,
+        ("Pathformer", "Forecast"): PathformerConfig,
+        ("Pathformer", "AnomalyDetection"): PathformerConfig,
+        ("Pathformer", "Imputation"): PathformerConfig,
+        ("Pathformer", "UEAClassification"): PathformerConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
