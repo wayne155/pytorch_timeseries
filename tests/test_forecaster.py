@@ -1449,3 +1449,46 @@ class TestEvaluate:
     def test_seasonal_period_param(self):
         result = self.fc.evaluate(_rng_data(n=200), seasonal_period=7)
         assert "mase" in result
+
+
+# ── benchmark() ───────────────────────────────────────────────────────────────
+
+
+class TestBenchmark:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dict_with_expected_keys(self):
+        result = self.fc.benchmark(n_runs=5, warmup=2)
+        for key in ("mean_ms", "std_ms", "min_ms", "max_ms",
+                    "throughput_samples_per_sec"):
+            assert key in result
+
+    def test_mean_ms_positive(self):
+        result = self.fc.benchmark(n_runs=5, warmup=2)
+        assert result["mean_ms"] > 0.0
+
+    def test_throughput_positive(self):
+        result = self.fc.benchmark(n_runs=5, warmup=2)
+        assert result["throughput_samples_per_sec"] > 0.0
+
+    def test_raises_before_fit(self):
+        with pytest.raises(RuntimeError, match="not fitted"):
+            _quick_fc().benchmark()
+
+
+# ── to_onnx() ─────────────────────────────────────────────────────────────────
+
+
+class TestToOnnx:
+    def test_creates_file(self, tmp_path):
+        pytest.importorskip("onnxscript")
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model.onnx")
+        fc.to_onnx(path)
+        import os
+        assert os.path.isfile(path)
+
+    def test_raises_before_fit(self, tmp_path):
+        with pytest.raises(RuntimeError, match="not fitted"):
+            _quick_fc().to_onnx(str(tmp_path / "model.onnx"))

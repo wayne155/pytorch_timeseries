@@ -813,6 +813,113 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def benchmark(
+        self,
+        *,
+        n_runs: int = 100,
+        batch_size: int = 1,
+        seq_len: Optional[int] = None,
+        warmup: int = 10,
+    ) -> Dict[str, float]:
+        """Measure inference latency of the fitted model.
+
+        Runs ``n_runs`` forward passes with a random input and returns timing
+        statistics.  Useful for comparing deployment efficiency across models.
+
+        Parameters
+        ----------
+        n_runs:
+            Number of timed forward passes.
+        batch_size:
+            Batch size for each pass.
+        seq_len:
+            Input sequence length.  Defaults to ``self.seq_len``.
+        warmup:
+            Number of un-timed warm-up passes before recording (eliminates
+            first-pass JIT / memory allocation cost).
+
+        Returns
+        -------
+        dict
+            ``{"mean_ms": float, "std_ms": float,
+               "min_ms": float, "max_ms": float,
+               "throughput_samples_per_sec": float}``
+        """
+        self._check_fitted()
+        seq = seq_len or self.seq_len
+        enc_in = self._enc_in or 1
+        x_dummy = torch.randn(batch_size, seq, enc_in, device=self.device)
+
+        self._model.eval()
+        with torch.no_grad():
+            for _ in range(warmup):
+                self._model(x_dummy)
+
+        times_ms: List[float] = []
+        with torch.no_grad():
+            for _ in range(n_runs):
+                t0 = time.perf_counter()
+                self._model(x_dummy)
+                times_ms.append((time.perf_counter() - t0) * 1000.0)
+
+        mean_ms = float(np.mean(times_ms))
+        return {
+            "mean_ms": mean_ms,
+            "std_ms": float(np.std(times_ms)),
+            "min_ms": float(np.min(times_ms)),
+            "max_ms": float(np.max(times_ms)),
+            "throughput_samples_per_sec": float(batch_size / (mean_ms / 1000.0 + 1e-9)),
+        }
+
+    def to_onnx(self, path: str, *, opset_version: int = 17) -> None:
+        """Export the fitted model to ONNX format.
+
+        The exported model accepts an input of shape
+        ``(batch_size, seq_len, enc_in)`` and produces
+        ``(batch_size, pred_len, enc_in)``.
+
+        Parameters
+        ----------
+        path:
+            Destination ``.onnx`` file path.
+        opset_version:
+            ONNX opset version (default 17).
+
+        Raises
+        ------
+        RuntimeError
+            If the model has not been fitted yet.
+        ImportError
+            If ``onnx`` is not installed.
+
+        Examples
+        --------
+        >>> fc.to_onnx("dlinear.onnx")
+        >>> # Load back with onnxruntime:
+        >>> import onnxruntime; sess = onnxruntime.InferenceSession("dlinear.onnx")
+        """
+        self._check_fitted()
+        try:
+            import torch.onnx
+        except ImportError as exc:
+            raise ImportError("torch.onnx is required but not available.") from exc
+
+        enc_in = self._enc_in or 1
+        x_dummy = torch.randn(1, self.seq_len, enc_in, device=self.device)
+        self._model.eval()
+        torch.onnx.export(
+            self._model,
+            x_dummy,
+            path,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={
+                "input": {0: "batch_size"},
+                "output": {0: "batch_size"},
+            },
+            opset_version=opset_version,
+        )
+
     def evaluate(self, X, *, seasonal_period: int = 1) -> Dict[str, float]:
         """Extended evaluation including SMAPE and MASE.
 
