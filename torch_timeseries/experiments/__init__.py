@@ -412,6 +412,12 @@ from .SincNetForecaster import (
     SincNetForecasterAnomalyDetection,
     SincNetForecasterImputation,
 )
+from .GatedMLPForecaster import (
+    GatedMLPForecasterForecast,
+    GatedMLPForecasterUEAClassification,
+    GatedMLPForecasterAnomalyDetection,
+    GatedMLPForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
