@@ -814,6 +814,105 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def plot_forecast(
+        self,
+        X,
+        *,
+        channel: int = 0,
+        n_context: Optional[int] = None,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot context, ground truth, and model forecast for one channel.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        X:
+            Full time series, shape ``(N, C)`` with
+            ``N >= seq_len + pred_len``.  The last ``seq_len`` rows are used
+            as the context window; the next ``pred_len`` rows (if available)
+            are plotted as ground truth.
+        channel:
+            Channel index to plot (default ``0``).
+        n_context:
+            How many context timesteps to show to the left of the prediction.
+            Defaults to ``seq_len`` (i.e., the full context window).
+        ax:
+            Existing ``matplotlib.axes.Axes``.  If ``None``, a new figure is
+            created.
+        title:
+            Optional axes title.  Defaults to
+            ``"<model> — channel <channel> forecast"``.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        self._check_fitted()
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_forecast(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        seq = self.seq_len
+        pred = self.pred_len
+
+        if N < seq:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least seq_len={seq}."
+            )
+
+        ctx_window = X_np[-seq - pred : -pred] if N >= seq + pred else X_np[-seq:]
+        if len(ctx_window) < seq:
+            ctx_window = X_np[:seq]
+
+        y_pred = self.predict(ctx_window)  # (pred_len, C)
+
+        n_ctx = min(n_context or seq, seq)
+        ctx_show = ctx_window[-n_ctx:, channel]
+        ctx_t = np.arange(-n_ctx, 0)
+        pred_t = np.arange(0, pred)
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(10, 4))
+
+        ax.plot(ctx_t, ctx_show, color="steelblue", label="context")
+
+        # Ground truth future (if available)
+        if N >= seq + pred:
+            truth_start = max(0, N - pred)
+            gt = X_np[truth_start : truth_start + pred, channel]
+            if len(gt) == pred:
+                ax.plot(pred_t, gt, color="green", linestyle="--",
+                        label="ground truth")
+
+        ax.plot(pred_t, y_pred[:, channel], color="tomato", label="forecast")
+        ax.axvline(0, color="grey", linestyle=":", linewidth=0.8)
+
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — channel {channel} forecast")
+        ax.set_xlabel("Timestep (0 = forecast start)")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def partial_fit(
         self,
         X,

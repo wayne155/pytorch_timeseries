@@ -640,6 +640,56 @@ class TestPlotHistory:
             fc.plot_history()
 
 
+# ── plot_forecast() ───────────────────────────────────────────────────────────
+
+
+class TestPlotForecast:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        X = _rng_data(n=200)
+        ax = self.fc.plot_forecast(X)
+        assert isinstance(ax, matplotlib.axes.Axes)
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_forecast(X, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_channel(self):
+        import matplotlib.axes
+        X = _rng_data(n=200)
+        ax = self.fc.plot_forecast(X, channel=1)
+        assert isinstance(ax, matplotlib.axes.Axes)
+
+    def test_custom_title(self):
+        X = _rng_data(n=200)
+        ax = self.fc.plot_forecast(X, title="My Title")
+        assert ax.get_title() == "My Title"
+
+    def test_n_context_limits_context_lines(self):
+        import matplotlib.axes
+        X = _rng_data(n=200)
+        ax = self.fc.plot_forecast(X, n_context=5)
+        assert isinstance(ax, matplotlib.axes.Axes)
+
+    def test_raises_before_fit(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.plot_forecast(_rng_data(n=200))
+
+    def test_raises_too_short(self):
+        X = _rng_data(n=5)
+        with pytest.raises(ValueError):
+            self.fc.plot_forecast(X)
+
+
 # ── get_params() / set_params() ───────────────────────────────────────────────
 
 
