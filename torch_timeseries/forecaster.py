@@ -1045,6 +1045,43 @@ class Forecaster:
             self.warm_start = original_warm_start
         return self
 
+    def stream_predict(self, X):
+        """Yield rolling forecasts as a generator over incoming timesteps.
+
+        The generator maintains a ``seq_len``-length buffer.  For each
+        new timestep appended from *X* (beyond the initial buffer), it
+        yields the model's prediction for the next ``pred_len`` steps.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)`` with ``N > seq_len``.  The
+            first ``seq_len`` rows seed the buffer; each subsequent row
+            advances the window by one and triggers a prediction.
+
+        Yields
+        ------
+        np.ndarray
+            Shape ``(pred_len, C)`` — the forecast at each step.
+
+        Examples
+        --------
+        >>> for pred in fc.stream_predict(X_test):
+        ...     process(pred)
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N = len(X_np)
+        if N <= self.seq_len:
+            return
+        buffer = X_np[:self.seq_len].copy()
+        for i in range(self.seq_len, N):
+            yield self.predict(buffer)
+            buffer = np.roll(buffer, -1, axis=0)
+            buffer[-1] = X_np[i]
+
     def compare_horizons(
         self,
         X,

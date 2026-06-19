@@ -2087,6 +2087,38 @@ class TestCompareHorizons:
 # ── partial_fit() ─────────────────────────────────────────────────────────────
 
 
+class TestStreamPredict:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_yields_correct_count(self):
+        X = _rng_data(n=200)
+        preds = list(self.fc.stream_predict(X))
+        expected = len(X) - SEQ
+        assert len(preds) == expected
+
+    def test_each_prediction_has_correct_shape(self):
+        X = _rng_data(n=100)
+        for pred in self.fc.stream_predict(X):
+            assert pred.shape == (PRED, C)
+
+    def test_too_short_yields_nothing(self):
+        X = _rng_data(n=SEQ)  # exactly seq_len — nothing to stream
+        preds = list(self.fc.stream_predict(X))
+        assert preds == []
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            list(fc.stream_predict(_rng_data(n=100)))
+
+    def test_is_generator(self):
+        import types
+        X = _rng_data(n=100)
+        gen = self.fc.stream_predict(X)
+        assert isinstance(gen, types.GeneratorType)
+
+
 class TestPartialFit:
     def test_partial_fit_after_fit_keeps_model(self):
         X = _rng_data()
