@@ -77,6 +77,7 @@ name.  Model-specific hyper-parameters can be passed as keyword arguments::
 from __future__ import annotations
 
 import copy
+import time
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -796,6 +797,53 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def predict_rolling(
+        self,
+        X,
+        *,
+        n_steps: Optional[int] = None,
+        stride: int = 1,
+    ) -> np.ndarray:
+        """Generate rolling forecasts by sliding the context window across X.
+
+        Unlike :meth:`predict`, which forecasts a single fixed horizon from one
+        context window, ``predict_rolling`` slides the ``seq_len`` window along
+        the series and emits one forecast per position.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)`` or ``(N,)``.  Must have at least
+            ``seq_len + pred_len`` timesteps.
+        n_steps:
+            Maximum number of forecast positions.  If *None* (default) all
+            valid positions are used.
+        stride:
+            Step size between consecutive context windows (default 1).
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(n_positions, pred_len, C)`` — one forecast per window.
+        """
+        self._check_fitted()
+        X = _to_numpy(X)
+        if X.ndim == 1:
+            X = X[:, None]
+        N = len(X)
+        min_len = self.seq_len + self.pred_len
+        if N < min_len:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        positions = list(range(0, N - self.seq_len - self.pred_len + 1, stride))
+        if n_steps is not None:
+            positions = positions[:n_steps]
+
+        windows = np.stack([X[i : i + self.seq_len] for i in positions])  # (P, S, C)
+        return self.predict(windows)  # (P, pred_len, C)
+
     # ── sklearn-compatible params ─────────────────────────────────────────────
 
     def get_params(self, deep: bool = True) -> dict:
@@ -944,6 +992,8 @@ class Forecaster:
         val_split: float = 0.1,
         metric: str = "mean_mse",
         verbose: bool = True,
+        n_iter: Optional[int] = None,
+        random_state: Optional[int] = None,
     ) -> "Forecaster":
         """Grid-search hyperparameters using walk-forward cross-validation.
 
@@ -969,6 +1019,11 @@ class Forecaster:
             CV result key to minimise (default ``"mean_mse"``).
         verbose:
             Print per-combination progress.
+        n_iter:
+            If given, randomly sample ``n_iter`` combinations from the full
+            grid (random search).  Useful when the grid is large.
+        random_state:
+            Seed for the random sampler used when ``n_iter`` is set.
 
         Returns
         -------
@@ -982,9 +1037,15 @@ class Forecaster:
         >>> best.fit(X)
         """
         import itertools
+        import random as _random
 
         keys = list(param_grid)
         combos = list(itertools.product(*[param_grid[k] for k in keys]))
+
+        if n_iter is not None and n_iter < len(combos):
+            rng = _random.Random(random_state)
+            combos = rng.sample(combos, n_iter)
+
         best_score = float("inf")
         best_params: Optional[dict] = None
 
@@ -1181,8 +1242,11 @@ def compare(
             print(f"\n[{i + 1}/{len(models)}] {name}")
 
         try:
+            t0 = time.perf_counter()
             fc.fit(X_train, val_split=val_split)
+            elapsed = time.perf_counter() - t0
             metrics = fc.score(X_test)
+            metrics["elapsed_s"] = elapsed
         except Exception as exc:
             if verbose:
                 print(f"  ERROR: {exc}")
@@ -1191,6 +1255,7 @@ def compare(
                 "mae": float("inf"),
                 "rmse": float("inf"),
                 "smape": float("inf"),
+                "elapsed_s": float("nan"),
                 "error": str(exc),
             }
 
@@ -1209,8 +1274,8 @@ def _print_compare_table(results: Dict[str, Dict[str, float]]) -> None:
     """Print a ranked summary table for :func:`compare` results."""
     if not results:
         return
-    cols = ["MSE", "MAE", "RMSE", "SMAPE%"]
-    keys = ["mse", "mae", "rmse", "smape"]
+    cols = ["MSE", "MAE", "RMSE", "SMAPE%", "Time(s)"]
+    keys = ["mse", "mae", "rmse", "smape", "elapsed_s"]
     name_w = max(len(n) for n in results) + 2
     col_w = 10
     sep = "─" * (6 + name_w + col_w * len(cols))
@@ -1222,6 +1287,11 @@ def _print_compare_table(results: Dict[str, Dict[str, float]]) -> None:
         row = f"{rank:>5}  {name:<{name_w}}"
         for k in keys:
             v = m.get(k, float("nan"))
-            row += f"{v:>{col_w}.4f}" if v != float("inf") else f"{'ERR':>{col_w}}"
+            if v == float("inf"):
+                row += f"{'ERR':>{col_w}}"
+            elif v != v:  # nan
+                row += f"{'N/A':>{col_w}}"
+            else:
+                row += f"{v:>{col_w}.4f}"
         print(row)
     print(sep + "\n")

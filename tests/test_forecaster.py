@@ -947,3 +947,98 @@ class TestCallbacks:
     def test_no_callbacks_by_default(self):
         fc = _quick_fc()
         assert fc.callbacks == []
+
+
+# ── predict_rolling() ─────────────────────────────────────────────────────────
+
+
+class TestPredictRolling:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_output_shape_default(self):
+        X = _rng_data(n=200)
+        out = self.fc.predict_rolling(X)
+        n_positions = 200 - SEQ - PRED + 1
+        assert out.shape == (n_positions, PRED, C)
+
+    def test_n_steps_limits_positions(self):
+        X = _rng_data(n=200)
+        out = self.fc.predict_rolling(X, n_steps=5)
+        assert out.shape[0] == 5
+
+    def test_stride_reduces_positions(self):
+        X = _rng_data(n=200)
+        out_stride1 = self.fc.predict_rolling(X)
+        out_stride2 = self.fc.predict_rolling(X, stride=2)
+        assert out_stride2.shape[0] < out_stride1.shape[0]
+
+    def test_output_is_numpy(self):
+        X = _rng_data(n=100)
+        out = self.fc.predict_rolling(X)
+        assert isinstance(out, np.ndarray)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.predict_rolling(np.zeros((5, C)))
+
+
+# ── compare() timing ──────────────────────────────────────────────────────────
+
+
+class TestCompareTiming:
+    def test_elapsed_s_present(self):
+        X = _rng_data(n=300)
+        result = compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=1, verbose=False, print_table=False,
+        )
+        assert "elapsed_s" in result["DLinear"]
+
+    def test_elapsed_s_positive(self):
+        X = _rng_data(n=300)
+        result = compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=1, verbose=False, print_table=False,
+        )
+        assert result["DLinear"]["elapsed_s"] > 0
+
+
+# ── tune() n_iter ─────────────────────────────────────────────────────────────
+
+
+class TestTuneNIter:
+    def test_n_iter_limits_combos(self):
+        X = _rng_data(n=700)
+        evaluated = []
+
+        original_cv = Forecaster.cross_validate
+
+        def counting_cv(self, X, **kwargs):
+            evaluated.append(1)
+            return original_cv(self, X, **kwargs)
+
+        import unittest.mock as mock
+        fc = _quick_fc()
+        with mock.patch.object(Forecaster, "cross_validate", counting_cv):
+            fc.tune(X, param_grid={"lr": [1e-3, 1e-4, 1e-5]}, n_splits=2,
+                    verbose=False, n_iter=2)
+        assert len(evaluated) == 2
+
+    def test_n_iter_none_evaluates_all(self):
+        X = _rng_data(n=700)
+        evaluated = []
+
+        original_cv = Forecaster.cross_validate
+
+        def counting_cv(self, X, **kwargs):
+            evaluated.append(1)
+            return original_cv(self, X, **kwargs)
+
+        import unittest.mock as mock
+        fc = _quick_fc()
+        with mock.patch.object(Forecaster, "cross_validate", counting_cv):
+            fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
+        assert len(evaluated) == 2
