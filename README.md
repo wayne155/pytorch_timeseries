@@ -48,10 +48,20 @@ An all-in-one deep learning library covering the full spectrum of time series re
   - [Probabilistic Forecasting](#probabilistic-forecasting)
   - [Time Series Generation](#time-series-generation)
   - [Imputation · Anomaly Detection · Classification](#imputation--anomaly-detection--classification)
+- [Data Loading Reference](#data-loading-reference)
+  - [ForecastDataModule](#forecastdatamodule)
+  - [WindowConfig](#windowconfig)
+  - [LoaderConfig](#loaderconfig)
+  - [SplitConfig](#splitconfig)
+  - [Scalers](#scalers)
+  - [Other DataModules](#other-datamodules)
 - [Development Milestones](#development-milestones)
   - [Implemented Datasets](#implemented-datasets)
   - [Implemented Tasks](#implemented-tasks)
-  - [Implemented Models](#implemented-models)
+  - [Implemented Models — Point Forecasters](#implemented-models--point-forecasters)
+  - [Implemented Models — Probabilistic Forecasters](#implemented-models--probabilistic-forecasters)
+  - [Implemented Models — Generation](#implemented-models--generation)
+  - [Implemented Models — Irregular Time Series](#implemented-models--irregular-time-series)
 - [Dev Install](#dev-install)
 
 ---
@@ -1298,24 +1308,209 @@ LatentODEIrregularClassification(dataset_type="PhysioNet2012", epochs=30).run(se
 
 ---
 
+## Data Loading Reference
+
+The library's data pipeline is built around three composable config objects and a
+family of `DataModule` classes — one per task type.
+
+### ForecastDataModule
+
+```python
+from torch_timeseries.dataloader.v2 import (
+    ForecastDataModule, WindowConfig, LoaderConfig, SplitConfig
+)
+from torch_timeseries.dataset import ETTh1
+from torch_timeseries.scaler import StandardScaler
+
+dm = ForecastDataModule(
+    dataset = ETTh1(),
+    scaler  = StandardScaler(),
+    window  = WindowConfig(window=96, horizon=1, steps=24),
+    split   = SplitConfig(train=0.7, val=0.1, test=0.2),   # optional
+    loader  = LoaderConfig(batch_size=64, num_workers=4),   # optional
+)
+
+# three ready-to-use PyTorch DataLoaders
+dm.train_loader   # shuffled training windows
+dm.val_loader     # non-shuffled validation windows
+dm.test_loader    # non-shuffled test windows
+
+# convenience attributes
+dm.num_features   # == dataset.num_features (int)
+dm.scaler         # fitted scaler instance
+```
+
+Each batch is a `Batch` object with fields:
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `batch.x` | `(B, window, C)` | Input context window |
+| `batch.y` | `(B, steps, C)` | Target prediction window |
+| `batch.x_date_enc` | `(B, window, date_features)` | Time encoding for input |
+| `batch.y_date_enc` | `(B, steps, date_features)` | Time encoding for target |
+
+```python
+for batch in dm.train_loader:
+    x = batch.x.float().to(device)          # (64, 96, 7)
+    y = batch.y.float().to(device)          # (64, 24, 7)
+    x_enc = batch.x_date_enc.float().to(device)  # (64, 96, 4)
+```
+
+---
+
+### WindowConfig
+
+Controls how windows are cut from the time series.
+
+```python
+WindowConfig(
+    window      = 96,     # look-back length (seq_len)
+    horizon     = 1,      # gap between context end and prediction start
+    steps       = 24,     # prediction length (pred_len)
+    stride      = 1,      # sliding step during training (1 = dense)
+    fast_val    = False,  # non-overlapping windows at validation (faster)
+    fast_test   = False,  # non-overlapping windows at test (faster)
+    input_columns  = None,  # list of column names to use as input features
+    target_columns = None,  # list of column names to predict (default=all)
+    time_enc_cfg   = TimeEncConfig(),  # time encoding configuration
+)
+```
+
+**`fast_val` / `fast_test`** — switch evaluation splits to non-overlapping
+windows (stride = `window + horizon + steps − 1`).  Training always uses the
+dense stride.  This dramatically reduces inference calls for expensive models
+(diffusion, neural ODEs) while keeping metrics representative.
+
+---
+
+### LoaderConfig
+
+Controls PyTorch `DataLoader` settings.
+
+```python
+LoaderConfig(
+    batch_size    = 32,     # samples per mini-batch
+    num_workers   = 0,      # parallel data-loading workers
+    shuffle_train = True,   # shuffle training set each epoch
+    pin_memory    = False,  # pin memory for CUDA transfers
+)
+```
+
+---
+
+### SplitConfig
+
+Controls train / val / test proportions.  Ratios must sum to ≤ 1.
+
+```python
+from torch_timeseries.dataloader.v2 import SplitConfig
+
+SplitConfig(train=0.7, val=0.1, test=0.2)   # default: 70/10/20
+```
+
+Many built-in datasets have a canonical benchmark split that is applied
+automatically when no `SplitConfig` is given (e.g. ETT series use the
+standard 12/4/4 months split used in the Informer paper).
+
+---
+
+### Scalers
+
+```python
+from torch_timeseries.scaler import StandardScaler, MinMaxScaler
+
+StandardScaler()   # zero-mean unit-variance normalisation (default)
+MinMaxScaler()     # scale to [0, 1] per channel
+```
+
+The scaler is fitted on the training split only and applied to all splits —
+no data leakage.
+
+---
+
+### Other DataModules
+
+| DataModule | Task | Import path |
+|-----------|------|-------------|
+| `ForecastDataModule` | Forecasting | `torch_timeseries.dataloader.v2` |
+| `ImputationDataModule` | Imputation | `torch_timeseries.dataloader.v2` |
+| `AnomalyDataModule` | Anomaly detection | `torch_timeseries.dataloader.v2` |
+| `UEADataModule` | UEA classification | `torch_timeseries.dataloader.v2` |
+| `GenerationDataModule` | Time series generation | `torch_timeseries.dataloader.v2` |
+| `IrregularForecastDataModule` | Irregular forecasting | `torch_timeseries.dataloader.v2` |
+| `IrregularInterpolationDataModule` | Irregular interpolation | `torch_timeseries.dataloader.v2` |
+| `IrregularClassificationDataModule` | Irregular classification | `torch_timeseries.dataloader.v2` |
+
+Each task-specific DataModule exposes the same `train_loader` / `val_loader` /
+`test_loader` interface; only the batch layout differs between tasks.
+
+**Imputation batch** — `batch.masked_x` (masked input), `batch.x` (target), `batch.mask` (bool tensor)
+
+**Anomaly batch** — `batch.x` (window), `batch.origin_x` (original before augmentation)
+
+**UEA batch** — `batch.x` (sequence), `batch.y` (class label), `batch.padding_masks`
+
+---
+
 ## Development Milestones
 
 ### Implemented Datasets
 
-Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html).
+All datasets download automatically on first use to `~/.torchtimeseries/data/`.
 
-| Datasets | Forecasting | Imputation | Anomaly | Classification |
-| -------- | ----------- | ---------- | ------- | -------------- |
-| [ETTh1](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
-| [ETTh2](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
-| [ETTm1](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
-| [ETTm2](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | | |
-| [......And More](https://pytorch-timeseries.readthedocs.io/en/latest/modules/dataset.html) | ✅ | ✅ | ✅ | ✅ |
+#### Forecasting / Imputation datasets
+
+| Dataset | Freq | Features | Length | Source |
+|---------|------|----------|--------|--------|
+| ETTh1 | hourly | 7 | 17,420 | [Informer (AAAI 2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) |
+| ETTh2 | hourly | 7 | 17,420 | [Informer (AAAI 2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) |
+| ETTm1 | 15-min | 7 | 69,680 | [Informer (AAAI 2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) |
+| ETTm2 | 15-min | 7 | 69,680 | [Informer (AAAI 2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) |
+| Weather | hourly | 21 | 52,696 | Max Planck Institute |
+| Traffic | hourly | 862 | 17,544 | Caltrans PeMS |
+| Electricity | 15-min | 321 | 26,304 | UCI |
+| Exchange Rate | daily | 8 | 7,588 | LSTNet |
+| ILI | weekly | 7 | 966 | CDC |
+| Solar Energy | hourly | 137 | 52,560 | NREL |
+| M4 | mixed | 1 | varies | M4 competition |
+| Stocks | daily | varies | varies | Yahoo Finance |
+
+#### Anomaly detection datasets
+
+| Dataset | Description |
+|---------|-------------|
+| MSL | NASA Mars Science Laboratory telemetry |
+| SMAP | NASA Soil Moisture Active Passive satellite |
+| SMD | Server Machine Dataset (OmniAnomaly) |
+| PSM | Pooled Server Metrics (eBay) |
+| SWaT | Secure Water Treatment (SUTD) |
+
+#### Classification datasets
+
+| Dataset | Description |
+|---------|-------------|
+| UEA archive | All 30+ UEA Time Series Classification datasets auto-download by name |
+
+#### Irregular time series datasets
+
+| Dataset | Description |
+|---------|-------------|
+| PhysioNet 2012 | ICU patient records (48-h, 35 variables, irregular sampling) |
+
+#### Synthetic / Simulation datasets
+
+| Dataset | Description |
+|---------|-------------|
+| Sine | Single-frequency sinusoids (configurable freq, phase, noise) |
+| SimFreq | Multi-frequency synthetic series |
+| SimFreqCF | Cross-frequency coupled synthetic series |
+
+---
 
 ### Implemented Tasks
 
-- [x] Forecast
-- [x] Probabilistic Forecast
+- [x] Forecasting
+- [x] Probabilistic Forecasting
 - [x] Imputation
 - [x] Anomaly Detection
 - [x] Classification (UEA datasets)
@@ -1325,32 +1520,194 @@ Full list: [Documentation](https://pytorch-timeseries.readthedocs.io/en/latest/m
 - [x] Irregular Forecasting
 - [ ] Contribute your own task!
 
-### Implemented Models
+---
 
-#### Regular time series
+### Implemented Models — Point Forecasters
 
-| Models | Forecasting | Imputation | Anomaly | Classification |
-| ------ | ----------- | ---------- | ------- | -------------- |
-| [Informer (2021)](https://ojs.aaai.org/index.php/AAAI/article/view/17325) | ✅ | ✅ | ✅ | ✅ |
-| [Autoformer (2021)](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html) | ✅ | ✅ | ✅ | ✅ |
-| [FEDformer (2022)](https://proceedings.mlr.press/v162/zhou22g.html) | ✅ | ✅ | ✅ | ✅ |
-| [DLinear (2022)](https://ojs.aaai.org/index.php/AAAI/article/view/26317) | ✅ | ✅ | ✅ | ✅ |
-| [PatchTST (2022)](https://openreview.net/forum?id=Jbdc0vTOcol) | ✅ | ✅ | ✅ | ✅ |
-| [iTransformer (2024)](https://openreview.net/forum?id=JePfAI8fah) | ✅ | ✅ | ✅ | ✅ |
-| [SegRNN (2024)](https://openreview.net/forum?id=jeqE7rqz2L) | ✅ | ✅ | ✅ | ✅ |
-| [TimeMixer (2024)](https://openreview.net/forum?id=7oLshfEIC2) | ✅ | ✅ | ✅ | ✅ |
-| [TiDE (2023)](https://arxiv.org/abs/2304.08424) | ✅ | ✅ | ✅ | ✅ |
-| [N-HiTS (2023)](https://ojs.aaai.org/index.php/AAAI/article/view/26253) | ✅ | ✅ | ✅ | ✅ |
+All point forecasters accept `(B, T, C)` input and return `(B, pred_len, C)`.
+They are usable both through the **Forecaster** high-level API and the low-level
+experiment runner.
 
-#### Irregular time series
+#### Transformer family
 
-| Models | Irr. Classify | Interpolation | Irr. Forecast | Extra deps |
-| ------ | ------------- | ------------- | ------------- | ---------- |
+| Model | Key Idea | Paper |
+|-------|----------|-------|
+| VanillaTransformer | Baseline encoder-decoder transformer | [Vaswani et al., 2017](https://arxiv.org/abs/1706.03762) |
+| Informer | ProbSparse attention, distilling | [Zhou et al., AAAI 2021](https://ojs.aaai.org/index.php/AAAI/article/view/17325) |
+| Autoformer | Auto-Correlation + decomposition | [Wu et al., NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html) |
+| FEDformer | Frequency-enhanced decomposed transformer | [Zhou et al., ICML 2022](https://proceedings.mlr.press/v162/zhou22g.html) |
+| NSTransformer | Non-stationary attention | [Liu et al., NeurIPS 2022](https://arxiv.org/abs/2205.14415) |
+| PatchTST | Patch tokenisation, channel independence | [Nie et al., ICLR 2023](https://openreview.net/forum?id=Jbdc0vTOcol) |
+| Crossformer | Cross-dimension attention | [Zhang & Yan, ICLR 2023](https://openreview.net/forum?id=vSVLM2j9eie) |
+| iTransformer | Inverted attention (channels as tokens) | [Liu et al., ICLR 2024](https://openreview.net/forum?id=JePfAI8fah) |
+| Pathformer | Multi-scale path attention | [Chen et al., ICLR 2024](https://openreview.net/forum?id=lJkOCMP2aW) |
+| ETSformer | Exponential smoothing + Fourier attention | [Woo et al., 2022](https://arxiv.org/abs/2202.01381) |
+| Basisformer | Learnable seasonal-trend basis | — |
+| FiLM | Frequency-improved legendre memory | [Zhou et al., NeurIPS 2022](https://arxiv.org/abs/2205.08897) |
+| CATS | Channel attention transformer | — |
+
+#### MLP / Linear family
+
+| Model | Key Idea | Paper |
+|-------|----------|-------|
+| DLinear | Simple decomposition + linear | [Zeng et al., AAAI 2023](https://ojs.aaai.org/index.php/AAAI/article/view/26317) |
+| NLinear | Normalised linear | [Zeng et al., AAAI 2023](https://ojs.aaai.org/index.php/AAAI/article/view/26317) |
+| RLinear | Reversible normalisation + linear | — |
+| LightTS | Interval-enhanced MLP | [Zhang et al., 2022](https://arxiv.org/abs/2207.01186) |
+| TSMixer | MLP-Mixer for time series | [Chen et al., 2023](https://arxiv.org/abs/2303.06053) |
+| TiDE | Time-series dense encoder | [Das et al., 2023](https://arxiv.org/abs/2304.08424) |
+| FreTS | Frequency-domain MLP | [Yi et al., NeurIPS 2023](https://arxiv.org/abs/2311.06184) |
+| FITS | Frequency interpolation for time series | [Xu et al., ICLR 2024](https://openreview.net/forum?id=bWcnvZ3qMb) |
+| SparseTSF | Sparse time series forecaster | [Han et al., ICML 2024](https://arxiv.org/abs/2405.00946) |
+| HDMixer | Hierarchical dependency mixer | — |
+| PatchMixer | Patch-based MLP-Mixer | — |
+| MICN | Multi-scale isometric convolution network | [Wang et al., ICLR 2023](https://openreview.net/forum?id=zt53IDUR1U) |
+| CycleNet | Learnable periodic cycle buffer | — |
+| FilterNet | Learnable frequency filter bank | — |
+| GatedMLPForecaster | Gated MLP with channel mixing | — |
+
+#### CNN / TCN family
+
+| Model | Key Idea | Paper |
+|-------|----------|-------|
+| SCINet | Sample convolution + interaction | [Liu et al., NeurIPS 2022](https://arxiv.org/abs/2106.09305) |
+| TimesNet | TimesBlock: 2-D temporal variation | [Wu et al., ICLR 2023](https://openreview.net/forum?id=ju_Uqw384Oq) |
+| ModernTCN | Modern temporal convolutional network | — |
+| WaveNet | Dilated causal convolutions + gating | [van den Oord et al., 2016](https://arxiv.org/abs/1609.03499) |
+| TCNForecaster | Vanilla TCN | — |
+| MultiscaleConvForecaster | Parallel multi-scale conv branches | — |
+| SincNetForecaster | SincNet learnable band-pass filters | — |
+| WaveletForecaster | Learnable wavelet filter bank | — |
+| TemporalConvAttentionForecaster | TCN + attention hybrid | — |
+
+#### RNN / SSM / Hybrid family
+
+| Model | Key Idea | Paper |
+|-------|----------|-------|
+| RNNForecaster | Vanilla LSTM/GRU | — |
+| BiLSTMForecaster | Bidirectional LSTM | — |
+| SegRNN | Segment-based RNN | [Lin et al., ICLR 2024](https://openreview.net/forum?id=jeqE7rqz2L) |
+| Koopa | Koopman operator + Fourier | [Liu et al., NeurIPS 2023](https://arxiv.org/abs/2305.18803) |
+| SOFTS | Scalable output-free time series | [Han et al., NeurIPS 2024](https://arxiv.org/abs/2404.04997) |
+| TimeMixer | Decomposition + mixing at multiple scales | [Wang et al., ICLR 2024](https://openreview.net/forum?id=7oLshfEIC2) |
+| N-BEATS | Neural basis expansion | [Oreshkin et al., ICLR 2020](https://openreview.net/forum?id=r1ecqn4YwB) |
+| N-HiTS | Hierarchical interpolation | [Challu et al., AAAI 2023](https://ojs.aaai.org/index.php/AAAI/article/view/26253) |
+| DishTS | Distribution shift-aware | — |
+| MambaForecaster | Selective state space model | [Gu & Dao, 2023](https://arxiv.org/abs/2312.00752) |
+| iMamba | Inverted Mamba | — |
+| SMamba | Spatial Mamba | — |
+| HGRN2Forecaster | Hierarchical gated recurrent network | — |
+| S4Forecaster | Structured state space (S4) | [Gu et al., ICLR 2022](https://openreview.net/forum?id=uYLFoz1vlAC) |
+| LRUForecaster | Linear recurrent unit | — |
+| MinGRUForecaster | Minimal gated recurrent unit | — |
+| xLSTMForecaster | Extended LSTM | — |
+| QRNNForecaster | Quasi-recurrent neural network | — |
+
+#### Attention / Hybrid variants
+
+| Model | Key Idea |
+|-------|----------|
+| LinearAttentionForecaster | Linear attention (O(N) complexity) |
+| NystromForecaster | Nyström approximation attention |
+| DiffTransformerForecaster | Differential attention |
+| AFTForecaster | Attention-free transformer |
+| MEGAForecaster | Exponential moving average + gated attention |
+| FastFormerForecaster | Additive attention |
+| HyenaForecaster | Long convolution operator |
+| RetForecaster | Retentive network |
+| RWKVForecaster | RWKV: linear-complexity RNN+Attn hybrid |
+| ConformerForecaster | Convolution + transformer (speech-inspired) |
+| GLAForecaster | Gated linear attention |
+
+#### Specialised / Research models
+
+| Model | Key Idea |
+|-------|----------|
+| GATForecaster | Graph attention network on channels |
+| GCNForecaster | Graph convolutional network |
+| KANForecaster | Kolmogorov-Arnold network |
+| HarmonicForecaster | Learnable harmonic oscillators |
+| EchoStateForecaster | Echo state / reservoir computing |
+| TSReservoir | Temporal reservoir network |
+| ImplicitNeuralForecaster | Implicit neural representation |
+| PrototypicalForecaster | Prototype-based forecasting |
+| FourierMixerForecaster | Fourier-domain channel mixing |
+| RandomFourierForecaster | Random Fourier features |
+| AdaptiveSpectralForecaster | Adaptive spectral filtering |
+| HyperForecaster | Hypernetwork-generated weights |
+| SpikeForecaster | Spiking neural network |
+| MoEForecaster | Mixture of experts |
+| LiquidNetForecaster | Liquid neural network (CfC) |
+| DualDecompForecaster | Dual-branch trend/seasonal decomposition |
+| NeuralBasisForecaster | Neural basis functions |
+| TFT | Temporal fusion transformer | 
+
+---
+
+### Implemented Models — Probabilistic Forecasters
+
+| Model | Method | Output |
+|-------|--------|--------|
+| GaussianForecaster | Gaussian NLL head | μ, σ per step |
+| QuantileForecaster | Pinball loss | Quantile levels |
+| MCDropoutForecaster | MC Dropout | Sample trajectories |
+| StudentTForecaster | Student-t NLL head | μ, ν, σ per step |
+| NormalizingFlowForecaster | Real-NVP conditional flow | Exact-likelihood samples |
+| EnsembleForecaster | Deep ensemble | Sample trajectories |
+
+```python
+from torch_timeseries.model import GaussianForecaster
+
+model = GaussianForecaster(seq_len=96, pred_len=24, enc_in=7)
+mu, sigma = model(x)   # both (B, 24, 7)
+```
+
+---
+
+### Implemented Models — Generation
+
+Time series generation models produce synthetic sequences from noise or
+latent codes.  All support `(seq_len, n_features)` generation calls.
+
+| Model | Method | Paper |
+|-------|--------|-------|
+| TimeGAN | Adversarial training in latent space | [Yoon et al., NeurIPS 2019](https://proceedings.neurips.cc/paper/2019/hash/c9efe5f26cd17ba6216bbe2a7d26d490-Abstract.html) |
+| DiffusionTS | Transformer-based DDPM | [Yuan & Qiao, ICLR 2024](https://openreview.net/forum?id=4h1apFjO99) |
+| NsDiff | Non-stationary diffusion | — |
+| TMDM | Transformer masked diffusion model | — |
+| CSDI | Conditional score-based diffusion | [Tashiro et al., NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/cfe8504bda37b575c70ee1a8276f3486-Abstract.html) |
+| TimeDiff | Time series diffusion | — |
+
+```python
+from torch_timeseries.model import DiffusionTS
+
+gen   = DiffusionTS(seq_len=96, n_features=7, n_diffusion_steps=50)
+noise = torch.randn(16, 96, 7)
+synth = gen.sample(noise)    # (16, 96, 7)
+```
+
+---
+
+### Implemented Models — Irregular Time Series
+
+Models that handle variable-length sequences with arbitrary timestamps and
+possibly missing channels.
+
+| Model | Classify | Interp. | Forecast | Extra deps |
+|-------|----------|---------|----------|------------|
 | [GRU-D (2018)](https://www.nature.com/articles/s41598-018-24271-9) | ✅ | ✅ | ✅ | — |
 | [mTAN (2021)](https://openreview.net/forum?id=4c0J6lwQ4_) | ✅ | ✅ | ✅ | — |
 | [LatentODE (2019)](https://proceedings.neurips.cc/paper/2019/hash/42a6845a557bef704ad8ac9cb4461d43-Abstract.html) | ✅ | ✅ | ✅ | torchdiffeq |
 | [NeuralCDE (2020)](https://proceedings.neurips.cc/paper/2020/hash/4a5876b450b45371f6cfe5047ac8cd45-Abstract.html) | ✅ | | | torchcde |
 | [Raindrop (2022)](https://openreview.net/forum?id=Kwm8I7dU-l5) | ✅ | | | torch_geometric |
+
+```python
+from torch_timeseries.model.irregular import GRUD
+
+model = GRUD(input_size=35, hidden_size=64, n_classes=2)
+# batch.values: (B, T, 35)  batch.mask: (B, T, 35)  batch.deltas: (B, T, 35)
+logits = model(batch.values, batch.mask, batch.deltas)   # (B, 2)
+```
 
 
 
