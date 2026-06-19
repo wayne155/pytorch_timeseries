@@ -51,6 +51,7 @@ from .RLinear import RLinear
 from .FilterNet import FilterNet
 from .CARD import CARD
 from .Pathformer import Pathformer
+from .SMamba import SMamba
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -80,6 +81,7 @@ forecasting_models = [
     "FilterNet",
     "CARD",
     "Pathformer",
+    "SMamba",
 ]
 
 prob_forecasting_models = [

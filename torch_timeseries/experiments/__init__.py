@@ -244,6 +244,12 @@ from .Pathformer import (
     PathformerAnomalyDetection,
     PathformerImputation,
 )
+from .SMamba import (
+    SMambaForecast,
+    SMambaUEAClassification,
+    SMambaAnomalyDetection,
+    SMambaImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

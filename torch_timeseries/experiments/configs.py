@@ -346,6 +346,37 @@ class FilterNetConfig:
 
 
 @dataclass
+class SMambaConfig:
+    d_model: int = 64
+    d_state: int = 16
+    e_layers: int = 2
+    n_heads: int = 4
+    d_ff: int = 128
+    patch_len: int = 16
+    stride: int = 16
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_state <= 0:
+            raise ValueError("d_state must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.patch_len <= 0:
+            raise ValueError("patch_len must be positive")
+        if self.stride <= 0:
+            raise ValueError("stride must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class PathformerConfig:
     patch_sizes: list = field(default_factory=lambda: [4, 8, 16])
     d_model: int = 64
@@ -925,6 +956,10 @@ def split_experiment_config(
         ("Pathformer", "AnomalyDetection"): PathformerConfig,
         ("Pathformer", "Imputation"): PathformerConfig,
         ("Pathformer", "UEAClassification"): PathformerConfig,
+        ("SMamba", "Forecast"): SMambaConfig,
+        ("SMamba", "AnomalyDetection"): SMambaConfig,
+        ("SMamba", "Imputation"): SMambaConfig,
+        ("SMamba", "UEAClassification"): SMambaConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
