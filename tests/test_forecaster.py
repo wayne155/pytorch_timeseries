@@ -1246,6 +1246,46 @@ class TestPredictUncertainty:
         assert (result["lower"] <= result["upper"]).all()
 
 
+class TestPredictInterval:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X_cal = _rng_data(n=200, seed=2)
+        self.X_ctx = _rng_data(n=200, seed=3)
+
+    def test_returns_expected_keys(self):
+        result = self.fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal)
+        for key in ("mean", "lower", "upper", "half_width"):
+            assert key in result
+
+    def test_shapes(self):
+        result = self.fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal)
+        assert result["mean"].shape == (PRED, C)
+        assert result["lower"].shape == (PRED, C)
+        assert result["upper"].shape == (PRED, C)
+
+    def test_lower_le_upper(self):
+        result = self.fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal)
+        assert (result["lower"] <= result["upper"]).all()
+
+    def test_half_width_positive(self):
+        result = self.fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal)
+        assert (result["half_width"] >= 0.0).all()
+
+    def test_invalid_coverage_raises(self):
+        with pytest.raises(ValueError, match="coverage"):
+            self.fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal,
+                                     coverage=1.1)
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.predict_interval(self.X_ctx[-SEQ:], self.X_cal)
+
+    def test_longer_context_accepted(self):
+        result = self.fc.predict_interval(self.X_ctx, self.X_cal)
+        assert result["mean"].shape == (PRED, C)
+
+
 class TestCalibrate:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

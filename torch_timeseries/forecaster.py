@@ -1532,6 +1532,56 @@ class Forecaster:
         preds = self.predict(windows)  # (n_windows, pred_len, C)
         return truths - preds
 
+    def predict_interval(
+        self,
+        X,
+        X_cal,
+        *,
+        coverage: float = 0.90,
+    ) -> Dict[str, np.ndarray]:
+        """Conformal prediction interval using empirical residual quantiles.
+
+        Computes the empirical ``(1-coverage)/2`` and ``(1+coverage)/2``
+        quantiles of the absolute residuals on *X_cal* and applies them as
+        lower/upper offsets around the point forecast on *X*.  No Dropout is
+        required — works for any model architecture.
+
+        Parameters
+        ----------
+        X:
+            Context window for the forecast, shape ``(seq_len, C)`` or longer.
+        X_cal:
+            Calibration set, shape ``(N, C)`` with ``N >= seq_len + pred_len``.
+        coverage:
+            Target empirical coverage (default ``0.90``).
+
+        Returns
+        -------
+        dict
+            ``{"mean": np.ndarray, "lower": np.ndarray, "upper": np.ndarray}``
+            All arrays have shape ``(pred_len, C)``.
+        """
+        self._check_fitted()
+        if not (0.0 < coverage < 1.0):
+            raise ValueError(f"coverage must be in (0, 1); got {coverage}.")
+
+        # Compute residuals on calibration set
+        res = self.residuals(X_cal)  # (W, pred_len, C) — signed
+        abs_res = np.abs(res)        # absolute error per step
+
+        alpha = 1.0 - coverage
+        # Per-step, per-channel quantile
+        q_high = np.quantile(abs_res, 1.0 - alpha / 2, axis=0)  # (pred_len, C)
+        q_low = np.quantile(abs_res, alpha / 2, axis=0)           # (pred_len, C)
+
+        mean = self.predict(X)  # (pred_len, C)
+        return {
+            "mean": mean,
+            "lower": mean - q_high,
+            "upper": mean + q_high,
+            "half_width": q_high,
+        }
+
     def forecast(self, X, steps: int) -> np.ndarray:
         """Auto-regressive forecast for *steps* steps, any horizon length.
 
