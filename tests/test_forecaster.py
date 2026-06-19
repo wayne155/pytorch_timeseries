@@ -1824,3 +1824,74 @@ class TestInspectLayers:
         fc = _quick_fc()
         with pytest.raises(RuntimeError, match="not fitted"):
             fc.inspect_layers()
+
+
+# ── fit_score() ───────────────────────────────────────────────────────────────
+
+
+class TestFitScore:
+    def test_returns_dict_with_metrics(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.fit_score(X)
+        for key in ("mse", "mae", "rmse", "smape", "mase"):
+            assert key in result
+
+    def test_mse_positive(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.fit_score(X)
+        assert result["mse"] >= 0.0
+
+    def test_model_is_fitted(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        fc.fit_score(X)
+        assert fc._model is not None
+
+    def test_custom_test_size(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.fit_score(X, test_size=0.1)
+        assert result["mse"] >= 0.0
+
+    def test_too_little_data_raises(self):
+        X = _rng_data(n=50)
+        fc = _quick_fc()
+        with pytest.raises(ValueError):
+            fc.fit_score(X, test_size=0.9)
+
+
+# ── detect_anomalies() ────────────────────────────────────────────────────────
+
+
+class TestDetectAnomalies:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_bool_array(self):
+        X = _rng_data(n=200)
+        mask = self.fc.detect_anomalies(X)
+        assert mask.dtype == bool
+
+    def test_shape_equals_input_len(self):
+        X = _rng_data(n=200)
+        mask = self.fc.detect_anomalies(X)
+        assert len(mask) == 200
+
+    def test_first_seqlen_are_false(self):
+        X = _rng_data(n=200)
+        mask = self.fc.detect_anomalies(X)
+        assert not mask[:SEQ].any()
+
+    def test_custom_threshold(self):
+        X = _rng_data(n=200)
+        # Very low threshold → many anomalies
+        mask_low = self.fc.detect_anomalies(X, threshold=0.001)
+        # Very high threshold → few/no anomalies
+        mask_high = self.fc.detect_anomalies(X, threshold=1e9)
+        assert mask_low.sum() >= mask_high.sum()
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.detect_anomalies(np.zeros((5, C)))

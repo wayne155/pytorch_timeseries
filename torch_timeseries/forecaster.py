@@ -1059,6 +1059,109 @@ class Forecaster:
 
         return {**base, "mase": mase}
 
+    def fit_score(
+        self,
+        X,
+        *,
+        test_size: Optional[float] = 0.2,
+        val_split: float = 0.1,
+        seasonal_period: int = 1,
+    ) -> Dict[str, float]:
+        """Fit on the first portion of *X* and score on the rest.
+
+        Performs a single chronological train/test split of *X* by
+        ``test_size`` fraction.  This is the simplest way to get a
+        quick performance estimate without a separate test set.
+
+        Parameters
+        ----------
+        X:
+            Full time series, shape ``(N, C)``.
+        test_size:
+            Fraction of timesteps held out for testing (default 0.2).
+        val_split:
+            Validation fraction within the training portion.
+        seasonal_period:
+            Passed to :meth:`evaluate` for MASE computation.
+
+        Returns
+        -------
+        dict
+            Extended metrics from :meth:`evaluate`:
+            ``{"mse", "mae", "rmse", "smape", "mase"}``.
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        n_test = max(self.seq_len + self.pred_len, int(len(X_np) * test_size))
+        n_train = len(X_np) - n_test
+        if n_train < self.seq_len + self.pred_len:
+            raise ValueError(
+                f"Training slice too short after test_size={test_size} split. "
+                "Reduce test_size or provide more data."
+            )
+        self.fit(X_np[:n_train], val_split=val_split)
+        return self.evaluate(X_np[n_train:], seasonal_period=seasonal_period)
+
+    def detect_anomalies(
+        self,
+        X,
+        *,
+        threshold: Optional[float] = None,
+        n_sigma: float = 3.0,
+    ) -> np.ndarray:
+        """Detect timestep-level anomalies using prediction residuals.
+
+        For each timestep, the model predicts the next ``pred_len`` steps.
+        A timestep is flagged as anomalous if any of its predicted values
+        deviate from the true values by more than ``threshold`` (or by more
+        than ``n_sigma`` standard deviations of the residuals if no threshold
+        is given).
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)``.  Needs at least
+            ``seq_len + pred_len`` timesteps.
+        threshold:
+            Absolute residual threshold.  If *None* (default), uses
+            ``n_sigma * std(residuals)`` as an adaptive threshold.
+        n_sigma:
+            Number of standard deviations used when ``threshold=None``.
+
+        Returns
+        -------
+        np.ndarray, dtype=bool, shape (N,)
+            True at positions flagged as anomalous.  The first ``seq_len``
+            positions are always False (no context available).
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N = len(X_np)
+        min_len = self.seq_len + self.pred_len
+        if N < min_len:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        residuals = self.residuals(X_np)  # (n_windows, pred_len, C)
+        # Use L2 norm per window as anomaly score
+        scores = np.sqrt((residuals ** 2).mean(axis=(1, 2)))  # (n_windows,)
+
+        if threshold is None:
+            threshold = n_sigma * scores.std() + scores.mean()
+
+        # Map window scores back to timesteps (each window -> start position)
+        anomaly_mask = np.zeros(N, dtype=bool)
+        for i, score in enumerate(scores):
+            if score > threshold:
+                # Flag the input window start position
+                anomaly_mask[i + self.seq_len] = True
+
+        return anomaly_mask
+
     def feature_importance(
         self,
         X,
