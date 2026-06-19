@@ -81,6 +81,7 @@ from .NeuralBasisForecaster import NeuralBasisForecaster
 from .SincNetForecaster import SincNetForecaster
 from .GatedMLPForecaster import GatedMLPForecaster
 from .ImplicitNeuralForecaster import ImplicitNeuralForecaster
+from .LiquidNetForecaster import LiquidNetForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -140,6 +141,7 @@ forecasting_models = [
     "SincNetForecaster",
     "GatedMLPForecaster",
     "ImplicitNeuralForecaster",
+    "LiquidNetForecaster",
 ]
 
 prob_forecasting_models = [

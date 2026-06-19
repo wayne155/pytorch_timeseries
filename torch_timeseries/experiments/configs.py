@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class LiquidNetForecasterConfig:
+    d_model: int = 64
+    n_layers: int = 2
+    dt: float = 0.1
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.dt <= 0:
+            raise ValueError("dt must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class ImplicitNeuralForecasterConfig:
     d_latent: int = 64
     d_time: int = 33
@@ -1650,6 +1669,10 @@ def split_experiment_config(
         ("ImplicitNeuralForecaster", "AnomalyDetection"): ImplicitNeuralForecasterConfig,
         ("ImplicitNeuralForecaster", "Imputation"): ImplicitNeuralForecasterConfig,
         ("ImplicitNeuralForecaster", "UEAClassification"): ImplicitNeuralForecasterConfig,
+        ("LiquidNetForecaster", "Forecast"): LiquidNetForecasterConfig,
+        ("LiquidNetForecaster", "AnomalyDetection"): LiquidNetForecasterConfig,
+        ("LiquidNetForecaster", "Imputation"): LiquidNetForecasterConfig,
+        ("LiquidNetForecaster", "UEAClassification"): LiquidNetForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

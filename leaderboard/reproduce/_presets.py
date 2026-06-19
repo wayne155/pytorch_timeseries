@@ -569,6 +569,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "LiquidNetForecaster": {
+        "d_model": 64,
+        "n_layers": 2,
+        "dt": 0.1,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
