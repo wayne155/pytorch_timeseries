@@ -2670,6 +2670,179 @@ class MultiChannelForecaster:
         return f"MultiChannelForecaster(base={self.base!r}, [{status}])"
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# EnsembleForecaster
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class EnsembleForecaster:
+    """Average predictions from a list of heterogeneous :class:`Forecaster` objects.
+
+    Unlike :class:`BaggingForecaster` (which clones *one* model on bootstrap
+    sub-samples), ``EnsembleForecaster`` accepts *different* already-configured
+    Forecasters and combines their predictions via a weighted average.  All
+    member forecasters must share the same ``seq_len`` and ``pred_len``.
+
+    Parameters
+    ----------
+    forecasters:
+        List of (name, :class:`Forecaster`) tuples, or plain list of
+        :class:`Forecaster` objects.  Mixed model architectures are fine.
+    weights:
+        Optional per-forecaster weights for the weighted average.  Must
+        sum to a positive value.  If ``None``, uniform weights are used.
+
+    Examples
+    --------
+    >>> f1 = Forecaster("DLinear",  seq_len=96, pred_len=24, epochs=5)
+    >>> f2 = Forecaster("NLinear",  seq_len=96, pred_len=24, epochs=5)
+    >>> f3 = Forecaster("PatchTST", seq_len=96, pred_len=24, epochs=5)
+    >>> ens = EnsembleForecaster([f1, f2, f3])
+    >>> ens.fit(X_train)
+    >>> y = ens.predict(X_train[-96:])   # shape (24, C)
+    """
+
+    def __init__(
+        self,
+        forecasters,
+        weights: Optional[List[float]] = None,
+    ) -> None:
+        # Normalise: accept both [(name, fc), ...] and [fc, ...]
+        if forecasters and isinstance(forecasters[0], tuple):
+            self.named_forecasters: List[Tuple[str, Forecaster]] = list(forecasters)
+        else:
+            self.named_forecasters = [
+                (f"fc_{i}", fc) for i, fc in enumerate(forecasters)
+            ]
+        self.weights = weights
+        self._fitted = False
+
+    # ── helpers ──────────────────────────────────────────────────────────────
+
+    @property
+    def forecasters_(self) -> List[Forecaster]:
+        return [fc for _, fc in self.named_forecasters]
+
+    def _check_fitted(self) -> None:
+        if not self._fitted:
+            raise RuntimeError(
+                "EnsembleForecaster not fitted.  Call fit() first."
+            )
+
+    def _norm_weights(self) -> np.ndarray:
+        n = len(self.named_forecasters)
+        if self.weights is None:
+            return np.ones(n) / n
+        w = np.asarray(self.weights, dtype=float)
+        if len(w) != n:
+            raise ValueError(
+                f"weights length {len(w)} != number of forecasters {n}."
+            )
+        total = w.sum()
+        if total <= 0:
+            raise ValueError("weights must sum to a positive value.")
+        return w / total
+
+    # ── public API ───────────────────────────────────────────────────────────
+
+    def fit(self, X, *, val_split: float = 0.1) -> "EnsembleForecaster":
+        """Fit all member forecasters on *X*.
+
+        Parameters
+        ----------
+        X:
+            Training series, shape ``(N, C)``.
+        val_split:
+            Validation fraction forwarded to each member's
+            :meth:`Forecaster.fit`.
+
+        Returns
+        -------
+        self
+        """
+        if not self.named_forecasters:
+            raise ValueError("EnsembleForecaster needs at least one forecaster.")
+        for _, fc in self.named_forecasters:
+            fc.fit(X, val_split=val_split)
+        self._fitted = True
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        """Weighted-average prediction from all members.
+
+        Parameters
+        ----------
+        X:
+            Context window, shape ``(seq_len, C)`` or longer.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(pred_len, C)``.
+        """
+        self._check_fitted()
+        w = self._norm_weights()
+        preds = np.stack(
+            [fc.predict(X) for fc in self.forecasters_], axis=0
+        )  # (n_members, pred_len, C)
+        return (preds * w[:, None, None]).sum(axis=0)
+
+    def predict_std(self, X) -> Dict[str, np.ndarray]:
+        """Return mean, std, lower (5th pct), upper (95th pct) across members.
+
+        Parameters
+        ----------
+        X:
+            Context window, shape ``(seq_len, C)`` or longer.
+
+        Returns
+        -------
+        dict with keys ``mean``, ``std``, ``lower``, ``upper``.
+        """
+        self._check_fitted()
+        preds = np.stack(
+            [fc.predict(X) for fc in self.forecasters_], axis=0
+        )  # (n, pred_len, C)
+        mean = preds.mean(axis=0)
+        std = preds.std(axis=0)
+        return {
+            "mean": mean,
+            "std": std,
+            "lower": np.percentile(preds, 5, axis=0),
+            "upper": np.percentile(preds, 95, axis=0),
+        }
+
+    def score(self, X) -> Dict[str, float]:
+        """Evaluate the ensemble on *X*."""
+        self._check_fitted()
+        # Use the first member's seq_len/pred_len as reference
+        ref = self.forecasters_[0]
+        seq, pred = ref.seq_len, ref.pred_len
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        min_len = seq + pred
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - seq - pred + 1
+        truths = np.stack([X_np[i + seq : i + seq + pred] for i in range(n_windows)])
+        preds = np.stack([self.predict(X_np[i : i + seq]) for i in range(n_windows)])
+        diff = preds - truths
+        mse = float((diff ** 2).mean())
+        mae = float(np.abs(diff).mean())
+        denom = np.abs(preds) + np.abs(truths) + 1e-8
+        smape = float((2.0 * np.abs(diff) / denom * 100.0).mean())
+        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+
+    def __repr__(self) -> str:
+        names = [n for n, _ in self.named_forecasters]
+        status = "fitted" if self._fitted else "not fitted"
+        return f"EnsembleForecaster([{', '.join(names)}], [{status}])"
+
+
 def compare_to_dataframe(results: Dict[str, Dict[str, float]]):
     """Convert :func:`compare` results to a ``pandas.DataFrame``.
 

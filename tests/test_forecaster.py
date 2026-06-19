@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
-    MultiChannelForecaster,
+    MultiChannelForecaster, EnsembleForecaster,
     compare, compare_to_dataframe, list_models, time_series_split,
     make_forecaster, _WindowDataset, _EarlyStopping, _make_scheduler,
     _print_compare_table, _resolve_loss,
@@ -2023,3 +2023,122 @@ class TestSmooth:
         X = _rng_data(n=50)
         out = Forecaster.smooth(X)
         assert out.shape == X.shape
+
+
+# ── EnsembleForecaster ────────────────────────────────────────────────────────
+
+
+def _make_ensemble(n=2):
+    models = ["DLinear", "NLinear"][:n]
+    return EnsembleForecaster([_quick_fc(m) for m in models])
+
+
+class TestEnsembleForecaster:
+    def test_fit_returns_self(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        assert ens.fit(X) is ens
+
+    def test_predict_shape(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X)
+        y = ens.predict(X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_predict_uses_weights(self):
+        X = _rng_data(n=300)
+        f1 = _quick_fc("DLinear")
+        f2 = _quick_fc("NLinear")
+        ens_equal = EnsembleForecaster([f1, f2])
+        # Clone before fitting so we have identical untrained copies
+        f1b = f1.clone()
+        f2b = f2.clone()
+        ens_equal.fit(X)
+        # Now manually check weighted average with extreme weights
+        ens_w1 = EnsembleForecaster([f1b.clone(), f2b.clone()], weights=[1.0, 0.0])
+        ens_w1.fit(X)
+        # weight=1 on first → result equals first forecaster's prediction
+        y_w1 = ens_w1.predict(X[-SEQ:])
+        y_f1 = ens_w1.forecasters_[0].predict(X[-SEQ:])
+        np.testing.assert_allclose(y_w1, y_f1, rtol=1e-5)
+
+    def test_predict_std_keys(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X)
+        result = ens.predict_std(X[-SEQ:])
+        for key in ("mean", "std", "lower", "upper"):
+            assert key in result
+
+    def test_predict_std_shape(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X)
+        result = ens.predict_std(X[-SEQ:])
+        assert result["mean"].shape == (PRED, C)
+        assert result["std"].shape == (PRED, C)
+
+    def test_score_keys(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X[:200])
+        result = ens.score(X[200:])
+        for key in ("mse", "mae", "rmse", "smape"):
+            assert key in result
+
+    def test_score_mse_non_negative(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X[:200])
+        assert ens.score(X[200:])["mse"] >= 0.0
+
+    def test_named_tuples_input(self):
+        X = _rng_data(n=300)
+        ens = EnsembleForecaster([("m1", _quick_fc("DLinear")),
+                                  ("m2", _quick_fc("NLinear"))])
+        ens.fit(X)
+        assert [n for n, _ in ens.named_forecasters] == ["m1", "m2"]
+
+    def test_wrong_weights_length_raises(self):
+        X = _rng_data(n=300)
+        ens = EnsembleForecaster([_quick_fc("DLinear"), _quick_fc("NLinear")],
+                                 weights=[1.0])
+        ens.fit(X)
+        with pytest.raises(ValueError, match="weights length"):
+            ens.predict(X[-SEQ:])
+
+    def test_zero_weights_raises(self):
+        X = _rng_data(n=300)
+        ens = EnsembleForecaster([_quick_fc("DLinear"), _quick_fc("NLinear")],
+                                 weights=[0.0, 0.0])
+        ens.fit(X)
+        with pytest.raises(ValueError, match="positive"):
+            ens.predict(X[-SEQ:])
+
+    def test_predict_before_fit_raises(self):
+        ens = _make_ensemble()
+        with pytest.raises(RuntimeError, match="not fitted"):
+            ens.predict(np.zeros((SEQ, C)))
+
+    def test_score_before_fit_raises(self):
+        ens = _make_ensemble()
+        with pytest.raises(RuntimeError, match="not fitted"):
+            ens.score(np.zeros((200, C)))
+
+    def test_empty_forecasters_raises(self):
+        ens = EnsembleForecaster([])
+        with pytest.raises(ValueError):
+            ens.fit(_rng_data())
+
+    def test_repr_unfitted(self):
+        ens = _make_ensemble()
+        r = repr(ens)
+        assert "EnsembleForecaster" in r
+        assert "not fitted" in r
+
+    def test_repr_fitted(self):
+        X = _rng_data(n=300)
+        ens = _make_ensemble()
+        ens.fit(X)
+        assert "fitted" in repr(ens)
