@@ -268,6 +268,12 @@ from .GCNForecaster import (
     GCNForecasterAnomalyDetection,
     GCNForecasterImputation,
 )
+from .MoEForecaster import (
+    MoEForecasterForecast,
+    MoEForecasterUEAClassification,
+    MoEForecasterAnomalyDetection,
+    MoEForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

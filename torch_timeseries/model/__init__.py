@@ -55,6 +55,7 @@ from .SMamba import SMamba
 from .iMamba import iMamba
 from .Basisformer import Basisformer
 from .GCNForecaster import GCNForecaster
+from .MoEForecaster import MoEForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -88,6 +89,7 @@ forecasting_models = [
     "iMamba",
     "Basisformer",
     "GCNForecaster",
+    "MoEForecaster",
 ]
 
 prob_forecasting_models = [

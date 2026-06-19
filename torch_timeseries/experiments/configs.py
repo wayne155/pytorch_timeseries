@@ -346,6 +346,29 @@ class FilterNetConfig:
 
 
 @dataclass
+class MoEForecasterConfig:
+    n_experts: int = 8
+    k_active: int = 2
+    d_router: int = 32
+    expert_type: str = "linear"
+    d_ff: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_experts < 1:
+            raise ValueError("n_experts must be >= 1")
+        if self.k_active < 1:
+            raise ValueError("k_active must be >= 1")
+        if self.k_active > self.n_experts:
+            raise ValueError("k_active must be <= n_experts")
+        if self.expert_type not in ("linear", "mlp"):
+            raise ValueError("expert_type must be 'linear' or 'mlp'")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class GCNForecasterConfig:
     d_model: int = 64
     e_layers: int = 3
@@ -1042,6 +1065,10 @@ def split_experiment_config(
         ("GCNForecaster", "AnomalyDetection"): GCNForecasterConfig,
         ("GCNForecaster", "Imputation"): GCNForecasterConfig,
         ("GCNForecaster", "UEAClassification"): GCNForecasterConfig,
+        ("MoEForecaster", "Forecast"): MoEForecasterConfig,
+        ("MoEForecaster", "AnomalyDetection"): MoEForecasterConfig,
+        ("MoEForecaster", "Imputation"): MoEForecasterConfig,
+        ("MoEForecaster", "UEAClassification"): MoEForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

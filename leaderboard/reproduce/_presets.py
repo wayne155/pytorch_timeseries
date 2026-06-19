@@ -377,6 +377,15 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "MoEForecaster": {
+        "n_experts": 8,
+        "k_active": 2,
+        "d_router": 32,
+        "expert_type": "linear",
+        "d_ff": 128,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
