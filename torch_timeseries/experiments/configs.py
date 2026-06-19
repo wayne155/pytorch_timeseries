@@ -309,6 +309,28 @@ class EnsembleConfig:
 
 
 @dataclass
+class KoopaConfig:
+    seg_len: int = 10
+    d_model: int = 128
+    n_ff: Optional[int] = None
+    top_k: int = 5
+    revin: bool = True
+    dropout: float = 0.0
+
+    def validate(self) -> None:
+        if self.seg_len <= 0:
+            raise ValueError("seg_len must be positive")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_ff is not None and self.n_ff <= 0:
+            raise ValueError("n_ff must be positive or None")
+        if self.top_k < 1:
+            raise ValueError("top_k must be at least 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class SOFTSConfig:
     d_model: int = 512
     d_core: Optional[int] = None
@@ -488,6 +510,10 @@ def split_experiment_config(
         ("SOFTS", "AnomalyDetection"): SOFTSConfig,
         ("SOFTS", "Imputation"): SOFTSConfig,
         ("SOFTS", "UEAClassification"): SOFTSConfig,
+        ("Koopa", "Forecast"): KoopaConfig,
+        ("Koopa", "AnomalyDetection"): KoopaConfig,
+        ("Koopa", "Imputation"): KoopaConfig,
+        ("Koopa", "UEAClassification"): KoopaConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

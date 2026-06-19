@@ -34,6 +34,7 @@ from .QuantileForecaster import QuantileForecaster
 from .NBEATS import NBEATS
 from .SparseTSF import SparseTSF
 from .SOFTS import SOFTS
+from .Koopa import Koopa
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -47,6 +48,7 @@ forecasting_models = [
     "NBEATS",
     "SparseTSF",
     "SOFTS",
+    "Koopa",
 ]
 
 prob_forecasting_models = [

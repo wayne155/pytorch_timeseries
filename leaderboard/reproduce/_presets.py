@@ -225,6 +225,13 @@ MODEL_PARAMS = {
         "dropout": 0.0,
         "revin": True,
     },
+    "Koopa": {
+        "seg_len": 10,
+        "d_model": 128,
+        "top_k": 5,
+        "revin": True,
+        "dropout": 0.0,
+    },
     "FreTS": {
         "channel_independence": True,
     },

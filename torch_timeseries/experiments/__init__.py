@@ -147,6 +147,12 @@ from .SOFTS import (
     SOFTSAnomalyDetection,
     SOFTSImputation,
 )
+from .Koopa import (
+    KoopaForecast,
+    KoopaUEAClassification,
+    KoopaAnomalyDetection,
+    KoopaImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
