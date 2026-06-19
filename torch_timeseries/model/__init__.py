@@ -85,6 +85,7 @@ from .LiquidNetForecaster import LiquidNetForecaster
 from .xLSTMForecaster import xLSTMForecaster
 from .EchoStateForecaster import EchoStateForecaster
 from .AFTForecaster import AFTForecaster
+from .RWKVForecaster import RWKVForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -148,6 +149,7 @@ forecasting_models = [
     "xLSTMForecaster",
     "EchoStateForecaster",
     "AFTForecaster",
+    "RWKVForecaster",
 ]
 
 prob_forecasting_models = [

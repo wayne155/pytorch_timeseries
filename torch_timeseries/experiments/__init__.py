@@ -448,6 +448,12 @@ from .AFTForecaster import (
     AFTForecasterAnomalyDetection,
     AFTForecasterImputation,
 )
+from .RWKVForecaster import (
+    RWKVForecasterForecast,
+    RWKVForecasterUEAClassification,
+    RWKVForecasterAnomalyDetection,
+    RWKVForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
