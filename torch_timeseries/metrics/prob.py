@@ -128,6 +128,75 @@ class QICE(Metric):
         return (ratio - ideal).abs().mean()
 
 
+class MIS(Metric):
+    """Mean Interval Score (MIS) for a central prediction interval.
+
+    For a (1-α) coverage interval ``[l, u]`` derived from the ensemble at
+    the ``alpha/2`` and ``1-alpha/2`` quantile levels:
+
+        IS_t = (u_t - l_t) + (2/α)(l_t − y_t)₊ + (2/α)(y_t − u_t)₊
+
+    MIS is the mean of IS_t over all scalar outcomes.  Lower is better.
+    A perfect point prediction with zero interval width has MIS = 0 only when
+    the true value falls exactly at the prediction.
+
+    Reference: Gneiting & Raftery (2007), "Strictly Proper Scoring Rules,
+    Prediction, and Estimation", JASA.
+
+    Args:
+        alpha: miscoverage rate; interval targets 1-α coverage (default 0.1 → 90 %).
+    """
+
+    def __init__(self, alpha: float = 0.1, dist_sync_on_step: bool = False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+        if not (0 < alpha < 1):
+            raise ValueError("alpha must be in (0, 1)")
+        self.alpha = alpha
+        self.add_state("total", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, pred: torch.Tensor, true: torch.Tensor):
+        pred = pred.reshape(-1, pred.shape[-1]).float()    # (M, S)
+        true = true.reshape(-1).float()                    # (M,)
+        lo_q = torch.tensor(self.alpha / 2, device=pred.device, dtype=pred.dtype)
+        hi_q = torch.tensor(1 - self.alpha / 2, device=pred.device, dtype=pred.dtype)
+        lo = torch.quantile(pred, lo_q, dim=1)   # (M,)
+        hi = torch.quantile(pred, hi_q, dim=1)   # (M,)
+        width = hi - lo
+        penalty_lo = (2 / self.alpha) * torch.clamp(lo - true, min=0.0)
+        penalty_hi = (2 / self.alpha) * torch.clamp(true - hi, min=0.0)
+        self.total += (width + penalty_lo + penalty_hi).sum()
+        self.count += true.numel()
+
+    def compute(self):
+        return self.total / self.count
+
+
+class MeanSpread(Metric):
+    """Mean standard deviation of ensemble predictions.
+
+    Measures how wide/diverse the ensemble is on average.  Lower values mean
+    sharper (more confident) predictions; should be interpreted alongside PICP
+    to understand the sharpness/calibration trade-off.
+
+    Input: pred ``(B, O, N, S)``, true ``(B, O, N)`` (true is unused but
+    required to match the metric API).
+    """
+
+    def __init__(self, dist_sync_on_step: bool = False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+        self.add_state("total", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, pred: torch.Tensor, true: torch.Tensor):
+        pred = pred.reshape(-1, pred.shape[-1]).float()   # (M, S)
+        self.total += pred.std(dim=-1, unbiased=False).sum()
+        self.count += pred.shape[0]
+
+    def compute(self):
+        return self.total / self.count
+
+
 class _PointFromSamples(Metric):
     """Base for point metrics computed on the ensemble mean."""
 

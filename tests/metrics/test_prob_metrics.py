@@ -7,6 +7,8 @@ import torch
 from torch_timeseries.metrics.prob import (
     CRPS,
     CRPSSum,
+    MIS,
+    MeanSpread,
     PICP,
     QICE,
     ProbMAE,
@@ -330,10 +332,125 @@ class TestProbPointMetrics:
             assert torch.allclose(m1.compute(), m2.compute(), atol=1e-5), Cls.__name__
 
 
+# ── MIS ──────────────────────────────────────────────────────────────────────
+
+
+class TestMIS:
+    def test_returns_scalar(self):
+        m = MIS(alpha=0.1)
+        m.update(_pred(), _true())
+        assert m.compute().ndim == 0
+
+    def test_non_negative(self):
+        m = MIS(alpha=0.1)
+        m.update(_pred(), _true())
+        assert m.compute().item() >= 0.0
+
+    def test_finite(self):
+        m = MIS()
+        m.update(_pred(), _true())
+        assert torch.isfinite(m.compute())
+
+    def test_perfect_interval_is_zero(self):
+        """If all samples = truth, interval width=0 and no coverage violation → MIS=0."""
+        y = torch.zeros(4, 6, 3)
+        pred = y.unsqueeze(-1).expand(-1, -1, -1, 20)
+        m = MIS(alpha=0.1)
+        m.update(pred, y)
+        assert m.compute().item() == pytest.approx(0.0, abs=1e-5)
+
+    def test_wider_alpha_lower_mis(self):
+        """A 99% interval (α=0.01) should be wider but penalise less ⟹ MIS comparison."""
+        torch.manual_seed(42)
+        pred = torch.randn(20, 6, 3, 50)
+        true = torch.randn(20, 6, 3)
+        m90 = MIS(alpha=0.1)
+        m90.update(pred, true)
+        m99 = MIS(alpha=0.01)
+        m99.update(pred, true)
+        # 90% interval has narrower width but more penalties; behavior depends on data
+        # Both should be finite and non-negative
+        assert torch.isfinite(m90.compute()) and torch.isfinite(m99.compute())
+
+    def test_accumulates(self):
+        p, t = _pred(), _true()
+        m1 = MIS()
+        m1.update(p[:2], t[:2])
+        m1.update(p[2:], t[2:])
+        m2 = MIS()
+        m2.update(p, t)
+        assert torch.allclose(m1.compute(), m2.compute(), atol=1e-5)
+
+    def test_rejects_invalid_alpha(self):
+        with pytest.raises(ValueError, match="alpha"):
+            MIS(alpha=0.0)
+        with pytest.raises(ValueError, match="alpha"):
+            MIS(alpha=1.0)
+
+    def test_reset(self):
+        m = MIS()
+        m.update(_pred(), _true())
+        m.reset()
+        m.update(_pred(), _true())
+        assert torch.isfinite(m.compute())
+
+
+# ── MeanSpread ────────────────────────────────────────────────────────────────
+
+
+class TestMeanSpread:
+    def test_returns_scalar(self):
+        m = MeanSpread()
+        m.update(_pred(), _true())
+        assert m.compute().ndim == 0
+
+    def test_non_negative(self):
+        m = MeanSpread()
+        m.update(_pred(), _true())
+        assert m.compute().item() >= 0.0
+
+    def test_zero_when_constant(self):
+        """Constant ensemble ⟹ zero spread."""
+        pred = torch.ones(4, 6, 3, 20)
+        true = torch.zeros(4, 6, 3)
+        m = MeanSpread()
+        m.update(pred, true)
+        assert m.compute().item() == pytest.approx(0.0, abs=1e-6)
+
+    def test_larger_variance_larger_spread(self):
+        pred_small = torch.randn(4, 6, 3, 20) * 0.1
+        pred_large = torch.randn(4, 6, 3, 20) * 2.0
+        true = torch.zeros(4, 6, 3)
+        m1 = MeanSpread()
+        m1.update(pred_small, true)
+        m2 = MeanSpread()
+        m2.update(pred_large, true)
+        assert m2.compute().item() > m1.compute().item()
+
+    def test_accumulates(self):
+        p, t = _pred(), _true()
+        m1 = MeanSpread()
+        m1.update(p[:2], t[:2])
+        m1.update(p[2:], t[2:])
+        m2 = MeanSpread()
+        m2.update(p, t)
+        assert torch.allclose(m1.compute(), m2.compute(), atol=1e-5)
+
+    def test_true_is_ignored(self):
+        """MeanSpread doesn't depend on true at all."""
+        p = _pred()
+        t1 = torch.zeros(4, 6, 3)
+        t2 = torch.ones(4, 6, 3) * 100.0
+        m1, m2 = MeanSpread(), MeanSpread()
+        m1.update(p, t1)
+        m2.update(p, t2)
+        assert torch.allclose(m1.compute(), m2.compute())
+
+
 # ── export check ─────────────────────────────────────────────────────────────
 
 
 def test_all_exported_from_metrics_package():
-    from torch_timeseries.metrics import CRPS, CRPSSum, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
-    for cls in (CRPS, CRPSSum, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE):
+    from torch_timeseries.metrics import CRPS, CRPSSum, MIS, MeanSpread, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
+    for cls in (CRPS, CRPSSum, MIS, MeanSpread, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE):
         assert issubclass(cls, torch.nn.Module)

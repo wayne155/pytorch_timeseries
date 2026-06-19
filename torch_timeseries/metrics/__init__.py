@@ -1,4 +1,4 @@
-from .prob import CRPS, CRPSSum, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
+from .prob import CRPS, CRPSSum, MIS, MeanSpread, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
 from .generation import (
     discriminative_score,
     predictive_score,
@@ -15,6 +15,8 @@ __all__ = [
     "ProbMAE",
     "ProbMSE",
     "ProbRMSE",
+    "MIS",
+    "MeanSpread",
     "discriminative_score",
     "predictive_score",
     "context_fid",

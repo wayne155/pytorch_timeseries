@@ -1,3 +1,7 @@
+## 0.2.27
+
+feat: add `MIS` (Mean Interval Score, Gneiting & Raftery 2007) and `MeanSpread` probabilistic metrics; MIS measures sharpness + coverage jointly; MeanSpread measures ensemble diversity; 14 new tests completing the probabilistic evaluation toolkit; 1263 tests total
+
 ## 0.2.26
 
 feat: add `NBEATSConfig`, `SparseTSFConfig`, `EnsembleConfig` to `split_experiment_config`; add corresponding tests in `test_new_model_configs.py`; 1249 tests total
