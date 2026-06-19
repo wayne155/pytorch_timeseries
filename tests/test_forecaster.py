@@ -2914,6 +2914,44 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestSeasonalDecompose:
+    def test_returns_expected_keys(self):
+        X = _rng_data(n=100)
+        result = Forecaster.seasonal_decompose(X, period=7)
+        for k in ("trend", "seasonal", "residual", "original"):
+            assert k in result
+
+    def test_shapes(self):
+        X = _rng_data(n=100)
+        result = Forecaster.seasonal_decompose(X, period=7)
+        assert result["trend"].shape == X.shape
+        assert result["seasonal"].shape == X.shape
+
+    def test_1d_input(self):
+        X = np.random.default_rng(0).standard_normal(100)
+        result = Forecaster.seasonal_decompose(X, period=7)
+        assert result["trend"].shape == (100,)
+
+    def test_additive_reconstruction(self):
+        X = _rng_data(n=100)
+        result = Forecaster.seasonal_decompose(X, period=7)
+        recon = result["trend"] + result["seasonal"] + result["residual"]
+        np.testing.assert_allclose(recon, X, atol=1e-8)
+
+    def test_invalid_period_raises(self):
+        with pytest.raises(ValueError, match="period"):
+            Forecaster.seasonal_decompose(_rng_data(n=100), period=1)
+
+    def test_invalid_method_raises(self):
+        with pytest.raises(ValueError, match="method"):
+            Forecaster.seasonal_decompose(_rng_data(n=100), period=7,
+                                          method="bogus")
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            Forecaster.seasonal_decompose(_rng_data(n=10), period=7)
+
+
 class TestDetrendRetend:
     def test_detrend_returns_tuple(self):
         X = _rng_data(n=100)

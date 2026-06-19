@@ -1586,6 +1586,96 @@ class Forecaster:
         return result.squeeze(1) if squeeze else result
 
     @staticmethod
+    def seasonal_decompose(
+        X,
+        period: int,
+        *,
+        method: str = "additive",
+    ) -> Dict[str, np.ndarray]:
+        """Simple moving-average seasonal decomposition.
+
+        Computes trend (centred moving average of *period*), seasonal
+        (average deviation from trend per phase), and residual components.
+        Uses the classical additive or multiplicative model.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)`` or ``(N,)``.
+        period:
+            Seasonal period (e.g. 12 for monthly data with yearly
+            seasonality, 7 for daily data with weekly seasonality).
+        method:
+            ``"additive"`` (default) or ``"multiplicative"``.
+
+        Returns
+        -------
+        dict
+            ``{"trend": (N, C), "seasonal": (N, C), "residual": (N, C),
+               "original": (N, C)}``
+        """
+        if period < 2:
+            raise ValueError(f"period must be >= 2; got {period}.")
+        if method not in ("additive", "multiplicative"):
+            raise ValueError(
+                f"method must be 'additive' or 'multiplicative'; got {method!r}."
+            )
+        X_np = np.asarray(X, dtype=float)
+        squeeze = X_np.ndim == 1
+        if squeeze:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        if N < 2 * period:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least 2 * period = {2 * period}."
+            )
+
+        # Centred moving average trend
+        half = period // 2
+        trend = np.full_like(X_np, np.nan)
+        for t in range(half, N - half):
+            trend[t] = X_np[t - half : t + half + 1].mean(axis=0)
+        # Fill NaN edges with nearest valid values (edge extension)
+        for c in range(C):
+            valid = np.where(~np.isnan(trend[:, c]))[0]
+            if len(valid):
+                trend[:valid[0], c] = trend[valid[0], c]
+                trend[valid[-1] + 1:, c] = trend[valid[-1], c]
+
+        # Seasonal indices: average (detrended) deviation per phase
+        if method == "additive":
+            detrended = X_np - trend
+        else:
+            detrended = np.where(np.abs(trend) > 1e-8, X_np / (trend + 1e-8), 1.0)
+
+        seasonal = np.zeros_like(X_np)
+        for phase in range(period):
+            indices = np.arange(phase, N, period)
+            avg = detrended[indices].mean(axis=0)
+            for idx in indices:
+                seasonal[idx] = avg
+
+        # Residual
+        if method == "additive":
+            residual = X_np - trend - seasonal
+        else:
+            residual = np.where(
+                np.abs(trend * seasonal) > 1e-8,
+                X_np / (trend * seasonal + 1e-8),
+                1.0,
+            )
+
+        result = {
+            "trend": trend,
+            "seasonal": seasonal,
+            "residual": residual,
+            "original": X_np,
+        }
+        if squeeze:
+            return {k: v.squeeze(1) for k, v in result.items()}
+        return result
+
+    @staticmethod
     def detrend(
         X,
         degree: int = 1,
