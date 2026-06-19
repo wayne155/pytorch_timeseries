@@ -2539,6 +2539,164 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def learning_curve(
+        self,
+        X,
+        *,
+        train_fractions: Optional[List[float]] = None,
+        val_split: float = 0.1,
+        metric: str = "mse",
+        verbose: bool = False,
+    ) -> List[Dict]:
+        """Train on increasing fractions of *X* and record performance.
+
+        Reveals whether the model is data-limited (error still dropping at
+        large fractions) or capacity-limited (error plateauing early).
+
+        Parameters
+        ----------
+        X:
+            Full training series, shape ``(N, C)``.
+        train_fractions:
+            List of fractions in ``(0, 1]`` to try.  Defaults to
+            ``[0.1, 0.2, 0.4, 0.6, 0.8, 1.0]``.
+        val_split:
+            Validation fraction held out inside each fraction's training run.
+        metric:
+            Metric key returned by :meth:`cross_validate` (default ``"mean_mse"``).
+            Also ``"mean_mae"``, ``"mean_rmse"``, ``"mean_smape"``.
+        verbose:
+            Print progress if ``True``.
+
+        Returns
+        -------
+        list of dict
+            Each dict has ``{"fraction": float, "n_samples": int,
+            "val_loss": float}`` sorted by fraction.
+        """
+        fracs = train_fractions or [0.1, 0.2, 0.4, 0.6, 0.8, 1.0]
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N = len(X_np)
+        min_samples = self.seq_len + self.pred_len + 1
+        results = []
+        for frac in fracs:
+            n = max(min_samples, int(N * frac))
+            n = min(n, N)
+            subset = X_np[:n]
+            fc = self.clone()
+            if not verbose:
+                fc.verbose = False
+            fc.fit(subset, val_split=val_split)
+            val_loss = fc.history_[-1]["val_loss"] if fc.history_ else float("nan")
+            if verbose:
+                print(f"  fraction={frac:.2f}  n={n}  val_loss={val_loss:.6f}")
+            results.append({"fraction": frac, "n_samples": n, "val_loss": val_loss})
+        return results
+
+    def plot_learning_curve(
+        self,
+        learning_curve_results: List[Dict],
+        *,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot output of :meth:`learning_curve`.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        learning_curve_results:
+            List of dicts returned by :meth:`learning_curve`.
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_learning_curve(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        ns = [r["n_samples"] for r in learning_curve_results]
+        losses = [r["val_loss"] for r in learning_curve_results]
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(7, 4))
+
+        ax.plot(ns, losses, marker="o", color="steelblue")
+        ax.fill_between(ns, losses, alpha=0.12, color="steelblue")
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — learning curve")
+        ax.set_xlabel("Training samples")
+        ax.set_ylabel("Val loss")
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
+    def freeze_layers(self, names: Optional[List[str]] = None) -> "Forecaster":
+        """Freeze model parameters (set ``requires_grad=False``).
+
+        Useful for transfer learning: freeze a pre-trained backbone and
+        fine-tune only the head layers via :meth:`partial_fit`.
+
+        Parameters
+        ----------
+        names:
+            List of sub-module name prefixes to freeze (e.g.
+            ``["encoder"]``).  If ``None``, freezes the entire model.
+
+        Returns
+        -------
+        self
+        """
+        self._check_fitted()
+        for name, param in self._model.named_parameters():
+            if names is None or any(name.startswith(n) for n in names):
+                param.requires_grad_(False)
+        return self
+
+    def unfreeze_layers(self, names: Optional[List[str]] = None) -> "Forecaster":
+        """Unfreeze model parameters (set ``requires_grad=True``).
+
+        Parameters
+        ----------
+        names:
+            List of sub-module name prefixes to unfreeze.  If ``None``,
+            unfreezes the entire model.
+
+        Returns
+        -------
+        self
+        """
+        self._check_fitted()
+        for name, param in self._model.named_parameters():
+            if names is None or any(name.startswith(n) for n in names):
+                param.requires_grad_(True)
+        return self
+
+    def frozen_parameter_count(self) -> int:
+        """Return the number of frozen (non-trainable) parameters."""
+        self._check_fitted()
+        return sum(p.numel() for p in self._model.parameters()
+                   if not p.requires_grad)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

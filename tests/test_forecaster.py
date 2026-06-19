@@ -978,6 +978,114 @@ class TestHyperparameterSensitivity:
         assert set(result.keys()) == {"lr", "batch_size"}
 
 
+class TestLearningCurve:
+    def test_returns_list(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.learning_curve(X, train_fractions=[0.5, 1.0])
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+    def test_each_record_has_expected_keys(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.learning_curve(X, train_fractions=[0.5, 1.0])
+        for rec in result:
+            for k in ("fraction", "n_samples", "val_loss"):
+                assert k in rec
+
+    def test_n_samples_increases_with_fraction(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.learning_curve(X, train_fractions=[0.3, 0.6, 1.0])
+        ns = [r["n_samples"] for r in result]
+        assert ns == sorted(ns)
+
+    def test_original_forecaster_not_fitted(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        fc.learning_curve(X, train_fractions=[0.5])
+        assert fc._model is None
+
+    def test_single_fraction(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.learning_curve(X, train_fractions=[1.0])
+        assert len(result) == 1
+        assert result[0]["fraction"] == 1.0
+
+
+class TestPlotLearningCurve:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        X = _rng_data(n=400)
+        self.fc = _quick_fc()
+        self.lc = self.fc.learning_curve(X, train_fractions=[0.5, 1.0])
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_learning_curve(self.lc)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_learning_curve(self.lc, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_learning_curve(self.lc, title="LC Title")
+        assert ax.get_title() == "LC Title"
+        plt.close("all")
+
+
+class TestFreezeLayers:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_freeze_all(self):
+        self.fc.freeze_layers()
+        for p in self.fc._model.parameters():
+            assert not p.requires_grad
+
+    def test_unfreeze_all(self):
+        self.fc.freeze_layers()
+        self.fc.unfreeze_layers()
+        for p in self.fc._model.parameters():
+            assert p.requires_grad
+
+    def test_freeze_returns_self(self):
+        assert self.fc.freeze_layers() is self.fc
+
+    def test_unfreeze_returns_self(self):
+        self.fc.freeze_layers()
+        assert self.fc.unfreeze_layers() is self.fc
+
+    def test_frozen_parameter_count_after_freeze(self):
+        total = self.fc.n_parameters
+        self.fc.freeze_layers()
+        frozen = self.fc.frozen_parameter_count()
+        assert frozen == total
+
+    def test_frozen_parameter_count_zero_unfrozen(self):
+        self.fc.freeze_layers()
+        self.fc.unfreeze_layers()
+        assert self.fc.frozen_parameter_count() == 0
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.freeze_layers()
+        with pytest.raises(RuntimeError):
+            fc.unfreeze_layers()
+        with pytest.raises(RuntimeError):
+            fc.frozen_parameter_count()
+
+
 class TestPlotSensitivity:
     def setup_method(self):
         pytest.importorskip("matplotlib")
