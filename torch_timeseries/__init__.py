@@ -28,7 +28,7 @@ from .results import RunResult, LocalBackend, WandbBackend
 from .experiment import Experiment, register_model
 from .forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
-    MultiChannelForecaster, EnsembleForecaster,
+    MultiChannelForecaster, EnsembleForecaster, SklearnForecaster,
     compare, compare_to_dataframe, compare_plot, list_models, time_series_split,
     make_forecaster,
 )

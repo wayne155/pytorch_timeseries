@@ -8,7 +8,7 @@ import torch.nn as nn
 
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
-    MultiChannelForecaster, EnsembleForecaster,
+    MultiChannelForecaster, EnsembleForecaster, SklearnForecaster,
     compare, compare_to_dataframe, compare_plot, list_models, time_series_split,
     make_forecaster, _WindowDataset, _EarlyStopping, _make_scheduler,
     _print_compare_table, _resolve_loss,
@@ -2999,3 +2999,77 @@ class TestEnsembleForecaster:
         ens = _make_ensemble()
         ens.fit(X)
         assert "fitted" in repr(ens)
+
+
+# ── SklearnForecaster ─────────────────────────────────────────────────────────
+
+
+class TestSklearnForecaster:
+    def test_fit_ts_returns_self(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        assert sk.fit_ts(X) is sk
+
+    def test_fit_ts_creates_forecaster_(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        sk.fit_ts(X)
+        assert isinstance(sk.forecaster_, Forecaster)
+
+    def test_predict_shape_from_ts(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        sk.fit_ts(X)
+        windows = np.stack([X[i : i + SEQ] for i in range(5)])
+        preds = sk.predict(windows)
+        assert preds.shape == (5, PRED * C)
+
+    def test_predict_single_window(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        sk.fit_ts(X)
+        pred = sk.predict(X[-SEQ:])
+        assert pred.shape == (1, PRED * C)
+
+    def test_score_returns_negative_float(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        windows = np.stack([X[i : i + SEQ] for i in range(5)])
+        ys = np.stack([X[i + SEQ : i + SEQ + PRED] for i in range(5)])
+        sk.fit_ts(X)
+        s = sk.score(windows, ys)
+        assert isinstance(s, float)
+        assert s <= 0.0
+
+    def test_get_params_has_expected_keys(self):
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED)
+        p = sk.get_params()
+        for k in ("model", "seq_len", "pred_len", "epochs", "lr"):
+            assert k in p
+
+    def test_set_params_updates_attrs(self):
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED)
+        sk.set_params(lr=0.1)
+        assert sk.lr == 0.1
+
+    def test_predict_before_fit_raises(self):
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError, match="not fitted"):
+            sk.predict(np.zeros((SEQ, C)))
+
+    def test_repr_unfitted(self):
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED)
+        assert "SklearnForecaster" in repr(sk)
+        assert "not fitted" in repr(sk)
+
+    def test_repr_fitted(self):
+        X = _rng_data(n=300)
+        sk = SklearnForecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                               epochs=2, verbose=False)
+        sk.fit_ts(X)
+        assert "fitted" in repr(sk)

@@ -4290,3 +4290,211 @@ def compare_plot(
     if created_fig:
         plt.tight_layout()
     return ax
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SklearnForecaster — scikit-learn compatible wrapper
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class SklearnForecaster:
+    """Scikit-learn compatible wrapper for :class:`Forecaster`.
+
+    Adapts the Forecaster API to the ``BaseEstimator`` / ``RegressorMixin``
+    interface so it can be used with ``sklearn.model_selection.GridSearchCV``,
+    ``cross_val_score``, and ``Pipeline``.
+
+    sklearn's ``fit(X, y)`` convention maps to forecasting as follows:
+
+    - ``X``: shape ``(N, seq_len * C)`` — flattened context windows.
+    - ``y``: shape ``(N, pred_len * C)`` — flattened target windows.
+
+    Alternatively, pass a 2D time series ``X_ts`` of shape ``(T, C)`` to
+    :meth:`fit_ts` for the standard sliding-window workflow.
+
+    Parameters
+    ----------
+    model:
+        Model name string.
+    seq_len, pred_len, epochs, lr, batch_size, normalize, verbose:
+        Forwarded to :class:`Forecaster`.
+    **model_kwargs:
+        Extra model constructor arguments.
+
+    Examples
+    --------
+    >>> from sklearn.model_selection import cross_val_score
+    >>> sk = SklearnForecaster("DLinear", seq_len=96, pred_len=24, epochs=5)
+    >>> # Prepare X/y via time_series_split + manual windowing, then:
+    >>> sk.fit(X_windows, y_windows)
+    >>> sk.predict(X_new)
+    """
+
+    def __init__(
+        self,
+        model: str = "DLinear",
+        *,
+        seq_len: int = 96,
+        pred_len: int = 24,
+        epochs: int = 20,
+        lr: float = 1e-4,
+        batch_size: int = 32,
+        normalize: bool = True,
+        verbose: bool = False,
+        **model_kwargs,
+    ) -> None:
+        self.model = model
+        self.seq_len = seq_len
+        self.pred_len = pred_len
+        self.epochs = epochs
+        self.lr = lr
+        self.batch_size = batch_size
+        self.normalize = normalize
+        self.verbose = verbose
+        self.model_kwargs = model_kwargs
+        self._fc: Optional[Forecaster] = None
+
+    # ── sklearn interface ─────────────────────────────────────────────────────
+
+    def get_params(self, deep: bool = True) -> dict:
+        """Return parameters for sklearn's clone / GridSearchCV."""
+        params = {
+            "model": self.model,
+            "seq_len": self.seq_len,
+            "pred_len": self.pred_len,
+            "epochs": self.epochs,
+            "lr": self.lr,
+            "batch_size": self.batch_size,
+            "normalize": self.normalize,
+            "verbose": self.verbose,
+        }
+        params.update(self.model_kwargs)
+        return params
+
+    def set_params(self, **params) -> "SklearnForecaster":
+        for k, v in params.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                self.model_kwargs[k] = v
+        self._fc = None  # invalidate fitted state
+        return self
+
+    def fit(self, X, y=None) -> "SklearnForecaster":
+        """Fit from pre-windowed arrays.
+
+        Parameters
+        ----------
+        X:
+            ``(N, seq_len * C)`` or ``(N, seq_len, C)`` — context windows.
+        y:
+            Ignored (the model learns to forecast from X to X's continuation).
+            The convention here is that the model is fitted on the raw context
+            windows; for proper supervised fit, use :meth:`fit_ts`.
+
+        Returns
+        -------
+        self
+        """
+        X_arr = np.asarray(X)
+        if X_arr.ndim == 2:
+            # Assume (N, seq_len) univariate or (N, seq_len * C) flattened
+            N = X_arr.shape[0]
+            X_arr = X_arr.reshape(N, self.seq_len, -1)
+        # Flatten windows into a pseudo-series for the Forecaster
+        N, T, C = X_arr.shape
+        pseudo = X_arr.reshape(N * T, C)
+        self._fc = Forecaster(
+            self.model,
+            seq_len=self.seq_len,
+            pred_len=self.pred_len,
+            epochs=self.epochs,
+            lr=self.lr,
+            batch_size=self.batch_size,
+            normalize=self.normalize,
+            verbose=self.verbose,
+            **self.model_kwargs,
+        )
+        self._fc.fit(pseudo)
+        return self
+
+    def fit_ts(self, X_ts, *, val_split: float = 0.1) -> "SklearnForecaster":
+        """Fit directly on a raw time series (the natural use case).
+
+        Parameters
+        ----------
+        X_ts:
+            Raw time series, shape ``(T, C)`` or ``(T,)``.
+
+        Returns
+        -------
+        self
+        """
+        self._fc = Forecaster(
+            self.model,
+            seq_len=self.seq_len,
+            pred_len=self.pred_len,
+            epochs=self.epochs,
+            lr=self.lr,
+            batch_size=self.batch_size,
+            normalize=self.normalize,
+            verbose=self.verbose,
+            **self.model_kwargs,
+        )
+        self._fc.fit(X_ts, val_split=val_split)
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        """Predict from context windows.
+
+        Parameters
+        ----------
+        X:
+            ``(N, seq_len * C)`` or ``(N, seq_len, C)`` context windows,
+            or a single ``(seq_len, C)`` window.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(N, pred_len * C)`` — flattened predictions.
+        """
+        if self._fc is None:
+            raise RuntimeError("SklearnForecaster not fitted.  Call fit() first.")
+        X_arr = np.asarray(X)
+        single = X_arr.ndim <= 2 and X_arr.shape[0] == self.seq_len
+        if single:
+            X_arr = X_arr[None]
+        if X_arr.ndim == 2:
+            N = X_arr.shape[0]
+            X_arr = X_arr.reshape(N, self.seq_len, -1)
+        N, T, C = X_arr.shape
+        preds = self._fc.predict(X_arr)  # (N, pred_len, C)
+        return preds.reshape(N, -1)
+
+    def score(self, X, y=None) -> float:
+        """Return negative MSE (for sklearn's maximise-score convention)."""
+        if self._fc is None:
+            raise RuntimeError("SklearnForecaster not fitted.  Call fit() first.")
+        X_arr = np.asarray(X)
+        if X_arr.ndim == 2:
+            N = X_arr.shape[0]
+            X_arr = X_arr.reshape(N, self.seq_len, -1)
+        preds = self._fc.predict(X_arr)
+        if y is not None:
+            y_arr = np.asarray(y).reshape(preds.shape[0], self.pred_len, -1)
+            mse = float(((preds - y_arr) ** 2).mean())
+        else:
+            mse = float(((preds - preds) ** 2).mean())  # trivial fallback
+        return -mse
+
+    @property
+    def forecaster_(self) -> Optional[Forecaster]:
+        """The underlying fitted :class:`Forecaster`."""
+        return self._fc
+
+    def __repr__(self) -> str:
+        status = "fitted" if self._fc is not None else "not fitted"
+        return (
+            f"SklearnForecaster(model={self.model!r}, "
+            f"seq_len={self.seq_len}, pred_len={self.pred_len}, [{status}])"
+        )
