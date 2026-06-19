@@ -316,6 +316,12 @@ from .LinearAttentionForecaster import (
     LinearAttentionForecasterAnomalyDetection,
     LinearAttentionForecasterImputation,
 )
+from .DualDecompForecaster import (
+    DualDecompForecasterForecast,
+    DualDecompForecasterUEAClassification,
+    DualDecompForecasterAnomalyDetection,
+    DualDecompForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

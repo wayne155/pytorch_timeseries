@@ -374,6 +374,30 @@ class RetForecasterConfig:
 
 
 @dataclass
+class DualDecompForecasterConfig:
+    kernel_size: int = 25
+    d_model: int = 64
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 128
+    patch_len: int = 8
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.kernel_size < 1:
+            raise ValueError("kernel_size must be >= 1")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class LinearAttentionForecasterConfig:
     d_model: int = 64
     n_heads: int = 4
@@ -1230,6 +1254,10 @@ def split_experiment_config(
         ("LinearAttentionForecaster", "AnomalyDetection"): LinearAttentionForecasterConfig,
         ("LinearAttentionForecaster", "Imputation"): LinearAttentionForecasterConfig,
         ("LinearAttentionForecaster", "UEAClassification"): LinearAttentionForecasterConfig,
+        ("DualDecompForecaster", "Forecast"): DualDecompForecasterConfig,
+        ("DualDecompForecaster", "AnomalyDetection"): DualDecompForecasterConfig,
+        ("DualDecompForecaster", "Imputation"): DualDecompForecasterConfig,
+        ("DualDecompForecaster", "UEAClassification"): DualDecompForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
