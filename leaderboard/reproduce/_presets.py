@@ -626,6 +626,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "MinGRUForecaster": {
+        "d_model": 64,
+        "d_ffn": 256,
+        "n_layers": 2,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

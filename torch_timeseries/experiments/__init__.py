@@ -472,6 +472,12 @@ from .MEGAForecaster import (
     MEGAForecasterAnomalyDetection,
     MEGAForecasterImputation,
 )
+from .MinGRUForecaster import (
+    MinGRUForecasterForecast,
+    MinGRUForecasterUEAClassification,
+    MinGRUForecasterAnomalyDetection,
+    MinGRUForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

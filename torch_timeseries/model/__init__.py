@@ -89,6 +89,7 @@ from .RWKVForecaster import RWKVForecaster
 from .SpikeForecaster import SpikeForecaster
 from .ConformerForecaster import ConformerForecaster
 from .MEGAForecaster import MEGAForecaster
+from .MinGRUForecaster import MinGRUForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -156,6 +157,7 @@ forecasting_models = [
     "SpikeForecaster",
     "ConformerForecaster",
     "MEGAForecaster",
+    "MinGRUForecaster",
 ]
 
 prob_forecasting_models = [
