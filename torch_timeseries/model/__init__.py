@@ -49,6 +49,7 @@ from .MambaForecaster import MambaForecaster
 from .ModernTCN import ModernTCN
 from .RLinear import RLinear
 from .FilterNet import FilterNet
+from .CARD import CARD
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -76,6 +77,7 @@ forecasting_models = [
     "ModernTCN",
     "RLinear",
     "FilterNet",
+    "CARD",
 ]
 
 prob_forecasting_models = [
