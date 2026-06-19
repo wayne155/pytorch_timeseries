@@ -3680,6 +3680,93 @@ class TestPlotFeatureDrift:
         plt.close("all")
 
 
+class TestCrossCorrelation:
+    def test_returns_arrays(self):
+        X = _rng_data(n=200)
+        lags, ccf = Forecaster.cross_correlation(X, max_lag=20)
+        assert lags.shape == (41,) and ccf.shape == (41,)
+
+    def test_lag_zero_is_high_for_same_signal(self):
+        X = _rng_data(n=200)
+        # cross-correlate channel 0 with itself via Y argument
+        Y = _rng_data(n=200)[:, 0:1]
+        lags, ccf = Forecaster.cross_correlation(X[:, 0:1], Y, max_lag=10,
+                                                  channel_x=0, channel_y=0)
+        # lag 0 should have maximum absolute CCF
+        assert abs(ccf[10]) == pytest.approx(max(np.abs(ccf)), abs=1e-6)
+
+    def test_two_separate_arrays(self):
+        X = _rng_data(n=200)
+        Y = _rng_data(n=200, seed=7)
+        lags, ccf = Forecaster.cross_correlation(X, Y, max_lag=5,
+                                                  channel_x=0, channel_y=0)
+        assert lags.shape == (11,)
+
+
+class TestPlotCrossCorrelation:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_cross_correlation(X, max_lag=15)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestRegimeDetection:
+    def test_shape(self):
+        X = _rng_data(n=300)
+        regimes = Forecaster.regime_detection(X, n_regimes=3, window=20)
+        assert regimes.shape == (300,)
+
+    def test_labels_in_range(self):
+        X = _rng_data(n=300)
+        regimes = Forecaster.regime_detection(X, n_regimes=3, window=20)
+        unique = set(regimes.tolist())
+        # labels should be -1 (warm-up) or 0..n_regimes-1
+        assert unique <= {-1, 0, 1, 2}
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        regimes = Forecaster.regime_detection(X, n_regimes=2, window=15)
+        assert regimes.shape == (200,)
+
+
+class TestPlotRegimes:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        regimes = Forecaster.regime_detection(X, n_regimes=2, window=15)
+        fig = Forecaster.plot_regimes(X, regimes, channel=0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestFunctionalBoxplot:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=240)
+        fig = Forecaster.functional_boxplot(X, period=24, channel=0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_too_short_raises(self):
+        X = _rng_data(n=20)
+        with pytest.raises(ValueError):
+            Forecaster.functional_boxplot(X, period=24)
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=240)
+        fig = Forecaster.functional_boxplot(X, period=24, title="FB test")
+        ax = fig.get_axes()[0]
+        assert "FB test" in ax.get_title()
+        plt.close("all")
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)

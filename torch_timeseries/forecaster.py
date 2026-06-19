@@ -7832,6 +7832,242 @@ class Forecaster:
             plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------
+    # cross_correlation — CCF between two time series
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def cross_correlation(X, Y=None, *, max_lag: int = 40,
+                          channel_x: int = 0, channel_y: int = 1):
+        """Cross-correlation function (CCF) between two signals.
+
+        If *Y* is ``None``, uses *channel_x* and *channel_y* from *X*.
+        Otherwise correlates *X* (channel *channel_x*) against *Y* (channel
+        *channel_y*).  Returns ``(lags, ccf)`` where *lags* spans
+        ``[-max_lag, max_lag]``::
+
+            lags, ccf = Forecaster.cross_correlation(X, max_lag=20)
+            # positive lags: Y leads X; negative lags: X leads Y
+        """
+        arr_x = np.asarray(X, dtype=np.float64)
+        if arr_x.ndim == 2:
+            arr_x = arr_x[:, channel_x]
+        if Y is None:
+            arr_y = np.asarray(X, dtype=np.float64)
+            if arr_y.ndim == 2:
+                arr_y = arr_y[:, channel_y]
+        else:
+            arr_y = np.asarray(Y, dtype=np.float64)
+            if arr_y.ndim == 2:
+                arr_y = arr_y[:, channel_y]
+        n = min(len(arr_x), len(arr_y))
+        x = arr_x[:n] - arr_x[:n].mean()
+        y = arr_y[:n] - arr_y[:n].mean()
+        norm = np.sqrt(np.dot(x, x) * np.dot(y, y)) + 1e-15
+        lags = np.arange(-max_lag, max_lag + 1)
+        ccf  = np.zeros(len(lags))
+        for i, lag in enumerate(lags):
+            if lag >= 0:
+                ccf[i] = np.dot(x[lag:], y[:n - lag]) / (norm / n * (n - lag)) if n > lag else 0.0
+            else:
+                ccf[i] = np.dot(x[:n + lag], y[-lag:]) / (norm / n * (n + lag)) if n > -lag else 0.0
+        return lags, ccf
+
+    @staticmethod
+    def plot_cross_correlation(X, Y=None, *, max_lag: int = 40,
+                               channel_x: int = 0, channel_y: int = 1,
+                               significance_level: float = 0.05,
+                               ax=None, title: str = None):
+        """Stem plot of the cross-correlation function with confidence bands.
+
+        Example::
+
+            Forecaster.plot_cross_correlation(X, max_lag=30)
+        """
+        import matplotlib.pyplot as plt
+        lags, ccf = Forecaster.cross_correlation(
+            X, Y, max_lag=max_lag, channel_x=channel_x, channel_y=channel_y
+        )
+        n = min(len(np.asarray(X)), len(np.asarray(Y)) if Y is not None else len(np.asarray(X)))
+        p = 1 - significance_level / 2
+        t_val = np.sqrt(-2.0 * np.log(1 - p))
+        a = [2.515517, 0.802853, 0.010328]
+        b = [1.432788, 0.189269, 0.001308]
+        z = t_val - (a[0] + a[1] * t_val + a[2] * t_val ** 2) / (
+            1 + b[0] * t_val + b[1] * t_val ** 2 + b[2] * t_val ** 3
+        )
+        ci = z / np.sqrt(n)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(10, 3))
+        else:
+            fig = ax.get_figure()
+        ax.vlines(lags, 0, ccf, linewidth=1.2)
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.axhline( ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.axhline(-ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("CCF")
+        ax.set_title(title or f"Cross-correlation (ch{channel_x} vs ch{channel_y})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # regime_detection — k-means on rolling statistics
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def regime_detection(X, *, n_regimes: int = 3, window: int = 30,
+                         channel: int = 0, random_state: int = 0):
+        """Detect hidden regimes via k-means clustering on rolling statistics.
+
+        Computes rolling mean, rolling std, and rolling autocorrelation (lag-1)
+        as features, then clusters them into *n_regimes* groups.  Returns a
+        1-D integer array of shape ``(T,)`` with regime labels for each timestep.
+        Warm-up period (first *window* timesteps) is assigned label ``-1``.
+
+        Example::
+
+            regimes = Forecaster.regime_detection(X_train, n_regimes=3, window=30)
+            Forecaster.plot_regimes(X_train, regimes)
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        # build feature matrix: rolling mean, std, lag-1 autocorr
+        features = []
+        for t in range(T):
+            start = max(0, t - window + 1)
+            seg = arr[start: t + 1]
+            mu  = seg.mean()
+            sig = seg.std() + 1e-8
+            if len(seg) >= 2:
+                a = seg[:-1] - seg[:-1].mean()
+                b = seg[1:]  - seg[1:].mean()
+                denom = (np.dot(a, a) * np.dot(b, b)) ** 0.5 + 1e-15
+                ac1 = float(np.dot(a, b) / denom)
+            else:
+                ac1 = 0.0
+            features.append([mu, sig, ac1])
+        features = np.array(features)
+        # k-means++ initialisation + Lloyd iterations (pure numpy)
+        rng = np.random.default_rng(random_state)
+        valid = np.where(np.all(np.isfinite(features), axis=1))[0]
+        if len(valid) < n_regimes:
+            return np.full(T, -1, dtype=int)
+        # k-means++ init
+        centroids = [features[rng.choice(valid)]]
+        for _ in range(n_regimes - 1):
+            dists = np.array([min(np.sum((features[v] - c) ** 2) for c in centroids) for v in valid])
+            probs = dists / (dists.sum() + 1e-15)
+            centroids.append(features[valid[rng.choice(len(valid), p=probs)]])
+        centroids = np.stack(centroids)
+        labels = np.full(T, -1, dtype=int)
+        for _ in range(50):   # max iterations
+            dists = np.stack([np.sum((features - c) ** 2, axis=1) for c in centroids], axis=1)
+            new_labels = np.argmin(dists, axis=1)
+            new_labels[~np.all(np.isfinite(features), axis=1)] = -1
+            if np.array_equal(new_labels, labels):
+                break
+            labels = new_labels
+            for k in range(n_regimes):
+                mask = labels == k
+                if mask.any():
+                    centroids[k] = features[mask].mean(axis=0)
+        return labels
+
+    @staticmethod
+    def plot_regimes(X, regimes, *, channel: int = 0,
+                     ax=None, title: str = None, cmap: str = "Set1"):
+        """Time-series plot coloured by detected regime.
+
+        Each detected regime is drawn with a distinct colour.  Regime ``-1``
+        (warm-up) is shown in grey.
+
+        Example::
+
+            regimes = Forecaster.regime_detection(X, n_regimes=3)
+            Forecaster.plot_regimes(X, regimes, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        labels  = np.asarray(regimes)
+        n_reg   = max(1, int(labels.max()) + 1)
+        cmap_obj = plt.get_cmap(cmap)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(12, 3))
+        else:
+            fig = ax.get_figure()
+        t = np.arange(T)
+        for k in range(-1, n_reg):
+            mask = labels == k
+            if not mask.any():
+                continue
+            color  = "grey" if k == -1 else cmap_obj(k / max(n_reg - 1, 1))
+            label  = "warm-up" if k == -1 else f"Regime {k}"
+            # scatter so gaps between segments look clean
+            ax.scatter(t[mask], arr[mask], s=2, color=color, label=label, rasterized=True)
+        ax.set_xlabel("Time")
+        ax.set_ylabel(f"Channel {channel}")
+        ax.set_title(title or f"Regime detection (n_regimes={n_reg})")
+        ax.legend(fontsize=8, markerscale=4, loc="upper right")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # functional_boxplot — functional boxplot over repeated seasons
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def functional_boxplot(X, period: int, *, channel: int = 0,
+                           ax=None, title: str = None):
+        """Functional boxplot: median ± IQR envelope over repeated cycles.
+
+        Reshapes the signal into ``(n_complete_cycles, period)`` and computes
+        the median (solid line), 25–75 % IQR band, and 10–90 % outer band.
+        Useful for confirming/visualising seasonal patterns.
+
+        Example::
+
+            # hourly data with daily seasonality
+            Forecaster.functional_boxplot(X_train, period=24, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        n_complete = len(arr) // period
+        if n_complete < 2:
+            raise ValueError(f"Need ≥2 complete cycles; got {n_complete} (period={period})")
+        mat = arr[: n_complete * period].reshape(n_complete, period)
+        t   = np.arange(period)
+        p10, p25, p50, p75, p90 = [np.percentile(mat, q, axis=0) for q in (10, 25, 50, 75, 90)]
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+        ax.fill_between(t, p10, p90, alpha=0.18, color="steelblue", label="10–90%")
+        ax.fill_between(t, p25, p75, alpha=0.40, color="steelblue", label="25–75%")
+        ax.plot(t, p50, color="navy", linewidth=1.5, label="Median")
+        ax.set_xlabel("Position within period")
+        ax.set_ylabel(f"Channel {channel}")
+        ax.set_title(title or f"Functional boxplot (period={period})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
