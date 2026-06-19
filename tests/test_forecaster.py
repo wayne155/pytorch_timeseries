@@ -1246,6 +1246,39 @@ class TestPredictUncertainty:
         assert (result["lower"] <= result["upper"]).all()
 
 
+class TestCalibrate:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X_cal = _rng_data(n=200, seed=1)
+
+    def test_returns_self(self):
+        result = self.fc.calibrate(self.X_cal, n_samples=5)
+        assert result is self.fc
+
+    def test_sets_interval_scale(self):
+        self.fc.calibrate(self.X_cal, n_samples=5)
+        assert hasattr(self.fc, "_interval_scale_")
+        assert self.fc._interval_scale_ > 0.0
+
+    def test_intervals_still_lower_le_upper_after_calibration(self):
+        self.fc.calibrate(self.X_cal, n_samples=5)
+        result = self.fc.predict_uncertainty(self.X_cal[-SEQ:], n_samples=5)
+        assert (result["lower"] <= result["upper"]).all()
+
+    def test_invalid_coverage_raises(self):
+        with pytest.raises(ValueError, match="target_coverage"):
+            self.fc.calibrate(self.X_cal, target_coverage=1.5, n_samples=5)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.calibrate(np.zeros((5, C)), n_samples=5)
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.calibrate(self.X_cal, n_samples=5)
+
+
 # ── compare n_jobs ────────────────────────────────────────────────────────────
 
 

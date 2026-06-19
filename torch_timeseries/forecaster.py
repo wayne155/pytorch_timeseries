@@ -1404,12 +1404,97 @@ class Forecaster:
         self._model.eval()
 
         samples_arr = np.stack(samples)  # (n_samples, ..., pred_len, C)
+        mean = samples_arr.mean(axis=0)
+        std = samples_arr.std(axis=0)
+        scale = getattr(self, "_interval_scale_", 1.0)
+        half = scale * std * 1.6449
         return {
-            "mean": samples_arr.mean(axis=0),
-            "std": samples_arr.std(axis=0),
-            "lower": np.percentile(samples_arr, 5, axis=0),
-            "upper": np.percentile(samples_arr, 95, axis=0),
+            "mean": mean,
+            "std": std,
+            "lower": mean - half,
+            "upper": mean + half,
         }
+
+    def calibrate(
+        self,
+        X_cal,
+        *,
+        target_coverage: float = 0.90,
+        n_samples: int = 50,
+    ) -> "Forecaster":
+        """Post-hoc calibrate MC-Dropout intervals on a held-out set.
+
+        Fits a scalar ``_interval_scale_`` so that the ``predict_uncertainty``
+        lower/upper bounds achieve approximately *target_coverage* empirical
+        coverage on the calibration data.  After calling this method,
+        :meth:`predict_uncertainty` automatically applies the scale factor.
+
+        The calibration uses a simple binary search over interval scale
+        factors in ``[0.01, 20]``.
+
+        Parameters
+        ----------
+        X_cal:
+            Calibration time series, shape ``(N, C)`` with
+            ``N >= seq_len + pred_len``.
+        target_coverage:
+            Desired fraction of ground-truth values inside the predicted
+            interval (default 0.90).
+        n_samples:
+            MC-Dropout samples per window.
+
+        Returns
+        -------
+        self
+        """
+        self._check_fitted()
+        if not (0.0 < target_coverage < 1.0):
+            raise ValueError(
+                f"target_coverage must be in (0, 1); got {target_coverage}."
+            )
+
+        X_np = _to_numpy(X_cal)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        seq, pred = self.seq_len, self.pred_len
+        min_len = seq + pred
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X_cal has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - seq - pred + 1
+
+        # Collect MC samples for every calibration window.
+        all_samples: List[np.ndarray] = []
+        all_truths: List[np.ndarray] = []
+        for i in range(n_windows):
+            window = X_np[i : i + seq]
+            truth = X_np[i + seq : i + seq + pred]
+            unc = self.predict_uncertainty(window, n_samples=n_samples)
+            # Keep raw mean and std; reconstruct intervals with varying scale
+            all_samples.append(unc["mean"])
+            all_truths.append((unc["std"], truth))
+
+        means = np.stack(all_samples)          # (W, pred, C)
+        stds = np.stack([t[0] for t in all_truths])    # (W, pred, C)
+        truths = np.stack([t[1] for t in all_truths])  # (W, pred, C)
+
+        def coverage_at(scale: float) -> float:
+            half = scale * stds * 1.6449  # ≈ 90% interval for N(0,1)
+            inside = ((truths >= means - half) & (truths <= means + half))
+            return float(inside.mean())
+
+        # Binary search for scale that achieves target coverage
+        lo, hi = 0.01, 20.0
+        for _ in range(40):
+            mid = (lo + hi) / 2.0
+            if coverage_at(mid) < target_coverage:
+                lo = mid
+            else:
+                hi = mid
+        self._interval_scale_: float = (lo + hi) / 2.0
+        return self
 
     def residuals(self, X) -> np.ndarray:
         """Compute prediction residuals over sliding windows of X.
