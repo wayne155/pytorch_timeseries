@@ -3767,6 +3767,107 @@ class TestFunctionalBoxplot:
         plt.close("all")
 
 
+class TestSpectrogram:
+    def test_returns_dict(self):
+        X = _rng_data(n=300)
+        spec = Forecaster.spectrogram(X, channel=0, nperseg=32)
+        assert set(spec.keys()) == {"times", "freqs", "Sxx"}
+
+    def test_shape_consistency(self):
+        X = _rng_data(n=300)
+        spec = Forecaster.spectrogram(X, channel=0, nperseg=32)
+        n_freqs = spec["Sxx"].shape[0]
+        n_times = spec["Sxx"].shape[1]
+        assert len(spec["freqs"]) == n_freqs
+        assert len(spec["times"]) == n_times
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        spec = Forecaster.spectrogram(X, nperseg=32)
+        assert spec["Sxx"].ndim == 2
+
+    def test_non_negative(self):
+        X = _rng_data(n=200)
+        spec = Forecaster.spectrogram(X, channel=0, nperseg=32)
+        assert (spec["Sxx"] >= 0).all()
+
+
+class TestPlotSpectrogram:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=300)
+        fig = Forecaster.plot_spectrogram(X, channel=0, nperseg=32)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestSummaryTable:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dataframe(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        df = self.fc.summary_table(self.X)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_columns_contain_metrics(self):
+        pytest.importorskip("pandas")
+        df = self.fc.summary_table(self.X)
+        assert "mse" in df.columns and "mae" in df.columns
+
+    def test_custom_horizons(self):
+        pytest.importorskip("pandas")
+        df = self.fc.summary_table(self.X, horizons=[0, 1, 2])
+        assert len(df) == 3
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().summary_table(self.X)
+
+
+class TestHistogramForecast:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.histogram_forecast(_rng_data(n=200), channel=0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().histogram_forecast(_rng_data(n=200))
+
+
+class TestReliabilityScore:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.reliability_score(self.X, self.X, coverage=0.9)
+        assert set(result.keys()) >= {"picp", "pinaw", "cwc", "winkler", "nominal"}
+
+    def test_picp_in_unit_interval(self):
+        result = self.fc.reliability_score(self.X, self.X)
+        assert 0.0 <= result["picp"] <= 1.0
+
+    def test_pinaw_positive(self):
+        result = self.fc.reliability_score(self.X, self.X)
+        assert result["pinaw"] > 0
+
+    def test_nominal_preserved(self):
+        result = self.fc.reliability_score(self.X, self.X, coverage=0.8)
+        assert result["nominal"] == pytest.approx(0.8)
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().reliability_score(self.X, self.X)
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)

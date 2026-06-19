@@ -8068,6 +8068,210 @@ class Forecaster:
             plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------
+    # spectrogram — short-time Fourier transform (pure numpy)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def spectrogram(X, *, channel: int = 0, nperseg: int = None,
+                    noverlap: int = None, fs: float = 1.0):
+        """Compute a short-time Fourier transform (STFT) spectrogram.
+
+        Splits the signal into overlapping segments, applies a Hann window,
+        and returns the magnitude spectrogram.  No scipy dependency — uses
+        only ``numpy.fft``.
+
+        Returns a dict::
+
+            {
+                "times"  : 1-D array of segment centre times,
+                "freqs"  : 1-D array of frequencies (0..fs/2),
+                "Sxx"    : 2-D magnitude spectrogram (freqs × times),
+            }
+
+        Example::
+
+            spec = Forecaster.spectrogram(X_train, channel=0, nperseg=64)
+            Forecaster.plot_spectrogram(X_train)
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        if nperseg is None:
+            nperseg = min(256, T // 4)
+        nperseg = max(4, nperseg)
+        if noverlap is None:
+            noverlap = nperseg // 2
+        step = nperseg - noverlap
+        window = 0.5 * (1 - np.cos(2 * np.pi * np.arange(nperseg) / (nperseg - 1)))  # Hann
+        n_freqs = nperseg // 2 + 1
+        times, Sxx = [], []
+        for start in range(0, T - nperseg + 1, step):
+            seg   = arr[start: start + nperseg] * window
+            fft_v = np.fft.rfft(seg, n=nperseg)
+            Sxx.append(np.abs(fft_v[:n_freqs]))
+            times.append((start + nperseg / 2) / fs)
+        freqs = np.fft.rfftfreq(nperseg, d=1.0 / fs)[:n_freqs]
+        Sxx   = np.array(Sxx).T   # (n_freqs, n_times)
+        return {"times": np.array(times), "freqs": freqs, "Sxx": Sxx}
+
+    @staticmethod
+    def plot_spectrogram(X, *, channel: int = 0, nperseg: int = None,
+                         noverlap: int = None, fs: float = 1.0,
+                         log_scale: bool = True, ax=None, title: str = None):
+        """Colour-map plot of the STFT magnitude spectrogram.
+
+        Example::
+
+            Forecaster.plot_spectrogram(X_train, channel=0, nperseg=64)
+        """
+        import matplotlib.pyplot as plt
+        spec = Forecaster.spectrogram(X, channel=channel, nperseg=nperseg,
+                                      noverlap=noverlap, fs=fs)
+        Sxx = np.log1p(spec["Sxx"]) if log_scale else spec["Sxx"]
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+        im = ax.pcolormesh(spec["times"], spec["freqs"], Sxx, shading="gouraud",
+                           cmap="viridis")
+        plt.colorbar(im, ax=ax, label="log(1+|STFT|)" if log_scale else "|STFT|")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Frequency")
+        ax.set_title(title or f"Spectrogram (channel {channel})")
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # summary_table — metrics at multiple prediction horizons
+    # ------------------------------------------------------------------
+
+    def summary_table(self, X, *, horizons=None, metrics=("mse", "mae", "rmse")):
+        """Return a :class:`pandas.DataFrame` of metrics at multiple horizons.
+
+        *horizons* is a list of step indices (0-based) to evaluate at.
+        Defaults to ``[0, pred_len//4, pred_len//2, pred_len-1]``.
+        Uses per-step errors from :meth:`multistep_score`::
+
+            table = fc.summary_table(X_test)
+            print(table)
+        """
+        import pandas as pd
+        self._check_fitted()
+        if horizons is None:
+            p = self.pred_len
+            horizons = sorted(set([0, p // 4, p // 2, p - 1]))
+        actuals, preds = self._collect_actuals_predictions(X)
+        records = []
+        for h in horizons:
+            row = {"horizon": h + 1}
+            y_t = actuals[:, h, :].ravel()
+            y_p = preds[:,   h, :].ravel()
+            for m in metrics:
+                if m == "mse":
+                    row["mse"] = float(np.mean((y_t - y_p) ** 2))
+                elif m == "mae":
+                    row["mae"] = float(np.mean(np.abs(y_t - y_p)))
+                elif m == "rmse":
+                    row["rmse"] = float(np.sqrt(np.mean((y_t - y_p) ** 2)))
+                elif m == "smape":
+                    denom = np.abs(y_t) + np.abs(y_p) + 1e-8
+                    row["smape"] = float(np.mean(2 * np.abs(y_t - y_p) / denom))
+            records.append(row)
+        return pd.DataFrame(records).set_index("horizon")
+
+    # ------------------------------------------------------------------
+    # histogram_forecast — overlaid distribution of actual vs predicted
+    # ------------------------------------------------------------------
+
+    def histogram_forecast(self, X, *, channel: int = 0, n_bins: int = 40,
+                           ax=None, title: str = None):
+        """Overlaid histogram of predicted vs actual values.
+
+        Useful for diagnosing distributional shift between the model's output
+        and the true values (e.g. over-smoothing in point forecasters)::
+
+            fc.histogram_forecast(X_test, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        y_true = actuals[:, :, channel].ravel()
+        y_pred = preds[:,   :, channel].ravel()
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(7, 4))
+        else:
+            fig = ax.get_figure()
+        lo = min(y_true.min(), y_pred.min())
+        hi = max(y_true.max(), y_pred.max())
+        bins = np.linspace(lo, hi, n_bins + 1)
+        ax.hist(y_true, bins=bins, alpha=0.55, label="Actual",    density=True)
+        ax.hist(y_pred, bins=bins, alpha=0.55, label="Predicted", density=True)
+        ax.set_xlabel(f"Channel {channel}")
+        ax.set_ylabel("Density")
+        ax.set_title(title or f"Forecast distribution (channel {channel})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # reliability_score — combined PI calibration metrics
+    # ------------------------------------------------------------------
+
+    def reliability_score(self, X_calib, X_test, *,
+                          coverage: float = 0.9, n_samples: int = 200):
+        """Compute a comprehensive set of PI reliability metrics.
+
+        Returns a dict::
+
+            {
+                "picp"     : float,  # Prediction Interval Coverage Probability
+                "pinaw"    : float,  # PI Normalised Average Width
+                "cwc"      : float,  # Coverage Width-based Criterion (lower=better)
+                "winkler"  : float,  # Winkler interval score
+                "nominal"  : float,  # requested coverage
+            }
+
+        *picp* ≈ *nominal* means well-calibrated.  Low *pinaw* means sharp
+        (narrow) intervals.  *cwc* penalises under-coverage more than width::
+
+            rs = fc.reliability_score(X_calib, X_test, coverage=0.9)
+            print(rs)
+        """
+        self._check_fitted()
+        calib_resids = self.residuals(X_calib)
+        q_abs        = np.abs(calib_resids).ravel()
+        q_level      = float(np.quantile(q_abs, coverage))
+        actuals, preds = self._collect_actuals_predictions(X_test)
+        lower = preds - q_level
+        upper = preds + q_level
+        covered = (actuals >= lower) & (actuals <= upper)
+        picp  = float(covered.mean())
+        y_range = float(actuals.max() - actuals.min()) + 1e-8
+        pinaw = float((upper - lower).mean()) / y_range
+        # CWC: penalise if picp < nominal
+        eta = 50.0
+        cwc = pinaw * (1 + (picp < coverage) * np.exp(-eta * (picp - coverage)))
+        # winkler score
+        alpha = 1 - coverage
+        width = upper - lower
+        miss_lo = np.maximum(0.0, lower - actuals)
+        miss_hi = np.maximum(0.0, actuals - upper)
+        winkler = float((width + (2 / alpha) * (miss_lo + miss_hi)).mean())
+        return {
+            "picp":    picp,
+            "pinaw":   pinaw,
+            "cwc":     float(cwc),
+            "winkler": winkler,
+            "nominal": coverage,
+        }
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
