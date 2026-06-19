@@ -2974,3 +2974,84 @@ def compare_to_dataframe(results: Dict[str, Dict[str, float]]):
         rows.append(row)
     df = pd.DataFrame(rows).set_index("model")
     return df
+
+
+def compare_plot(
+    results: Dict[str, Dict[str, float]],
+    metric: str = "mse",
+    *,
+    top_n: Optional[int] = None,
+    ax=None,
+    title: Optional[str] = None,
+    color: str = "steelblue",
+    highlight_best: bool = True,
+):
+    """Bar chart of :func:`compare` results sorted by *metric*.
+
+    Requires ``matplotlib``.
+
+    Parameters
+    ----------
+    results:
+        Dict returned by :func:`compare`.
+    metric:
+        Metric column to plot (default ``"mse"``).
+    top_n:
+        Only show the best *top_n* models.  ``None`` shows all.
+    ax:
+        Existing ``matplotlib.axes.Axes``.  If ``None``, a new figure is
+        created.
+    title:
+        Axes title.  Defaults to ``"Model comparison — <metric>"``.
+    color:
+        Bar colour.
+    highlight_best:
+        If ``True``, colour the best bar in orange.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+    """
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError(
+            "matplotlib is required for compare_plot(). "
+            "Install it with: pip install matplotlib"
+        ) from exc
+
+    if not results:
+        raise ValueError("results dict is empty.")
+
+    # Build sorted list
+    items = [
+        (name, metrics.get(metric, float("nan")))
+        for name, metrics in results.items()
+        if not isinstance(metrics, Exception)
+    ]
+    items.sort(key=lambda x: x[1])
+    if top_n is not None:
+        items = items[:top_n]
+
+    names = [i[0] for i in items]
+    values = [i[1] for i in items]
+
+    colors = [color] * len(names)
+    if highlight_best and names:
+        colors[0] = "tomato"
+
+    created_fig = ax is None
+    if created_fig:
+        fig_w = max(6, len(names) * 0.6 + 2)
+        _, ax = plt.subplots(figsize=(fig_w, 4))
+
+    ax.bar(names, values, color=colors)
+    ax.set_xlabel("Model")
+    ax.set_ylabel(metric.upper())
+    ax.set_title(title or f"Model comparison — {metric.upper()}")
+    ax.tick_params(axis="x", rotation=45)
+    ax.grid(True, axis="y", alpha=0.3)
+
+    if created_fig:
+        plt.tight_layout()
+    return ax

@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
     MultiChannelForecaster, EnsembleForecaster,
-    compare, compare_to_dataframe, list_models, time_series_split,
+    compare, compare_to_dataframe, compare_plot, list_models, time_series_split,
     make_forecaster, _WindowDataset, _EarlyStopping, _make_scheduler,
     _print_compare_table, _resolve_loss,
 )
@@ -1370,6 +1370,65 @@ class TestCompareToDataframe:
         pytest.importorskip("pandas")
         df = compare_to_dataframe({})
         assert len(df) == 0
+
+
+# ── compare_plot() ────────────────────────────────────────────────────────────
+
+_FAKE_RESULTS = {
+    "DLinear": {"mse": 0.5, "mae": 0.4, "rmse": 0.71, "smape": 10.0},
+    "NLinear": {"mse": 0.3, "mae": 0.3, "rmse": 0.55, "smape": 8.5},
+    "PatchTST": {"mse": 0.7, "mae": 0.6, "rmse": 0.84, "smape": 12.0},
+}
+
+
+class TestComparePlot:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = compare_plot(_FAKE_RESULTS)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = compare_plot(_FAKE_RESULTS, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_metric(self):
+        import matplotlib.axes
+        ax = compare_plot(_FAKE_RESULTS, metric="mae")
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_top_n(self):
+        import matplotlib.pyplot as plt
+        ax = compare_plot(_FAKE_RESULTS, top_n=2)
+        n_bars = len(ax.patches)
+        assert n_bars == 2
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = compare_plot(_FAKE_RESULTS, title="Custom Title")
+        assert ax.get_title() == "Custom Title"
+        plt.close("all")
+
+    def test_empty_results_raises(self):
+        with pytest.raises(ValueError):
+            compare_plot({})
+
+    def test_skips_exception_values(self):
+        import matplotlib.pyplot as plt
+        results = {**_FAKE_RESULTS, "BrokenModel": RuntimeError("fail")}
+        ax = compare_plot(results)
+        assert isinstance(ax, plt.Axes)
+        plt.close("all")
 
 
 # ── list_datasets() ───────────────────────────────────────────────────────────

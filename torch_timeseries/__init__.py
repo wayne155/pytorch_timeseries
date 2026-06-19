@@ -29,7 +29,7 @@ from .experiment import Experiment, register_model
 from .forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
     MultiChannelForecaster, EnsembleForecaster,
-    compare, compare_to_dataframe, list_models, time_series_split,
+    compare, compare_to_dataframe, compare_plot, list_models, time_series_split,
     make_forecaster,
 )
 from .dataset import list_datasets, load_dataset
