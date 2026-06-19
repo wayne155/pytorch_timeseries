@@ -490,6 +490,12 @@ from .GLAForecaster import (
     GLAForecasterAnomalyDetection,
     GLAForecasterImputation,
 )
+from .DiffTransformerForecaster import (
+    DiffTransformerForecasterForecast,
+    DiffTransformerForecasterUEAClassification,
+    DiffTransformerForecasterAnomalyDetection,
+    DiffTransformerForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
