@@ -8,10 +8,8 @@ import torch.nn as nn
 
 from torch_timeseries.forecaster import (
     Forecaster, compare, list_models, _WindowDataset, _EarlyStopping,
-    _make_scheduler, _print_compare_table,
+    _make_scheduler, _print_compare_table, _resolve_loss,
 )
-
-# cross_validate and plot_history are methods, no separate imports needed
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -672,3 +670,109 @@ class TestGetSetParams:
         fc = _quick_fc()
         fc.set_params(d_model=64)
         assert fc.model_kwargs.get("d_model") == 64
+
+    def test_get_params_includes_loss_and_warm_start(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED, verbose=False,
+                        loss="mae", warm_start=True)
+        p = fc.get_params()
+        assert p["loss"] == "mae"
+        assert p["warm_start"] is True
+
+
+# ── _resolve_loss() ───────────────────────────────────────────────────────────
+
+
+class TestResolveLoss:
+    def test_none_returns_mse(self):
+        loss = _resolve_loss(None)
+        assert isinstance(loss, nn.MSELoss)
+
+    def test_mse_string(self):
+        assert isinstance(_resolve_loss("mse"), nn.MSELoss)
+
+    def test_mae_string(self):
+        assert isinstance(_resolve_loss("mae"), nn.L1Loss)
+
+    def test_l1_string(self):
+        assert isinstance(_resolve_loss("l1"), nn.L1Loss)
+
+    def test_huber_string(self):
+        assert isinstance(_resolve_loss("huber"), nn.HuberLoss)
+
+    def test_custom_module(self):
+        custom = nn.SmoothL1Loss()
+        assert _resolve_loss(custom) is custom
+
+    def test_unknown_raises(self):
+        with pytest.raises(ValueError, match="Unknown loss"):
+            _resolve_loss("mystery_loss")
+
+
+# ── custom loss in Forecaster ─────────────────────────────────────────────────
+
+
+class TestCustomLoss:
+    def test_string_loss_mae(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, loss="mae")
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+    def test_module_loss(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, loss=nn.HuberLoss())
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+
+# ── warm_start ────────────────────────────────────────────────────────────────
+
+
+class TestWarmStart:
+    def test_warm_start_preserves_model_instance(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, warm_start=True)
+        fc.fit(X)
+        m1 = fc._model
+        fc.fit(X)
+        assert fc._model is m1  # same object, weights updated in-place
+
+    def test_cold_start_replaces_model(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, warm_start=False)
+        fc.fit(X)
+        m1 = fc._model
+        fc.fit(X)
+        assert fc._model is not m1
+
+
+# ── summary() ────────────────────────────────────────────────────────────────
+
+
+class TestSummary:
+    def test_returns_string(self):
+        fc = _quick_fc().fit(_rng_data())
+        s = fc.summary()
+        assert isinstance(s, str)
+
+    def test_contains_model_name(self):
+        fc = _quick_fc("DLinear").fit(_rng_data())
+        assert "DLinear" in fc.summary()
+
+    def test_contains_seq_pred_len(self):
+        fc = _quick_fc().fit(_rng_data())
+        s = fc.summary()
+        assert str(SEQ) in s
+        assert str(PRED) in s
+
+    def test_contains_parameters_when_fitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        assert "parameters" in fc.summary()
+
+    def test_contains_last_epoch_when_fitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        assert "last epoch" in fc.summary()

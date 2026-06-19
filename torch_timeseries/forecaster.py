@@ -165,6 +165,33 @@ def _make_scheduler(optimiser, scheduler_name: Optional[str], epochs: int, patie
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Loss factory
+# ──────────────────────────────────────────────────────────────────────────────
+
+_LOSS_MAP = {
+    "mse": nn.MSELoss,
+    "mae": nn.L1Loss,
+    "l1": nn.L1Loss,
+    "huber": nn.HuberLoss,
+    "smooth_l1": nn.SmoothL1Loss,
+}
+
+
+def _resolve_loss(loss) -> nn.Module:
+    """Return an ``nn.Module`` loss from a string name or module instance."""
+    if loss is None:
+        return nn.MSELoss()
+    if isinstance(loss, nn.Module):
+        return loss
+    key = loss.lower().replace(" ", "_")
+    if key not in _LOSS_MAP:
+        raise ValueError(
+            f"Unknown loss {loss!r}. Choose from {sorted(_LOSS_MAP)} or pass an nn.Module."
+        )
+    return _LOSS_MAP[key]()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -227,6 +254,8 @@ class Forecaster:
         normalize: bool = True,
         verbose: bool = True,
         scheduler: Optional[str] = None,
+        loss: Optional[Union[str, nn.Module]] = None,
+        warm_start: bool = False,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -240,6 +269,8 @@ class Forecaster:
         self.normalize = normalize
         self.verbose = verbose
         self.scheduler = scheduler
+        self.loss = loss
+        self.warm_start = warm_start
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
@@ -344,11 +375,15 @@ class Forecaster:
             val_ds, batch_size=self.batch_size, shuffle=False, drop_last=False
         )
 
-        self._model = self._build_model(C)
+        if self.warm_start and self._model is not None and self._enc_in == C:
+            # Reuse existing weights; only reset history
+            pass
+        else:
+            self._model = self._build_model(C)
         self.history_ = []
         optimiser = torch.optim.Adam(self._model.parameters(), lr=self.lr)
         sched = _make_scheduler(optimiser, self.scheduler, self.epochs, self.patience)
-        loss_fn = nn.MSELoss()
+        loss_fn = _resolve_loss(self.loss)
         stopper = _EarlyStopping(self.patience)
 
         for epoch in range(1, self.epochs + 1):
@@ -755,6 +790,8 @@ class Forecaster:
             "normalize": self.normalize,
             "verbose": self.verbose,
             "scheduler": self.scheduler,
+            "loss": self.loss,
+            "warm_start": self.warm_start,
         }
         params.update(self.model_kwargs)
         return params
@@ -766,7 +803,7 @@ class Forecaster:
         to ``model_kwargs``.  Returns ``self`` so calls can be chained.
         """
         _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
-                   "patience", "normalize", "verbose", "scheduler"}
+                   "patience", "normalize", "verbose", "scheduler", "loss", "warm_start"}
         for k, v in params.items():
             if k == "model":
                 self.model_spec = v
@@ -808,6 +845,41 @@ class Forecaster:
         """Number of trainable parameters."""
         self._check_fitted()
         return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+
+    def summary(self) -> str:
+        """Return a human-readable summary string of the forecaster.
+
+        Includes model name, hyperparameters, parameter count (if fitted), and
+        the last epoch's train/val loss.
+
+        Returns
+        -------
+        str
+        """
+        name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
+        lines = [
+            f"Forecaster — {name}",
+            f"  seq_len     : {self.seq_len}",
+            f"  pred_len    : {self.pred_len}",
+            f"  epochs      : {self.epochs}",
+            f"  lr          : {self.lr}",
+            f"  batch_size  : {self.batch_size}",
+            f"  normalize   : {self.normalize}",
+            f"  scheduler   : {self.scheduler}",
+            f"  loss        : {self.loss!r}",
+            f"  warm_start  : {self.warm_start}",
+            f"  device      : {self.device}",
+        ]
+        if self._model is not None:
+            lines.append(f"  parameters  : {self.n_parameters:,}")
+        if self.history_:
+            last = self.history_[-1]
+            lines.append(
+                f"  last epoch  : {last['epoch']}  "
+                f"train={last['train_loss']:.6f}  "
+                f"val={last['val_loss']:.6f}"
+            )
+        return "\n".join(lines)
 
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
