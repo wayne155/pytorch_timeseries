@@ -878,3 +878,72 @@ class TestTune:
         best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
         best.fit(X)
         assert best._model is not None
+
+
+# ── weight_decay ──────────────────────────────────────────────────────────────
+
+
+class TestWeightDecay:
+    def test_weight_decay_trains(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, weight_decay=1e-4)
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+    def test_default_weight_decay_zero(self):
+        fc = _quick_fc()
+        assert fc.weight_decay == 0.0
+
+    def test_in_get_params(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        verbose=False, weight_decay=1e-3)
+        assert fc.get_params()["weight_decay"] == 1e-3
+
+
+# ── callbacks ─────────────────────────────────────────────────────────────────
+
+
+class TestCallbacks:
+    def test_callback_called_each_epoch(self):
+        calls = []
+
+        def my_cb(fc, entry):
+            calls.append(entry["epoch"])
+
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=3, verbose=False, callbacks=[my_cb])
+        fc.fit(X)
+        # may stop early but at least one call expected
+        assert len(calls) >= 1
+
+    def test_callback_receives_entry_dict(self):
+        entries = []
+
+        def my_cb(fc, entry):
+            entries.append(entry)
+
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, callbacks=[my_cb])
+        fc.fit(X)
+        for e in entries:
+            assert "epoch" in e
+            assert "train_loss" in e
+
+    def test_callback_receives_forecaster_ref(self):
+        received = []
+
+        def my_cb(fc_ref, entry):
+            received.append(fc_ref)
+
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, callbacks=[my_cb])
+        fc.fit(X)
+        assert received[0] is fc
+
+    def test_no_callbacks_by_default(self):
+        fc = _quick_fc()
+        assert fc.callbacks == []

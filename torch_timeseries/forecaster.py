@@ -48,6 +48,17 @@ Quick start::
     fc.save("my_model.pt")
     fc2 = Forecaster.load("my_model.pt")
 
+    # Walk-forward cross-validation
+    cv = fc.cross_validate(X, n_splits=5)
+    print(cv["mean_mse"], cv["std_mse"])
+
+    # Hyperparameter grid search
+    best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4], "batch_size": [16, 32]})
+    best.fit(X)
+
+    # Clone an unfitted copy for independent experiments
+    clone = fc.clone()
+
 Any model from ``torch_timeseries.model.forecasting_models`` is supported by
 name.  Model-specific hyper-parameters can be passed as keyword arguments::
 
@@ -58,6 +69,9 @@ name.  Model-specific hyper-parameters can be passed as keyword arguments::
         d_model=128,
         n_heads=8,
         e_layers=3,
+        loss="mae",
+        scheduler="cosine",
+        grad_clip=1.0,
     )
 """
 from __future__ import annotations
@@ -257,6 +271,8 @@ class Forecaster:
         loss: Optional[Union[str, nn.Module]] = None,
         warm_start: bool = False,
         grad_clip: Optional[float] = None,
+        weight_decay: float = 0.0,
+        callbacks: Optional[List] = None,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -273,6 +289,8 @@ class Forecaster:
         self.loss = loss
         self.warm_start = warm_start
         self.grad_clip = grad_clip
+        self.weight_decay = weight_decay
+        self.callbacks = callbacks or []
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
@@ -383,7 +401,9 @@ class Forecaster:
         else:
             self._model = self._build_model(C)
         self.history_ = []
-        optimiser = torch.optim.Adam(self._model.parameters(), lr=self.lr)
+        optimiser = torch.optim.Adam(
+            self._model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
         sched = _make_scheduler(optimiser, self.scheduler, self.epochs, self.patience)
         loss_fn = _resolve_loss(self.loss)
         stopper = _EarlyStopping(self.patience)
@@ -408,12 +428,16 @@ class Forecaster:
             val_loss = self._eval_loss(val_loader, loss_fn) if len(val_ds) > 0 else float("inf")
             train_loss_avg = float(np.mean(train_losses))
 
-            self.history_.append({
+            entry = {
                 "epoch": epoch,
                 "train_loss": train_loss_avg,
                 "val_loss": val_loss,
                 "lr": optimiser.param_groups[0]["lr"],
-            })
+            }
+            self.history_.append(entry)
+
+            for cb in self.callbacks:
+                cb(self, entry)
 
             if sched is not None:
                 if isinstance(sched, torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -797,6 +821,7 @@ class Forecaster:
             "loss": self.loss,
             "warm_start": self.warm_start,
             "grad_clip": self.grad_clip,
+            "weight_decay": self.weight_decay,
         }
         params.update(self.model_kwargs)
         return params
@@ -809,7 +834,7 @@ class Forecaster:
         """
         _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
                    "patience", "normalize", "verbose", "scheduler", "loss",
-                   "warm_start", "grad_clip"}
+                   "warm_start", "grad_clip", "weight_decay", "callbacks"}
         for k, v in params.items():
             if k == "model":
                 self.model_spec = v
@@ -878,6 +903,7 @@ class Forecaster:
             loss=self.loss,
             warm_start=self.warm_start,
             grad_clip=self.grad_clip,
+            weight_decay=self.weight_decay,
             **self.model_kwargs,
         )
 
@@ -1016,6 +1042,8 @@ class Forecaster:
             f"  loss        : {self.loss!r}",
             f"  warm_start  : {self.warm_start}",
             f"  grad_clip   : {self.grad_clip}",
+            f"  weight_decay: {self.weight_decay}",
+            f"  callbacks   : {len(self.callbacks)}",
             f"  device      : {self.device}",
         ]
         if self._model is not None:
