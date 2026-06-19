@@ -30,3 +30,4 @@ from .forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster,
     compare, compare_to_dataframe, list_models,
 )
+from .dataset import list_datasets, load_dataset

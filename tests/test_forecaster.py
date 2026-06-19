@@ -11,6 +11,7 @@ from torch_timeseries.forecaster import (
     compare, compare_to_dataframe, list_models, _WindowDataset,
     _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
 )
+from torch_timeseries.dataset import list_datasets, load_dataset
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -1316,3 +1317,76 @@ class TestCompareToDataframe:
         pytest.importorskip("pandas")
         df = compare_to_dataframe({})
         assert len(df) == 0
+
+
+# ── list_datasets() ───────────────────────────────────────────────────────────
+
+
+class TestListDatasets:
+    def test_all_returns_list(self):
+        result = list_datasets()
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_all_is_sorted(self):
+        result = list_datasets()
+        assert result == sorted(result)
+
+    def test_forecast_task(self):
+        result = list_datasets("forecast")
+        for name in ["ETTh1", "ETTh2", "Electricity"]:
+            assert name in result
+
+    def test_unknown_task_raises(self):
+        with pytest.raises(ValueError, match="Unknown task"):
+            list_datasets("unknown_task")
+
+    def test_generation_task(self):
+        result = list_datasets("generation")
+        assert "Sine" in result
+
+
+# ── load_dataset() ────────────────────────────────────────────────────────────
+
+
+class TestLoadDataset:
+    def test_returns_ndarray(self, tmp_path):
+        X = load_dataset("Sine", root=str(tmp_path))
+        assert isinstance(X, np.ndarray)
+
+    def test_shape_is_2d(self, tmp_path):
+        X = load_dataset("Sine", root=str(tmp_path))
+        assert X.ndim == 2
+
+    def test_float32_dtype(self, tmp_path):
+        X = load_dataset("Sine", root=str(tmp_path))
+        assert X.dtype == np.float32
+
+    def test_unknown_dataset_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="Unknown dataset"):
+            load_dataset("NotARealDataset999", root=str(tmp_path))
+
+
+# ── Forecaster.from_dataset() ─────────────────────────────────────────────────
+
+
+class TestFromDataset:
+    def test_returns_fitted_forecaster(self, tmp_path):
+        fc = Forecaster.from_dataset(
+            "DLinear", "Sine",
+            root=str(tmp_path),
+            seq_len=SEQ, pred_len=PRED,
+            epochs=2, verbose=False,
+        )
+        assert fc._model is not None
+
+    def test_predict_works_after_from_dataset(self, tmp_path):
+        fc = Forecaster.from_dataset(
+            "DLinear", "Sine",
+            root=str(tmp_path),
+            seq_len=SEQ, pred_len=PRED,
+            epochs=2, verbose=False,
+        )
+        # Sine has 5 channels
+        y = fc.predict(np.zeros((SEQ, 5), dtype=np.float32))
+        assert y.shape == (PRED, 5)

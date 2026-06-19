@@ -1122,6 +1122,65 @@ class Forecaster:
         )
 
     @classmethod
+    def from_dataset(
+        cls,
+        model: Union[str, nn.Module],
+        dataset_name: str,
+        *,
+        root: str = "~/.torchtimeseries/data",
+        train_fraction: float = 0.7,
+        val_split: float = 0.1,
+        seq_len: int = 96,
+        pred_len: int = 24,
+        **kwargs,
+    ) -> "Forecaster":
+        """Construct and fit a :class:`Forecaster` directly from a built-in dataset.
+
+        Downloads the dataset on first use (cached in *root*).
+
+        Parameters
+        ----------
+        model:
+            Model name or ``nn.Module``.
+        dataset_name:
+            Name of a built-in dataset, e.g. ``"ETTh1"``.  Use
+            ``torch_timeseries.list_datasets()`` to see all options.
+        root:
+            Dataset cache directory.
+        train_fraction:
+            Fraction of the dataset used for training.  The remainder is
+            held out as test data.
+        val_split:
+            Validation fraction passed to :meth:`fit`.
+        seq_len:
+            Look-back window length.
+        pred_len:
+            Forecast horizon.
+        **kwargs:
+            Additional keyword arguments forwarded to the :class:`Forecaster`
+            constructor.
+
+        Returns
+        -------
+        Forecaster
+            A fitted forecaster ready for :meth:`predict` and :meth:`score`.
+
+        Examples
+        --------
+        >>> fc = Forecaster.from_dataset("DLinear", "ETTh1", epochs=5)
+        >>> y = fc.predict(...)
+        """
+        from .dataset import load_dataset as _load
+        X = _load(dataset_name, root=root)
+        n_train = int(len(X) * train_fraction)
+        X_train = X[:n_train]
+        fc = cls(model, seq_len=seq_len, pred_len=pred_len, **kwargs)
+        fc.fit(X_train, val_split=val_split)
+        fc._dataset_name = dataset_name
+        fc._X_test = X[n_train:]
+        return fc
+
+    @classmethod
     def from_config(cls, config: dict) -> "Forecaster":
         """Construct a :class:`Forecaster` from a flat config dict.
 
