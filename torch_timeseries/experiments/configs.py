@@ -472,6 +472,30 @@ class FourierMixerForecasterConfig:
 
 
 @dataclass
+class TemporalConvAttentionForecasterConfig:
+    d_model: int = 64
+    n_heads: int = 4
+    n_blocks: int = 4
+    kernel_size: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.n_blocks <= 0:
+            raise ValueError("n_blocks must be positive")
+        if self.kernel_size <= 0:
+            raise ValueError("kernel_size must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1399,6 +1423,10 @@ def split_experiment_config(
         ("FourierMixerForecaster", "AnomalyDetection"): FourierMixerForecasterConfig,
         ("FourierMixerForecaster", "Imputation"): FourierMixerForecasterConfig,
         ("FourierMixerForecaster", "UEAClassification"): FourierMixerForecasterConfig,
+        ("TemporalConvAttentionForecaster", "Forecast"): TemporalConvAttentionForecasterConfig,
+        ("TemporalConvAttentionForecaster", "AnomalyDetection"): TemporalConvAttentionForecasterConfig,
+        ("TemporalConvAttentionForecaster", "Imputation"): TemporalConvAttentionForecasterConfig,
+        ("TemporalConvAttentionForecaster", "UEAClassification"): TemporalConvAttentionForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

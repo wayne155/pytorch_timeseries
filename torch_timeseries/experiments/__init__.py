@@ -358,6 +358,12 @@ from .FourierMixerForecaster import (
     FourierMixerForecasterAnomalyDetection,
     FourierMixerForecasterImputation,
 )
+from .TemporalConvAttentionForecaster import (
+    TemporalConvAttentionForecasterForecast,
+    TemporalConvAttentionForecasterUEAClassification,
+    TemporalConvAttentionForecasterAnomalyDetection,
+    TemporalConvAttentionForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
