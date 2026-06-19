@@ -1402,6 +1402,70 @@ class TestFeatureImportance:
         np.testing.assert_array_equal(r1["importances_mean"], r2["importances_mean"])
 
 
+class TestTimestepImportance:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_returns_expected_keys(self):
+        result = self.fc.timestep_importance(self.X, n_repeats=2)
+        for k in ("importances_mean", "importances_std", "baseline_score"):
+            assert k in result
+
+    def test_importances_shape(self):
+        result = self.fc.timestep_importance(self.X, n_repeats=2)
+        assert result["importances_mean"].shape == (SEQ,)
+        assert result["importances_std"].shape == (SEQ,)
+
+    def test_baseline_positive(self):
+        result = self.fc.timestep_importance(self.X, n_repeats=2)
+        assert result["baseline_score"] >= 0.0
+
+    def test_std_non_negative(self):
+        result = self.fc.timestep_importance(self.X, n_repeats=2)
+        assert (result["importances_std"] >= 0.0).all()
+
+    def test_reproducible_with_seed(self):
+        r1 = self.fc.timestep_importance(self.X, n_repeats=2, random_state=0)
+        r2 = self.fc.timestep_importance(self.X, n_repeats=2, random_state=0)
+        np.testing.assert_array_equal(r1["importances_mean"], r2["importances_mean"])
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.timestep_importance(np.zeros((5, C)), n_repeats=2)
+
+    def test_mae_metric(self):
+        result = self.fc.timestep_importance(self.X, n_repeats=2, metric="mae")
+        assert "importances_mean" in result
+
+
+class TestPlotTimestepImportance:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_timestep_importance(self.X, n_repeats=2)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_timestep_importance(self.X, n_repeats=2, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_timestep_importance(self.X, n_repeats=2, title="T Imp")
+        assert ax.get_title() == "T Imp"
+        plt.close("all")
+
+
 # ── predict_uncertainty() ─────────────────────────────────────────────────────
 
 

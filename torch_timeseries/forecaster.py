@@ -1630,6 +1630,155 @@ class Forecaster:
             "baseline_score": baseline,
         }
 
+    def timestep_importance(
+        self,
+        X,
+        *,
+        metric: str = "mse",
+        n_repeats: int = 5,
+        random_state: Optional[int] = None,
+    ) -> Dict[str, np.ndarray]:
+        """Estimate which *timestep positions* within the context window matter most.
+
+        For each position *t* in ``[0, seq_len)``, the values at that position
+        (across all channels) are permuted within the window, and the resulting
+        score change vs the baseline is recorded.  High increase → that timestep
+        strongly influences the forecast.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)``.  Must have at least
+            ``seq_len + pred_len`` timesteps.
+        metric:
+            ``"mse"``, ``"mae"``, or ``"smape"``.
+        n_repeats:
+            Shuffle repetitions per timestep position.
+        random_state:
+            NumPy seed for reproducibility.
+
+        Returns
+        -------
+        dict
+            ``{"importances_mean": (seq_len,), "importances_std": (seq_len,),
+               "baseline_score": float}``
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        seq, pred = self.seq_len, self.pred_len
+        min_len = seq + pred
+        if N < min_len:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = N - seq - pred + 1
+        rng = np.random.default_rng(random_state)
+
+        # Baseline: stack all windows and score
+        windows = np.stack([X_np[i : i + seq] for i in range(n_windows)])
+        truths = np.stack([X_np[i + seq : i + seq + pred] for i in range(n_windows)])
+        preds_base = self.predict(windows)
+        diff_base = preds_base - truths
+
+        def _score(diff: np.ndarray) -> float:
+            if metric == "mse":
+                return float((diff ** 2).mean())
+            elif metric == "mae":
+                return float(np.abs(diff).mean())
+            elif metric == "smape":
+                p, t = preds_base, truths
+                return float((2 * np.abs(diff) / (np.abs(p) + np.abs(t) + 1e-8) * 100).mean())
+            raise ValueError(f"Unknown metric {metric!r}.")
+
+        baseline = _score(diff_base)
+        importances = np.zeros((seq, n_repeats))
+
+        for t_pos in range(seq):
+            for r in range(n_repeats):
+                perm_windows = windows.copy()
+                # Shuffle position t_pos across all windows independently
+                for w in range(n_windows):
+                    perm_windows[w, t_pos, :] = rng.permutation(
+                        perm_windows[w, t_pos, :]
+                    )
+                preds_perm = self.predict(perm_windows)
+                diff_perm = preds_perm - truths
+                importances[t_pos, r] = _score(diff_perm) - baseline
+
+        return {
+            "importances_mean": importances.mean(axis=1),
+            "importances_std": importances.std(axis=1),
+            "baseline_score": baseline,
+        }
+
+    def plot_timestep_importance(
+        self,
+        X,
+        *,
+        metric: str = "mse",
+        n_repeats: int = 5,
+        random_state: Optional[int] = None,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot :meth:`timestep_importance` as a line chart.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        X, metric, n_repeats, random_state:
+            Forwarded to :meth:`timestep_importance`.
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_timestep_importance(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        result = self.timestep_importance(
+            X, metric=metric, n_repeats=n_repeats, random_state=random_state
+        )
+        mean = result["importances_mean"]
+        std = result["importances_std"]
+        xs = np.arange(len(mean))
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(9, 4))
+
+        ax.plot(xs, mean, color="steelblue", label="importance (mean)")
+        ax.fill_between(xs, mean - std, mean + std, alpha=0.2, color="steelblue")
+        ax.axhline(0, color="grey", linewidth=0.8, linestyle=":")
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — timestep importance ({metric})")
+        ax.set_xlabel("Timestep position in context window")
+        ax.set_ylabel(f"Δ {metric.upper()} after shuffle")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def predict_uncertainty(
         self,
         X,
