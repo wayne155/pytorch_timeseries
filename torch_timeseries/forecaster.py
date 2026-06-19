@@ -1676,6 +1676,55 @@ class Forecaster:
         return result
 
     @staticmethod
+    def plot_decomposition(
+        decomp: Dict[str, np.ndarray],
+        *,
+        channel: int = 0,
+        title: Optional[str] = None,
+    ):
+        """Plot seasonal decomposition from :meth:`seasonal_decompose`.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        decomp:
+            Dict returned by :meth:`seasonal_decompose`.
+        channel:
+            Channel index to plot (default ``0``).
+        title:
+            Suptitle (default ``"Seasonal decomposition"``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_decomposition(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        keys = ["original", "trend", "seasonal", "residual"]
+        labels = ["Original", "Trend", "Seasonal", "Residual"]
+        fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+        fig.suptitle(title or "Seasonal decomposition", fontsize=12)
+
+        for ax, key, label in zip(axes, keys, labels):
+            y = decomp[key]
+            if y.ndim > 1:
+                y = y[:, channel]
+            ax.plot(y, linewidth=0.8)
+            ax.set_ylabel(label)
+            ax.grid(True, alpha=0.3)
+
+        axes[-1].set_xlabel("Timestep")
+        plt.tight_layout()
+        return fig
+
+    @staticmethod
     def detrend(
         X,
         degree: int = 1,
@@ -3740,6 +3789,140 @@ class Forecaster:
             print_table=print_table,
             verbose=verbose,
         )
+
+    def rolling_evaluate(
+        self,
+        X: np.ndarray,
+        *,
+        stride: int = 1,
+        metrics: Optional[List[str]] = None,
+    ) -> "pd.DataFrame":
+        """Walk-forward evaluation returning per-step metrics as a DataFrame.
+
+        Each row corresponds to one forecast window.  The window index
+        (first timestep of the context) and all requested metrics are
+        included as columns.
+
+        Parameters
+        ----------
+        X:
+            Full time series array ``(T, C)``.
+        stride:
+            Number of timesteps to advance between windows (default ``1``).
+        metrics:
+            Subset of ``['MSE', 'MAE', 'RMSE', 'SMAPE']`` to include.
+            Default: all four.
+
+        Returns
+        -------
+        pandas.DataFrame with columns ``['window', 'MSE', 'MAE', ...]``.
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError("pandas is required for rolling_evaluate()") from exc
+
+        self._check_fitted()
+        if metrics is None:
+            metrics = ["MSE", "MAE", "RMSE", "SMAPE"]
+
+        rows = []
+        T = len(X)
+        t = 0
+        while t + self.seq_len + self.pred_len <= T:
+            ctx = X[t : t + self.seq_len]
+            truth = X[t + self.seq_len : t + self.seq_len + self.pred_len]
+            pred = self.predict(ctx[np.newaxis])[0]  # (pred_len, C)
+            err = pred - truth
+            mse = float(np.mean(err ** 2))
+            mae = float(np.mean(np.abs(err)))
+            rmse = float(np.sqrt(mse))
+            denom = (np.abs(truth) + np.abs(pred)).clip(min=1e-8)
+            smape = float(np.mean(2 * np.abs(err) / denom) * 100)
+            row = {"window": t, "MSE": mse, "MAE": mae, "RMSE": rmse, "SMAPE": smape}
+            rows.append({k: v for k, v in row.items() if k == "window" or k in metrics})
+            t += stride
+
+        return pd.DataFrame(rows)
+
+    def plot_rolling_metrics(
+        self,
+        rolling_df: "pd.DataFrame",
+        *,
+        metrics: Optional[List[str]] = None,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot per-window metrics from :meth:`rolling_evaluate`.
+
+        Parameters
+        ----------
+        rolling_df:
+            DataFrame returned by :meth:`rolling_evaluate`.
+        metrics:
+            Columns to plot (default: all numeric columns).
+        ax:
+            Matplotlib axes or array of axes.  If ``None`` a new figure is
+            created with one subplot per metric.
+        title:
+            Figure suptitle.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_rolling_metrics()") from exc
+
+        if metrics is None:
+            metrics = [c for c in rolling_df.columns if c != "window"]
+
+        n = len(metrics)
+        if ax is None:
+            fig, axes = plt.subplots(n, 1, figsize=(10, 3 * n), sharex=True)
+            if n == 1:
+                axes = [axes]
+        else:
+            axes = list(ax) if hasattr(ax, "__iter__") else [ax]
+            fig = axes[0].get_figure()
+
+        x = rolling_df["window"].values
+        for axis, m in zip(axes, metrics):
+            axis.plot(x, rolling_df[m].values, linewidth=0.9)
+            axis.set_ylabel(m)
+            axis.grid(True, alpha=0.3)
+
+        axes[-1].set_xlabel("Window start")
+        fig.suptitle(title or "Rolling evaluation", fontsize=12)
+        plt.tight_layout()
+        return fig
+
+    @classmethod
+    def from_pretrained(cls, path: str, **override_kwargs) -> "Forecaster":
+        """Load a saved :class:`Forecaster` from *path*.
+
+        This is a named alias for :meth:`load` that makes the intent
+        explicit when loading checkpoints from disk or model hubs.
+
+        Parameters
+        ----------
+        path:
+            Path to the directory or file produced by :meth:`save`.
+        **override_kwargs:
+            Any keyword arguments override the stored configuration before
+            the model is reconstructed.  Useful for changing ``device`` or
+            ``batch_size`` at load time.
+
+        Returns
+        -------
+        Forecaster
+        """
+        fc = cls.load(path)
+        if override_kwargs:
+            fc.set_params(**override_kwargs)
+        return fc
 
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__

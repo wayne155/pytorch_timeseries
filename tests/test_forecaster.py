@@ -2914,6 +2914,132 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestPlotDecomposition:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        X = _rng_data(n=100)
+        self.decomp = Forecaster.seasonal_decompose(X, period=7)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        fig = Forecaster.plot_decomposition(self.decomp)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_has_four_subplots(self):
+        import matplotlib.pyplot as plt
+        fig = Forecaster.plot_decomposition(self.decomp)
+        assert len(fig.get_axes()) == 4
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = Forecaster.plot_decomposition(self.decomp, title="Decomp")
+        assert "Decomp" in fig.texts[0].get_text()
+        plt.close("all")
+
+    def test_custom_channel(self):
+        import matplotlib.figure
+        fig = Forecaster.plot_decomposition(self.decomp, channel=1)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+
+class TestRollingEvaluate:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dataframe(self):
+        import pandas as pd
+        X = _rng_data(n=60)
+        df = self.fc.rolling_evaluate(X, stride=4)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_columns_present(self):
+        X = _rng_data(n=60)
+        df = self.fc.rolling_evaluate(X, stride=4)
+        for col in ("window", "MSE", "MAE", "RMSE", "SMAPE"):
+            assert col in df.columns
+
+    def test_custom_metrics(self):
+        X = _rng_data(n=60)
+        df = self.fc.rolling_evaluate(X, stride=4, metrics=["MSE", "MAE"])
+        assert "RMSE" not in df.columns
+        assert "MSE" in df.columns
+
+    def test_row_count(self):
+        X = _rng_data(n=60)
+        df = self.fc.rolling_evaluate(X, stride=5)
+        fc = self.fc
+        expected = len(range(0, len(X) - fc.seq_len - fc.pred_len + 1, 5))
+        assert len(df) == expected
+
+    def test_window_column_monotonic(self):
+        X = _rng_data(n=60)
+        df = self.fc.rolling_evaluate(X, stride=3)
+        assert (df["window"].diff().dropna() > 0).all()
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.rolling_evaluate(_rng_data(n=60))
+
+
+class TestPlotRollingMetrics:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        X = _rng_data(n=60)
+        self.df = self.fc.rolling_evaluate(X, stride=4)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_rolling_metrics(self.df)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_metrics(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_rolling_metrics(self.df, metrics=["MSE"])
+        assert len(fig.get_axes()) == 1
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_rolling_metrics(self.df, title="Test")
+        assert "Test" in fig.texts[0].get_text()
+        plt.close("all")
+
+
+class TestFromPretrained:
+    def test_load_roundtrip(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model")
+        fc.save(path)
+        fc2 = Forecaster.from_pretrained(path)
+        assert fc2._model is not None
+
+    def test_override_kwargs(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model")
+        fc.save(path)
+        fc2 = Forecaster.from_pretrained(path, batch_size=32)
+        assert fc2.batch_size == 32
+
+    def test_predictions_match(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model")
+        fc.save(path)
+        fc2 = Forecaster.from_pretrained(path)
+        X = _rng_data(n=SEQ)
+        np.testing.assert_allclose(fc.predict(X[np.newaxis]), fc2.predict(X[np.newaxis]), rtol=1e-5)
+
+
 class TestSeasonalDecompose:
     def test_returns_expected_keys(self):
         X = _rng_data(n=100)
