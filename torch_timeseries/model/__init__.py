@@ -69,6 +69,7 @@ from .GATForecaster import GATForecaster
 from .BiLSTMForecaster import BiLSTMForecaster
 from .RandomFourierForecaster import RandomFourierForecaster
 from .SparseTransformerForecaster import SparseTransformerForecaster
+from .FourierMixerForecaster import FourierMixerForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -116,6 +117,7 @@ forecasting_models = [
     "BiLSTMForecaster",
     "RandomFourierForecaster",
     "SparseTransformerForecaster",
+    "FourierMixerForecaster",
 ]
 
 prob_forecasting_models = [

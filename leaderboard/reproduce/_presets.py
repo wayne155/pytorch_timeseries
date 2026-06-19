@@ -485,6 +485,11 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "FourierMixerForecaster": {
+        "e_layers": 3,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

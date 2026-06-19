@@ -352,6 +352,12 @@ from .SparseTransformerForecaster import (
     SparseTransformerForecasterAnomalyDetection,
     SparseTransformerForecasterImputation,
 )
+from .FourierMixerForecaster import (
+    FourierMixerForecasterForecast,
+    FourierMixerForecasterUEAClassification,
+    FourierMixerForecasterAnomalyDetection,
+    FourierMixerForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

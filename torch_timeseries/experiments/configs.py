@@ -459,6 +459,19 @@ class SparseTransformerForecasterConfig:
 
 
 @dataclass
+class FourierMixerForecasterConfig:
+    e_layers: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1382,6 +1395,10 @@ def split_experiment_config(
         ("SparseTransformerForecaster", "AnomalyDetection"): SparseTransformerForecasterConfig,
         ("SparseTransformerForecaster", "Imputation"): SparseTransformerForecasterConfig,
         ("SparseTransformerForecaster", "UEAClassification"): SparseTransformerForecasterConfig,
+        ("FourierMixerForecaster", "Forecast"): FourierMixerForecasterConfig,
+        ("FourierMixerForecaster", "AnomalyDetection"): FourierMixerForecasterConfig,
+        ("FourierMixerForecaster", "Imputation"): FourierMixerForecasterConfig,
+        ("FourierMixerForecaster", "UEAClassification"): FourierMixerForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
