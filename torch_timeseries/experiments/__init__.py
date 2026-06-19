@@ -190,6 +190,12 @@ from .MICN import (
     MICNAnomalyDetection,
     MICNImputation,
 )
+from .TFT import (
+    TFTForecast,
+    TFTUEAClassification,
+    TFTAnomalyDetection,
+    TFTImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

@@ -276,6 +276,12 @@ MODEL_PARAMS = {
         "dropout": 0.05,
         "revin": True,
     },
+    "TFT": {
+        "d_model": 128,
+        "n_heads": 4,
+        "num_lstm_layers": 2,
+        "dropout": 0.1,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

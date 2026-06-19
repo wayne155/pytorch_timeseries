@@ -336,6 +336,26 @@ class ETSformerConfig:
 
 
 @dataclass
+class TFTConfig:
+    d_model: int = 128
+    n_heads: int = 4
+    num_lstm_layers: int = 2
+    dropout: float = 0.1
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.num_lstm_layers < 1:
+            raise ValueError("num_lstm_layers must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class MICNConfig:
     d_model: int = 64
     num_scales: int = 3
@@ -704,6 +724,10 @@ def split_experiment_config(
         ("MICN", "AnomalyDetection"): MICNConfig,
         ("MICN", "Imputation"): MICNConfig,
         ("MICN", "UEAClassification"): MICNConfig,
+        ("TFT", "Forecast"): TFTConfig,
+        ("TFT", "AnomalyDetection"): TFTConfig,
+        ("TFT", "Imputation"): TFTConfig,
+        ("TFT", "UEAClassification"): TFTConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
