@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 
 from torch_timeseries.forecaster import (
-    Forecaster, StackedForecaster, compare, list_models, _WindowDataset,
+    Forecaster, StackedForecaster, BaggingForecaster,
+    compare, compare_to_dataframe, list_models, _WindowDataset,
     _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
 )
 
@@ -1214,3 +1215,104 @@ class TestCompareNJobs:
             print_table=False, n_jobs=1,
         )
         assert "elapsed_s" in result["DLinear"]
+
+
+# ── BaggingForecaster ─────────────────────────────────────────────────────────
+
+
+class TestBaggingForecaster:
+    def test_fit_predict_mean_shape(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=3,
+                                random_state=0)
+        bag.fit(X)
+        result = bag.predict(X[-SEQ:])
+        assert result["mean"].shape == (PRED, C)
+
+    def test_predict_returns_all_keys(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=3,
+                                random_state=0)
+        bag.fit(X)
+        result = bag.predict(X[-SEQ:])
+        for key in ("mean", "std", "lower", "upper"):
+            assert key in result
+
+    def test_std_non_negative(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=3,
+                                random_state=0)
+        bag.fit(X)
+        result = bag.predict(X[-SEQ:])
+        assert (result["std"] >= 0.0).all()
+
+    def test_n_estimators_correct(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=4)
+        bag.fit(X)
+        assert len(bag.estimators_) == 4
+
+    def test_score_returns_metrics(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=3,
+                                random_state=0)
+        bag.fit(X[:300])
+        result = bag.score(X[300:])
+        for key in ("mse", "mae", "rmse", "smape"):
+            assert key in result
+
+    def test_predict_before_fit_raises(self):
+        bag = BaggingForecaster(_quick_fc("DLinear"), n_estimators=3)
+        with pytest.raises(RuntimeError, match="not fitted"):
+            bag.predict(np.zeros((SEQ, C)))
+
+    def test_repr(self):
+        bag = BaggingForecaster(_quick_fc(), n_estimators=5)
+        assert "BaggingForecaster" in repr(bag)
+        assert "not fitted" in repr(bag)
+
+    def test_repr_fitted(self):
+        X = _rng_data(n=400)
+        bag = BaggingForecaster(_quick_fc(), n_estimators=2)
+        bag.fit(X)
+        assert "2 estimators" in repr(bag)
+
+    def test_invalid_subsample_raises(self):
+        with pytest.raises(ValueError, match="subsample"):
+            BaggingForecaster(_quick_fc(), subsample=0.0)
+
+
+# ── compare_to_dataframe() ────────────────────────────────────────────────────
+
+
+class TestCompareToDataframe:
+    def test_returns_dataframe_or_none(self):
+        results = {
+            "DLinear": {"mse": 0.5, "mae": 0.4, "rmse": 0.7, "smape": 10.0},
+            "NLinear": {"mse": 0.6, "mae": 0.5, "rmse": 0.77, "smape": 11.0},
+        }
+        df = compare_to_dataframe(results)
+        if df is None:
+            pytest.skip("pandas not installed")
+        assert df is not None
+
+    def test_index_is_model_name(self):
+        pytest.importorskip("pandas")
+        results = {
+            "DLinear": {"mse": 0.5, "mae": 0.4, "rmse": 0.7, "smape": 10.0},
+        }
+        df = compare_to_dataframe(results)
+        assert "DLinear" in df.index
+
+    def test_columns_contain_mse(self):
+        pytest.importorskip("pandas")
+        results = {
+            "DLinear": {"mse": 0.5, "mae": 0.4, "rmse": 0.7, "smape": 10.0},
+        }
+        df = compare_to_dataframe(results)
+        assert "mse" in df.columns
+
+    def test_empty_results_returns_empty_df(self):
+        pytest.importorskip("pandas")
+        df = compare_to_dataframe({})
+        assert len(df) == 0

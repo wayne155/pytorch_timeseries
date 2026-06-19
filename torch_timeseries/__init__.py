@@ -26,4 +26,7 @@ import torch_timeseries.augment
 from .cli.exp import exp
 from .results import RunResult, LocalBackend, WandbBackend
 from .experiment import Experiment, register_model
-from .forecaster import Forecaster, StackedForecaster, compare, list_models
+from .forecaster import (
+    Forecaster, StackedForecaster, BaggingForecaster,
+    compare, compare_to_dataframe, list_models,
+)

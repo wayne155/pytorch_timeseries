@@ -1609,3 +1609,185 @@ class StackedForecaster:
 
     def __repr__(self) -> str:
         return f"StackedForecaster(base={self.base!r}, meta={self.meta!r})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# BaggingForecaster
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class BaggingForecaster:
+    """Bootstrap-aggregation (bagging) ensemble of :class:`Forecaster` clones.
+
+    Trains ``n_estimators`` independent clones, each on a bootstrapped (random
+    subsample) of the training series.  At inference, predictions are averaged
+    across all members.  Bagging reduces variance and provides uncertainty
+    estimates via member disagreement.
+
+    Parameters
+    ----------
+    base:
+        A (not-yet-fitted) :class:`Forecaster` used as the template.
+    n_estimators:
+        Number of bootstrap members (default 10).
+    subsample:
+        Fraction of training timesteps sampled per member (default 0.8).
+        Sampling is done *with* replacement, preserving temporal order within
+        each contiguous draw.
+    random_state:
+        NumPy seed for bootstrap sampling.
+
+    Examples
+    --------
+    >>> base = Forecaster("DLinear", seq_len=96, pred_len=24, epochs=10)
+    >>> bag = BaggingForecaster(base, n_estimators=5)
+    >>> bag.fit(X_train)
+    >>> result = bag.predict(X_train[-96:])
+    >>> print(result["mean"].shape)   # (24, C)
+    >>> print(result["std"].shape)    # (24, C) — member disagreement
+    """
+
+    def __init__(
+        self,
+        base: Forecaster,
+        n_estimators: int = 10,
+        subsample: float = 0.8,
+        random_state: Optional[int] = None,
+    ) -> None:
+        if not 0 < subsample <= 1.0:
+            raise ValueError("subsample must be in (0, 1].")
+        self.base = base
+        self.n_estimators = n_estimators
+        self.subsample = subsample
+        self.random_state = random_state
+        self.estimators_: List[Forecaster] = []
+
+    def fit(self, X, *, val_split: float = 0.1) -> "BaggingForecaster":
+        """Train all bootstrap members.
+
+        Parameters
+        ----------
+        X:
+            Training time series.
+        val_split:
+            Val fraction passed to each member's :meth:`Forecaster.fit`.
+
+        Returns
+        -------
+        self
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N = len(X_np)
+        n_sample = max(self.base.seq_len + self.base.pred_len,
+                       int(N * self.subsample))
+        rng = np.random.default_rng(self.random_state)
+        self.estimators_ = []
+        for _ in range(self.n_estimators):
+            start = rng.integers(0, N - n_sample + 1)
+            X_boot = X_np[start : start + n_sample]
+            fc = self.base.clone()
+            fc.fit(X_boot, val_split=val_split)
+            self.estimators_.append(fc)
+        return self
+
+    def predict(self, X) -> Dict[str, np.ndarray]:
+        """Predict with ensemble; returns mean and member disagreement.
+
+        Parameters
+        ----------
+        X:
+            Context window(s).  Same shapes as :meth:`Forecaster.predict`.
+
+        Returns
+        -------
+        dict
+            ``{"mean": np.ndarray, "std": np.ndarray,
+               "lower": np.ndarray, "upper": np.ndarray}``
+            All arrays have the same shape as a single ``Forecaster.predict``
+            output.  ``std`` is the cross-member standard deviation.
+        """
+        if not self.estimators_:
+            raise RuntimeError("BaggingForecaster is not fitted yet.  Call fit() first.")
+        preds = np.stack([e.predict(X) for e in self.estimators_])  # (M, ..., C)
+        return {
+            "mean": preds.mean(axis=0),
+            "std": preds.std(axis=0),
+            "lower": np.percentile(preds, 5, axis=0),
+            "upper": np.percentile(preds, 95, axis=0),
+        }
+
+    def score(self, X) -> Dict[str, float]:
+        """Score the ensemble (mean prediction) with MSE/MAE/RMSE/SMAPE."""
+        if not self.estimators_:
+            raise RuntimeError("BaggingForecaster is not fitted yet.  Call fit() first.")
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        min_len = self.base.seq_len + self.base.pred_len
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - self.base.seq_len - self.base.pred_len + 1
+        windows = np.stack([X_np[i : i + self.base.seq_len] for i in range(n_windows)])
+        truths = np.stack(
+            [X_np[i + self.base.seq_len : i + self.base.seq_len + self.base.pred_len]
+             for i in range(n_windows)]
+        )
+        result = self.predict(windows)
+        preds = result["mean"]
+        diff = preds - truths
+        mse = float((diff ** 2).mean())
+        mae = float(np.abs(diff).mean())
+        denom = np.abs(preds) + np.abs(truths) + 1e-8
+        smape = float((2.0 * np.abs(diff) / denom * 100.0).mean())
+        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+
+    def __repr__(self) -> str:
+        fitted = f"{len(self.estimators_)} estimators" if self.estimators_ else "not fitted"
+        return (
+            f"BaggingForecaster(base={self.base!r}, "
+            f"n_estimators={self.n_estimators}, [{fitted}])"
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# compare_to_dataframe helper
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def compare_to_dataframe(results: Dict[str, Dict[str, float]]):
+    """Convert :func:`compare` results to a ``pandas.DataFrame``.
+
+    Parameters
+    ----------
+    results:
+        Dict returned by :func:`compare`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per model, columns for each metric.  Sorted by MSE ascending.
+        Returns ``None`` if pandas is not installed.
+
+    Examples
+    --------
+    >>> df = compare_to_dataframe(results)
+    >>> df.sort_values("mse").head()
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        return None
+    if not results:
+        return pd.DataFrame()
+    rows = []
+    for name, metrics in results.items():
+        row = {"model": name}
+        row.update(metrics)
+        rows.append(row)
+    df = pd.DataFrame(rows).set_index("model")
+    return df
