@@ -376,6 +376,12 @@ from .LRUForecaster import (
     LRUForecasterAnomalyDetection,
     LRUForecasterImputation,
 )
+from .S4Forecaster import (
+    S4ForecasterForecast,
+    S4ForecasterUEAClassification,
+    S4ForecasterAnomalyDetection,
+    S4ForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

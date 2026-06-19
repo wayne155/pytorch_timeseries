@@ -73,6 +73,7 @@ from .FourierMixerForecaster import FourierMixerForecaster
 from .TemporalConvAttentionForecaster import TemporalConvAttentionForecaster
 from .AdaptiveSpectralForecaster import AdaptiveSpectralForecaster
 from .LRUForecaster import LRUForecaster
+from .S4Forecaster import S4Forecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -124,6 +125,7 @@ forecasting_models = [
     "TemporalConvAttentionForecaster",
     "AdaptiveSpectralForecaster",
     "LRUForecaster",
+    "S4Forecaster",
 ]
 
 prob_forecasting_models = [

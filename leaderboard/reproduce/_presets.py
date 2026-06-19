@@ -510,6 +510,14 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "S4Forecaster": {
+        "d_model": 64,
+        "d_state": 32,
+        "n_layers": 3,
+        "mlp_mult": 2,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
