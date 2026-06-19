@@ -3333,6 +3333,128 @@ class TestPredictBootstrap:
             _quick_fc().predict_bootstrap(_rng_data(n=200), _rng_data(n=200))
 
 
+class TestPlotActualVsPredicted:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_figure(self):
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fig = self.fc.plot_actual_vs_predicted(self.X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_title_contains_r2(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_actual_vs_predicted(self.X)
+        ax = fig.get_axes()[0]
+        assert "R²" in ax.get_title() or "R" in ax.get_title()
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().plot_actual_vs_predicted(self.X)
+
+
+class TestNoiseRobustness:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.noise_robustness(self.X, self.X, noise_levels=[0.0, 0.5], n_trials=1)
+        assert isinstance(result, dict)
+        assert 0.0 in result and 0.5 in result
+
+    def test_zero_noise_is_finite(self):
+        result = self.fc.noise_robustness(self.X, self.X, noise_levels=[0.0], n_trials=1)
+        assert np.isfinite(result[0.0])
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().noise_robustness(self.X, self.X)
+
+
+class TestPlotNoiseRobustness:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        X  = _rng_data(n=200)
+        fig = fc.plot_noise_robustness(X, X, noise_levels=[0.0, 0.5], n_trials=1)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestSeasonalNaiveBaseline:
+    def test_shape(self):
+        X = _rng_data(n=100)
+        y = Forecaster.seasonal_naive_baseline(X, pred_len=PRED, period=12)
+        assert y.shape == (PRED, C)
+
+    def test_1d_input(self):
+        X = _rng_data(n=50)[:, 0]
+        y = Forecaster.seasonal_naive_baseline(X, pred_len=PRED, period=12)
+        assert y.shape == (PRED, 1)
+
+    def test_too_short_raises(self):
+        X = _rng_data(n=5)
+        with pytest.raises(ValueError):
+            Forecaster.seasonal_naive_baseline(X, pred_len=PRED, period=24)
+
+
+class TestExplainGlobal:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_shape(self):
+        imp = self.fc.explain_global(self.X, n_samples=5)
+        assert imp.shape == (SEQ, C)
+
+    def test_non_negative_absolute(self):
+        imp = self.fc.explain_global(self.X, n_samples=5, absolute=True)
+        assert (imp >= 0).all()
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().explain_global(self.X)
+
+
+class TestForecastErrorDistribution:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        stats = self.fc.forecast_error_distribution(self.X)
+        assert set(stats.keys()) >= {"steps", "mean", "std", "median", "q05", "q95"}
+
+    def test_shapes(self):
+        stats = self.fc.forecast_error_distribution(self.X)
+        for k in ("steps", "mean", "std", "median", "q05", "q95"):
+            assert stats[k].shape == (PRED,), f"{k} wrong shape"
+
+    def test_q05_leq_q95(self):
+        stats = self.fc.forecast_error_distribution(self.X)
+        assert (stats["q05"] <= stats["q95"]).all()
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().forecast_error_distribution(self.X)
+
+
+class TestPlotForecastErrorDistribution:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.plot_forecast_error_distribution(_rng_data(n=200))
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)

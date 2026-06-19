@@ -7149,6 +7149,250 @@ class Forecaster:
         mean  = preds.mean(axis=0)
         return {"mean": mean, "lower": lower, "upper": upper, "preds": preds}
 
+    # ------------------------------------------------------------------
+    # plot_actual_vs_predicted — scatter actual vs predicted
+    # ------------------------------------------------------------------
+
+    def plot_actual_vs_predicted(self, X, *, channel: int = 0,
+                                 ax=None, title: str = None):
+        """Scatter plot of actual vs predicted values with R² annotation.
+
+        The diagonal line ``y = x`` is the perfect-forecast reference.  Points
+        below the line indicate over-prediction; above indicates under-prediction.
+
+        Example::
+
+            fc.plot_actual_vs_predicted(X_test, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        self._check_fitted()
+        actual, predicted = self._collect_actuals_predictions(X)
+        y_true = actual[:, :, channel].ravel()
+        y_pred = predicted[:, :, channel].ravel()
+        ss_res = np.sum((y_true - y_pred) ** 2)
+        ss_tot = np.sum((y_true - y_true.mean()) ** 2)
+        r2 = 1 - ss_res / (ss_tot + 1e-15)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(5, 5))
+        else:
+            fig = ax.get_figure()
+        ax.scatter(y_true, y_pred, alpha=0.3, s=8)
+        lo, hi = min(y_true.min(), y_pred.min()), max(y_true.max(), y_pred.max())
+        ax.plot([lo, hi], [lo, hi], "r--", linewidth=1.0, label="y = x")
+        ax.set_xlabel("Actual")
+        ax.set_ylabel("Predicted")
+        ax.set_title(title or f"Actual vs Predicted (R²={r2:.3f})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    def _collect_actuals_predictions(self, X):
+        """Helper: run rolling predict and collect aligned (actual, pred) windows."""
+        T   = len(X)
+        n_w = max(1, (T - self.seq_len - self.pred_len) // self.pred_len + 1)
+        actuals  = []
+        preds    = []
+        for i in range(n_w):
+            start = i * self.pred_len
+            ctx   = X[start: start + self.seq_len]
+            tgt   = X[start + self.seq_len: start + self.seq_len + self.pred_len]
+            if len(ctx) < self.seq_len or len(tgt) < self.pred_len:
+                break
+            p = self.predict(ctx)
+            actuals.append(tgt[None])
+            preds.append(p[None])
+        actuals = np.concatenate(actuals, axis=0)
+        preds   = np.concatenate(preds,   axis=0)
+        return actuals, preds
+
+    # ------------------------------------------------------------------
+    # noise_robustness — accuracy vs. input noise level
+    # ------------------------------------------------------------------
+
+    def noise_robustness(self, X_train, X_test, *,
+                         noise_levels=None, n_trials: int = 3,
+                         metric: str = "mse"):
+        """Measure model accuracy as a function of added Gaussian noise.
+
+        For each noise standard deviation in *noise_levels*, adds i.i.d.
+        Gaussian noise to *X_test* ``n_trials`` times and averages the
+        resulting metric.  Returns a dict mapping noise level → metric value.
+
+        Example::
+
+            result = fc.noise_robustness(X_train, X_test,
+                                         noise_levels=[0, 0.1, 0.5, 1.0])
+            plt.plot(list(result.keys()), list(result.values()))
+        """
+        self._check_fitted()
+        if noise_levels is None:
+            noise_levels = [0.0, 0.05, 0.1, 0.25, 0.5, 1.0]
+        rng = np.random.default_rng(0)
+        results = {}
+        for sigma in noise_levels:
+            trial_scores = []
+            for _ in range(n_trials):
+                X_noisy = X_test + rng.normal(0, sigma, X_test.shape).astype(np.float32)
+                scores = self.evaluate(X_noisy)
+                trial_scores.append(scores.get(metric, float("nan")))
+            results[float(sigma)] = float(np.mean(trial_scores))
+        return results
+
+    def plot_noise_robustness(self, X_train, X_test, *,
+                              noise_levels=None, n_trials: int = 3,
+                              metric: str = "mse", ax=None, title: str = None):
+        """Line chart of model accuracy vs noise level.
+
+        Wraps :meth:`noise_robustness`::
+
+            fc.plot_noise_robustness(X_train, X_test)
+        """
+        import matplotlib.pyplot as plt
+        results = self.noise_robustness(X_train, X_test,
+                                        noise_levels=noise_levels,
+                                        n_trials=n_trials, metric=metric)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(7, 4))
+        else:
+            fig = ax.get_figure()
+        xs = list(results.keys())
+        ys = list(results.values())
+        ax.plot(xs, ys, marker="o", markersize=5)
+        ax.set_xlabel("Noise σ")
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Noise robustness ({metric.upper()})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # seasonal_naive_baseline — last-season naive forecast
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def seasonal_naive_baseline(X, *, pred_len: int, period: int):
+        """Seasonal naïve forecast: repeat the last observed complete season.
+
+        The forecast for step ``t+h`` is ``X[t - period + h]``.  Returns a
+        ``(pred_len, C)`` array.  Useful as a strong heuristic baseline for
+        seasonal data.
+
+        Example::
+
+            y_hat = Forecaster.seasonal_naive_baseline(X_context, pred_len=24, period=24)
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        if len(arr) < period:
+            raise ValueError(f"Context ({len(arr)}) shorter than period ({period})")
+        forecast = np.stack([arr[-(period - (h % period))] for h in range(pred_len)], axis=0)
+        return forecast  # (pred_len, C)
+
+    # ------------------------------------------------------------------
+    # explain_global — average saliency map over a sample pool
+    # ------------------------------------------------------------------
+
+    def explain_global(self, X, *, n_samples: int = 50, target_step: int = 0,
+                       target_channel: int = 0, absolute: bool = True):
+        """Global feature importance: mean saliency across *n_samples* windows.
+
+        Draws *n_samples* context windows uniformly from *X* and averages the
+        per-timestep, per-channel gradient saliency.  Returns a ``(seq_len, C)``
+        array representing global input importance.
+
+        Example::
+
+            imp = fc.explain_global(X_test, n_samples=100)
+            Forecaster.plot_saliency(X_test, saliency=imp)
+        """
+        self._check_fitted()
+        T = len(X)
+        if T < self.seq_len:
+            raise ValueError("X too short for explain_global")
+        rng = np.random.default_rng(0)
+        starts = rng.integers(0, T - self.seq_len + 1, size=n_samples)
+        maps = []
+        for s in starts:
+            ctx = X[s: s + self.seq_len]
+            sal = self.input_gradient(ctx, target_step=target_step,
+                                      target_channel=target_channel,
+                                      absolute=absolute)
+            maps.append(sal)
+        return np.mean(maps, axis=0)   # (seq_len, C)
+
+    # ------------------------------------------------------------------
+    # forecast_error_distribution — per-step error statistics
+    # ------------------------------------------------------------------
+
+    def forecast_error_distribution(self, X, *, channel: int = 0):
+        """Compute per-horizon error statistics across rolling windows.
+
+        For each prediction step ``h`` in ``[0, pred_len)``, collects the
+        signed errors from all rolling windows and returns a dict::
+
+            {
+                "steps"  : (pred_len,) array of step indices,
+                "mean"   : (pred_len,) mean error per step,
+                "std"    : (pred_len,) std error per step,
+                "median" : (pred_len,) median absolute error per step,
+                "q05"    : (pred_len,) 5th percentile of errors,
+                "q95"    : (pred_len,) 95th percentile of errors,
+            }
+
+        Example::
+
+            stats = fc.forecast_error_distribution(X_test, channel=0)
+            plt.fill_between(stats["steps"], stats["q05"], stats["q95"], alpha=0.3)
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        errors = actuals[:, :, channel] - preds[:, :, channel]   # (n_windows, pred_len)
+        steps = np.arange(self.pred_len)
+        return {
+            "steps":  steps,
+            "mean":   errors.mean(axis=0),
+            "std":    errors.std(axis=0),
+            "median": np.median(np.abs(errors), axis=0),
+            "q05":    np.quantile(errors, 0.05, axis=0),
+            "q95":    np.quantile(errors, 0.95, axis=0),
+        }
+
+    def plot_forecast_error_distribution(self, X, *, channel: int = 0,
+                                          ax=None, title: str = None):
+        """Ribbon plot of per-horizon error distribution.
+
+        Shows mean ± std and the 5–95 % envelope::
+
+            fc.plot_forecast_error_distribution(X_test, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        stats = self.forecast_error_distribution(X, channel=channel)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(8, 4))
+        else:
+            fig = ax.get_figure()
+        s = stats["steps"]
+        ax.fill_between(s, stats["q05"], stats["q95"], alpha=0.2, color="steelblue", label="5–95%")
+        ax.fill_between(s, stats["mean"] - stats["std"], stats["mean"] + stats["std"],
+                        alpha=0.35, color="steelblue", label="mean ± std")
+        ax.plot(s, stats["mean"], color="steelblue", linewidth=1.5, label="mean")
+        ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
+        ax.set_xlabel("Prediction step")
+        ax.set_ylabel("Error")
+        ax.set_title(title or f"Forecast error distribution (channel {channel})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
