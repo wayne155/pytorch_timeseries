@@ -274,6 +274,12 @@ from .MoEForecaster import (
     MoEForecasterAnomalyDetection,
     MoEForecasterImputation,
 )
+from .RetForecaster import (
+    RetForecasterForecast,
+    RetForecasterUEAClassification,
+    RetForecasterAnomalyDetection,
+    RetForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

@@ -386,6 +386,16 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "RetForecaster": {
+        "d_model": 64,
+        "n_heads": 4,
+        "e_layers": 2,
+        "d_ff": 128,
+        "patch_len": 16,
+        "stride": 16,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
