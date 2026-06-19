@@ -1246,6 +1246,59 @@ class TestPredictUncertainty:
         assert (result["lower"] <= result["upper"]).all()
 
 
+class TestPlotIntervals:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        X_cal = _rng_data(n=200, seed=5)
+        X_ctx = _rng_data(n=200, seed=6)
+        self.intervals = self.fc.predict_interval(X_ctx[-SEQ:], X_cal)
+        self.X_ctx = X_ctx
+        self.X_truth = _rng_data(n=PRED, seed=7)
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_intervals(self.intervals)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_with_context(self):
+        import matplotlib.axes
+        ax = self.fc.plot_intervals(self.intervals, X_context=self.X_ctx[-SEQ:])
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_with_truth(self):
+        import matplotlib.axes
+        ax = self.fc.plot_intervals(self.intervals, X_truth=self.X_truth)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_intervals(self.intervals, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_intervals(self.intervals, title="My Intervals")
+        assert ax.get_title() == "My Intervals"
+        plt.close("all")
+
+    def test_uncertainty_dict_accepted(self):
+        import matplotlib.axes
+        unc = self.fc.predict_uncertainty(self.X_ctx[-SEQ:], n_samples=5)
+        ax = self.fc.plot_intervals(unc)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+
 class TestPredictInterval:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

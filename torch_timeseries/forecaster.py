@@ -913,6 +913,104 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def plot_intervals(
+        self,
+        intervals: Dict[str, np.ndarray],
+        *,
+        channel: int = 0,
+        X_context=None,
+        X_truth=None,
+        ax=None,
+        title: Optional[str] = None,
+        alpha: float = 0.25,
+    ):
+        """Visualise a prediction interval dict on a matplotlib Axes.
+
+        Accepts the output of :meth:`predict_interval` or
+        :meth:`predict_uncertainty` directly.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        intervals:
+            Dict with keys ``"mean"``, ``"lower"``, ``"upper"`` — all shape
+            ``(pred_len, C)``.  Typically the return value of
+            :meth:`predict_interval` or :meth:`predict_uncertainty`.
+        channel:
+            Channel index to plot (default ``0``).
+        X_context:
+            Optional context window, shape ``(seq_len, C)`` — plotted to the
+            left of the forecast region.
+        X_truth:
+            Optional ground truth, shape ``(pred_len, C)`` — plotted as a
+            dashed line over the forecast region.
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+        alpha:
+            Transparency of the confidence band (default 0.25).
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_intervals(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        mean = np.asarray(intervals["mean"])
+        lower = np.asarray(intervals["lower"])
+        upper = np.asarray(intervals["upper"])
+        pred = mean.shape[0]
+        pred_t = np.arange(0, pred)
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(10, 4))
+
+        # Context
+        if X_context is not None:
+            ctx = np.asarray(X_context)
+            if ctx.ndim == 1:
+                ctx = ctx[:, None]
+            n_ctx = len(ctx)
+            ax.plot(np.arange(-n_ctx, 0), ctx[:, channel],
+                    color="steelblue", label="context")
+
+        # Confidence band
+        ax.fill_between(pred_t, lower[:, channel], upper[:, channel],
+                        alpha=alpha, color="tomato", label="interval")
+        ax.plot(pred_t, mean[:, channel], color="tomato", label="forecast mean")
+
+        # Ground truth
+        if X_truth is not None:
+            gt = np.asarray(X_truth)
+            if gt.ndim == 1:
+                gt = gt[:, None]
+            ax.plot(pred_t, gt[:pred, channel], color="green",
+                    linestyle="--", label="ground truth")
+
+        ax.axvline(0, color="grey", linestyle=":", linewidth=0.8)
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — channel {channel} intervals")
+        ax.set_xlabel("Timestep (0 = forecast start)")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def partial_fit(
         self,
         X,
