@@ -1872,6 +1872,45 @@ class TestEvaluate:
 # ── benchmark() ───────────────────────────────────────────────────────────────
 
 
+class TestExportPredictions:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_creates_file(self, tmp_path):
+        import os
+        path = str(tmp_path / "preds.csv")
+        out = self.fc.export_predictions(self.X, path)
+        assert os.path.exists(out)
+
+    def test_returns_path(self, tmp_path):
+        path = str(tmp_path / "preds.csv")
+        out = self.fc.export_predictions(self.X, path)
+        assert out == path
+
+    def test_csv_has_expected_columns(self, tmp_path):
+        import pandas as pd
+        path = str(tmp_path / "preds.csv")
+        self.fc.export_predictions(self.X, path)
+        df = pd.read_csv(path)
+        assert "window" in df.columns
+        assert "step" in df.columns
+
+    def test_custom_channel_names(self, tmp_path):
+        import pandas as pd
+        path = str(tmp_path / "preds.csv")
+        self.fc.export_predictions(self.X, path, channel_names=["a", "b", "c"])
+        df = pd.read_csv(path)
+        for col in ("a", "b", "c"):
+            assert col in df.columns
+
+    def test_before_fit_raises(self, tmp_path):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.export_predictions(self.X, str(tmp_path / "x.csv"))
+
+
 class TestBenchmark:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

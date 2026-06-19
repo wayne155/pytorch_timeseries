@@ -2697,6 +2697,67 @@ class Forecaster:
         return sum(p.numel() for p in self._model.parameters()
                    if not p.requires_grad)
 
+    def export_predictions(
+        self,
+        X,
+        path: str,
+        *,
+        channel_names: Optional[List[str]] = None,
+        stride: int = 1,
+    ) -> str:
+        """Export rolling forecast predictions to a CSV file.
+
+        Runs :meth:`predict_rolling` over *X* and writes one row per
+        predicted timestep.  The index column is the timestep offset from
+        the start of the first prediction window.
+
+        Requires ``pandas``.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)``.
+        path:
+            Destination file path (``*.csv``).
+        channel_names:
+            Optional column labels.  Defaults to ``["ch0", "ch1", ...]``.
+        stride:
+            Stride between context windows (default 1).
+
+        Returns
+        -------
+        str
+            The path the file was written to.
+        """
+        self._check_fitted()
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError(
+                "pandas is required for export_predictions(). "
+                "Install it with: pip install pandas"
+            ) from exc
+
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        preds = self.predict_rolling(X_np, stride=stride)  # (W, pred, C)
+        W, pred, C = preds.shape
+        cols = channel_names if channel_names else [f"ch{i}" for i in range(C)]
+
+        # Flatten: one row per (window, step)
+        rows = []
+        for w in range(W):
+            for t in range(pred):
+                row = {"window": w, "step": t}
+                for c_i, col in enumerate(cols):
+                    row[col] = float(preds[w, t, c_i])
+                rows.append(row)
+
+        df = pd.DataFrame(rows)
+        df.to_csv(path, index=False)
+        return path
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
