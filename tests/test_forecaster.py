@@ -2087,6 +2087,45 @@ class TestCompareHorizons:
 # ── partial_fit() ─────────────────────────────────────────────────────────────
 
 
+class TestMontecarloForecast:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.seed = _rng_data(n=SEQ)
+
+    def test_returns_expected_keys(self):
+        result = self.fc.montecarlo_forecast(self.seed, steps=10, n_scenarios=5)
+        for k in ("mean", "std", "quantiles", "scenarios"):
+            assert k in result
+
+    def test_mean_shape(self):
+        result = self.fc.montecarlo_forecast(self.seed, steps=10, n_scenarios=5)
+        assert result["mean"].shape == (10, C)
+
+    def test_scenarios_shape(self):
+        result = self.fc.montecarlo_forecast(self.seed, steps=10, n_scenarios=5)
+        assert result["scenarios"].shape == (5, 10, C)
+
+    def test_std_non_negative(self):
+        result = self.fc.montecarlo_forecast(self.seed, steps=10, n_scenarios=5)
+        assert (result["std"] >= 0.0).all()
+
+    def test_default_quantiles_present(self):
+        result = self.fc.montecarlo_forecast(self.seed, steps=10, n_scenarios=5)
+        for q in (0.05, 0.25, 0.75, 0.95):
+            assert q in result["quantiles"]
+
+    def test_custom_quantiles(self):
+        result = self.fc.montecarlo_forecast(
+            self.seed, steps=10, n_scenarios=5, quantiles=[0.1, 0.9]
+        )
+        assert set(result["quantiles"].keys()) == {0.1, 0.9}
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.montecarlo_forecast(self.seed, steps=5, n_scenarios=3)
+
+
 class TestSimulate:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

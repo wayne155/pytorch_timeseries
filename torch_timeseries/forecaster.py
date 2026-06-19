@@ -1096,6 +1096,59 @@ class Forecaster:
             buffer[-1] = next_step
         return np.stack(generated)  # (steps, C)
 
+    def montecarlo_forecast(
+        self,
+        X_seed,
+        steps: int,
+        *,
+        n_scenarios: int = 100,
+        noise_scale: float = 0.05,
+        random_state: Optional[int] = None,
+        quantiles: Optional[List[float]] = None,
+    ) -> Dict[str, np.ndarray]:
+        """Run N stochastic simulations and summarize the ensemble.
+
+        Calls :meth:`simulate` with ``noise_scale`` applied, ``n_scenarios``
+        times, then aggregates the resulting trajectories into mean, std, and
+        optional quantile bands.
+
+        Parameters
+        ----------
+        X_seed:
+            Seed context window, shape ``(seq_len, C)`` or longer.
+        steps:
+            Number of future timesteps to generate per scenario.
+        n_scenarios:
+            Number of independent simulation runs (default 100).
+        noise_scale:
+            Noise std for each scenario (default 0.05).
+        random_state:
+            Base seed; each scenario gets ``random_state + i``.
+        quantiles:
+            Quantile levels to compute (default ``[0.05, 0.25, 0.75, 0.95]``).
+
+        Returns
+        -------
+        dict
+            ``{"mean": (steps, C), "std": (steps, C),
+               "quantiles": {q: (steps, C) for q in quantiles},
+               "scenarios": (n_scenarios, steps, C)}``
+        """
+        self._check_fitted()
+        quantiles = quantiles or [0.05, 0.25, 0.75, 0.95]
+        base_seed = random_state if random_state is not None else 0
+        scenarios = np.stack([
+            self.simulate(X_seed, steps, noise_scale=noise_scale,
+                          random_state=base_seed + i)
+            for i in range(n_scenarios)
+        ])  # (n_scenarios, steps, C)
+        return {
+            "mean": scenarios.mean(axis=0),
+            "std": scenarios.std(axis=0),
+            "quantiles": {q: np.quantile(scenarios, q, axis=0) for q in quantiles},
+            "scenarios": scenarios,
+        }
+
     def stream_predict(self, X):
         """Yield rolling forecasts as a generator over incoming timesteps.
 
