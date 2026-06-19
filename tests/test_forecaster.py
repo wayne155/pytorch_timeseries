@@ -833,6 +833,40 @@ class TestSummary:
         assert "last epoch" in fc.summary()
 
 
+class TestSaveReport:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_creates_report_txt(self, tmp_path):
+        import os
+        path = self.fc.save_report(self.X, str(tmp_path), n_repeats=2)
+        assert os.path.exists(path)
+        assert path.endswith("report.txt")
+
+    def test_report_txt_contains_content(self, tmp_path):
+        path = self.fc.save_report(self.X, str(tmp_path), n_repeats=2)
+        with open(path) as f:
+            content = f.read()
+        assert "DLinear" in content
+
+    def test_creates_directory_if_missing(self, tmp_path):
+        import os
+        subdir = str(tmp_path / "nested" / "report")
+        self.fc.save_report(self.X, subdir, n_repeats=2, save_plots=False)
+        assert os.path.isdir(subdir)
+
+    def test_returns_path_string(self, tmp_path):
+        result = self.fc.save_report(self.X, str(tmp_path), n_repeats=2,
+                                     save_plots=False)
+        assert isinstance(result, str)
+
+    def test_before_fit_raises(self, tmp_path):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.save_report(self.X, str(tmp_path), n_repeats=2)
+
+
 class TestExplain:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

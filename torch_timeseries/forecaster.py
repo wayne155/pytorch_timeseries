@@ -2926,6 +2926,77 @@ class Forecaster:
         lines.append("=" * 60)
         return "\n".join(lines)
 
+    def save_report(
+        self,
+        X,
+        directory: str,
+        *,
+        n_repeats: int = 3,
+        seasonal_period: int = 1,
+        channel_names: Optional[List[str]] = None,
+        save_plots: bool = True,
+    ) -> str:
+        """Save a diagnostic report and optional plots to *directory*.
+
+        Writes:
+        - ``report.txt``: output of :meth:`explain`
+        - ``history.png`` (if fitted and matplotlib available): loss curves
+        - ``residuals.png`` (if matplotlib available): residual histogram
+
+        Parameters
+        ----------
+        X:
+            Evaluation data, shape ``(N, C)``.
+        directory:
+            Target directory path (created if it doesn't exist).
+        n_repeats:
+            Permutation repeats passed to :meth:`explain`.
+        seasonal_period:
+            Passed to :meth:`explain`.
+        channel_names:
+            Optional channel labels.
+        save_plots:
+            Whether to save matplotlib plots (default ``True``).
+
+        Returns
+        -------
+        str
+            Path to the ``report.txt`` file.
+        """
+        import os
+        os.makedirs(directory, exist_ok=True)
+
+        report_text = self.explain(
+            X, n_repeats=n_repeats, seasonal_period=seasonal_period,
+            channel_names=channel_names,
+        )
+        report_path = os.path.join(directory, "report.txt")
+        with open(report_path, "w") as f:
+            f.write(report_text)
+
+        if save_plots:
+            try:
+                import matplotlib
+                matplotlib.use("Agg")
+                import matplotlib.pyplot as plt
+
+                if self.history_:
+                    ax = self.plot_history()
+                    ax.get_figure().savefig(
+                        os.path.join(directory, "history.png"), dpi=100, bbox_inches="tight"
+                    )
+                    plt.close("all")
+
+                ax = self.plot_residuals(X)
+                ax.get_figure().savefig(
+                    os.path.join(directory, "residuals.png"), dpi=100, bbox_inches="tight"
+                )
+                plt.close("all")
+            except ImportError:
+                pass  # matplotlib not installed; skip plots
+
+        return report_path
+
     def hyperparameter_sensitivity(
         self,
         X,
