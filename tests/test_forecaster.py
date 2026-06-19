@@ -2947,6 +2947,100 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestResidualQQ:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_returns_two_arrays(self):
+        th, sa = self.fc.residual_qq(self.X)
+        assert isinstance(th, np.ndarray)
+        assert isinstance(sa, np.ndarray)
+
+    def test_shapes_match(self):
+        th, sa = self.fc.residual_qq(self.X)
+        assert th.shape == sa.shape
+
+    def test_sample_is_sorted(self):
+        _, sa = self.fc.residual_qq(self.X)
+        assert (np.diff(sa) >= 0).all()
+
+    def test_theoretical_is_sorted(self):
+        th, _ = self.fc.residual_qq(self.X)
+        assert (np.diff(th) > 0).all()
+
+    def test_custom_channel(self):
+        th0, _ = self.fc.residual_qq(self.X, channel=0)
+        th1, _ = self.fc.residual_qq(self.X, channel=1)
+        assert th0.shape == th1.shape
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.residual_qq(self.X)
+
+
+class TestPlotQQ:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_qq(self.X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_qq(self.X, title="QQ Test")
+        ax = fig.get_axes()[0]
+        assert "QQ Test" in ax.get_title()
+        plt.close("all")
+
+
+class TestToTorchDataset:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_returns_dataset(self):
+        import torch.utils.data
+        ds = self.fc.to_torch_dataset(self.X)
+        assert isinstance(ds, torch.utils.data.Dataset)
+
+    def test_length(self):
+        ds = self.fc.to_torch_dataset(self.X)
+        expected = len(self.X) - SEQ - PRED + 1
+        assert len(ds) == expected
+
+    def test_item_shapes(self):
+        ds = self.fc.to_torch_dataset(self.X)
+        x, y = ds[0]
+        assert x.shape == (SEQ, C)
+        assert y.shape == (PRED, C)
+
+    def test_no_normalize(self):
+        import torch
+        ds = self.fc.to_torch_dataset(self.X, normalize=False)
+        x, _ = ds[0]
+        # raw data first window — check dtype
+        assert x.dtype == torch.float32
+
+    def test_1d_input(self):
+        import torch.utils.data
+        X1d = _rng_data(n=100)[:, 0]
+        ds = self.fc.to_torch_dataset(X1d)
+        assert isinstance(ds, torch.utils.data.Dataset)
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.to_torch_dataset(self.X)
+
+
 class TestCopyWeightsFrom:
     def test_copies_weights_no_error(self):
         fc_src = _quick_fc().fit(_rng_data())

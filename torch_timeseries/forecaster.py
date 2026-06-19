@@ -4363,6 +4363,144 @@ class Forecaster:
             results[str(h)] = np.concatenate(collected, axis=0)[:h]
         return results
 
+    def residual_qq(
+        self,
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute quantile-quantile (Q-Q) values against a normal distribution.
+
+        Computes rolling one-step-ahead residuals and returns the theoretical
+        normal quantiles and the empirical quantiles of the residuals for
+        one channel.  Useful for checking whether residuals are approximately
+        Gaussian (a common assumption for prediction intervals).
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        channel:
+            Channel index (default ``0``).
+
+        Returns
+        -------
+        theoretical : np.ndarray — standard normal quantiles
+        sample      : np.ndarray — sorted residual quantiles
+        """
+        self._check_fitted()
+        resids = self.residuals(X)
+        # residuals() returns (n_windows, pred_len, C) or (n_windows, pred_len)
+        if resids.ndim == 3:
+            r = resids[:, :, channel].ravel()
+        elif resids.ndim == 2:
+            r = resids.ravel()
+        else:
+            r = resids.ravel()
+        r = np.sort(r.astype(float))
+        n = len(r)
+        # Blom plotting positions
+        p = (np.arange(1, n + 1) - 0.375) / (n + 0.25)
+        # normal quantile via rational approximation (no scipy)
+        a = [2.515517, 0.802853, 0.010328]
+        b = [1.432788, 0.189269, 0.001308]
+        theoretical = np.empty(n)
+        for i, pi in enumerate(p):
+            pi = float(np.clip(pi, 1e-10, 1 - 1e-10))
+            sign = 1.0 if pi >= 0.5 else -1.0
+            t = np.sqrt(-2.0 * np.log(min(pi, 1 - pi)))
+            q = t - (a[0] + a[1] * t + a[2] * t ** 2) / (
+                1 + b[0] * t + b[1] * t ** 2 + b[2] * t ** 3
+            )
+            theoretical[i] = sign * q
+        return theoretical, r
+
+    def plot_qq(
+        self,
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Q-Q plot of forecast residuals against a normal distribution.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        channel:
+            Channel index.
+        ax:
+            Matplotlib axes (created if ``None``).
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_qq()") from exc
+
+        theoretical, sample = self.residual_qq(X, channel=channel)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(5, 5))
+        else:
+            fig = ax.get_figure()
+
+        ax.scatter(theoretical, sample, s=10, alpha=0.6)
+        lo = min(theoretical[0], sample[0])
+        hi = max(theoretical[-1], sample[-1])
+        ax.plot([lo, hi], [lo, hi], "r--", linewidth=1, label="y = x")
+        ax.set_xlabel("Theoretical quantiles")
+        ax.set_ylabel("Sample quantiles")
+        ax.set_title(title or f"Q-Q plot (channel {channel})")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    def to_torch_dataset(
+        self,
+        X: np.ndarray,
+        *,
+        normalize: Optional[bool] = None,
+    ) -> "torch.utils.data.Dataset":
+        """Convert a time series array to a :class:`torch.utils.data.Dataset`.
+
+        Yields ``(x, y)`` tensor pairs where *x* has shape
+        ``(seq_len, C)`` and *y* has shape ``(pred_len, C)``.
+        The scaler fitted during :meth:`fit` is applied when *normalize*
+        is ``True`` (default: same as ``self.normalize``).
+
+        Parameters
+        ----------
+        X:
+            Time series array ``(T, C)`` or ``(T,)``.
+        normalize:
+            Whether to apply the fitted scaler.  ``None`` inherits
+            ``self.normalize``.
+
+        Returns
+        -------
+        torch.utils.data.Dataset
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        X_np = X_np.astype(np.float32)
+
+        use_norm = self.normalize if normalize is None else normalize
+        if use_norm and self._scaler is not None:
+            X_np = self._scaler.transform(X_np)
+
+        return _WindowDataset(X_np, self.seq_len, self.pred_len)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
