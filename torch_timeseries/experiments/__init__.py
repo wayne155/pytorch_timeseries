@@ -202,6 +202,12 @@ from .FiLM import (
     FiLMAnomalyDetection,
     FiLMImputation,
 )
+from .DishTS import (
+    DishTSForecast,
+    DishTSUEAClassification,
+    DishTSAnomalyDetection,
+    DishTSImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

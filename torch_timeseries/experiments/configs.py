@@ -336,6 +336,32 @@ class ETSformerConfig:
 
 
 @dataclass
+class DishTSConfig:
+    d_model: int = 256
+    n_heads: int = 8
+    e_layers: int = 3
+    d_ff: int = 512
+    dropout: float = 0.1
+    dish_hidden: int = 64
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+        if self.dish_hidden <= 0:
+            raise ValueError("dish_hidden must be positive")
+
+
+@dataclass
 class FiLMConfig:
     d_order: int = 32
     n_lowpass: int = 2
@@ -751,6 +777,10 @@ def split_experiment_config(
         ("FiLM", "AnomalyDetection"): FiLMConfig,
         ("FiLM", "Imputation"): FiLMConfig,
         ("FiLM", "UEAClassification"): FiLMConfig,
+        ("DishTS", "Forecast"): DishTSConfig,
+        ("DishTS", "AnomalyDetection"): DishTSConfig,
+        ("DishTS", "Imputation"): DishTSConfig,
+        ("DishTS", "UEAClassification"): DishTSConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

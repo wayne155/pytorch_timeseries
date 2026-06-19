@@ -289,6 +289,14 @@ MODEL_PARAMS = {
         "dropout": 0.05,
         "revin": True,
     },
+    "DishTS": {
+        "d_model": 256,
+        "n_heads": 8,
+        "e_layers": 3,
+        "d_ff": 512,
+        "dropout": 0.1,
+        "dish_hidden": 64,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
