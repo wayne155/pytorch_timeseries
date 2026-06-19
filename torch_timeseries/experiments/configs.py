@@ -374,6 +374,16 @@ class RetForecasterConfig:
 
 
 @dataclass
+class WaveletForecasterConfig:
+    n_levels: int = 3
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_levels < 1:
+            raise ValueError("n_levels must be >= 1")
+
+
+@dataclass
 class TSReservoirConfig:
     d_res: int = 256
     spectral_radius: float = 0.9
@@ -1186,6 +1196,10 @@ def split_experiment_config(
         ("TSReservoir", "AnomalyDetection"): TSReservoirConfig,
         ("TSReservoir", "Imputation"): TSReservoirConfig,
         ("TSReservoir", "UEAClassification"): TSReservoirConfig,
+        ("WaveletForecaster", "Forecast"): WaveletForecasterConfig,
+        ("WaveletForecaster", "AnomalyDetection"): WaveletForecasterConfig,
+        ("WaveletForecaster", "Imputation"): WaveletForecasterConfig,
+        ("WaveletForecaster", "UEAClassification"): WaveletForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

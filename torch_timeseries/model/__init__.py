@@ -61,6 +61,7 @@ from .HarmonicForecaster import HarmonicForecaster
 from .HDMixer import HDMixer
 from .KANForecaster import KANForecaster
 from .TSReservoir import TSReservoir
+from .WaveletForecaster import WaveletForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -100,6 +101,7 @@ forecasting_models = [
     "HDMixer",
     "KANForecaster",
     "TSReservoir",
+    "WaveletForecaster",
 ]
 
 prob_forecasting_models = [

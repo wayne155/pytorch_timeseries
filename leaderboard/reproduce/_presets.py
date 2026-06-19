@@ -423,6 +423,10 @@ MODEL_PARAMS = {
         "pool_states": True,
         "revin": True,
     },
+    "WaveletForecaster": {
+        "n_levels": 3,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

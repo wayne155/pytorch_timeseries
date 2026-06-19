@@ -304,6 +304,12 @@ from .TSReservoir import (
     TSReservoirAnomalyDetection,
     TSReservoirImputation,
 )
+from .WaveletForecaster import (
+    WaveletForecasterForecast,
+    WaveletForecasterUEAClassification,
+    WaveletForecasterAnomalyDetection,
+    WaveletForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
