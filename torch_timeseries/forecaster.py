@@ -4817,6 +4817,197 @@ class Forecaster:
             "n": n,
         }
 
+    def input_gradient(
+        self,
+        X: np.ndarray,
+        *,
+        target_step: int = 0,
+        target_channel: int = 0,
+        absolute: bool = True,
+    ) -> np.ndarray:
+        """Compute the gradient of a specific forecast output w.r.t. the input.
+
+        Uses vanilla gradient saliency: ``d output[target_step, target_channel]
+        / d input``.  The sign tells you the direction of influence; the
+        magnitude tells you which input timesteps (and channels) matter most.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(seq_len, C)`` or ``(T, C)`` (last seq_len used).
+        target_step:
+            Forecast timestep to differentiate w.r.t. (0-indexed into
+            ``pred_len``; default ``0``).
+        target_channel:
+            Output channel to differentiate w.r.t. (default ``0``).
+        absolute:
+            Return absolute gradient values (default ``True``).  Set to
+            ``False`` to retain sign information.
+
+        Returns
+        -------
+        np.ndarray of shape ``(seq_len, C)`` — gradient magnitude per input
+        timestep and channel.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X).astype(np.float32)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        if len(X_np) > self.seq_len:
+            X_np = X_np[-self.seq_len:]
+
+        if self.normalize and self._scaler is not None:
+            X_np = self._scaler.transform(X_np)
+
+        inp = torch.tensor(X_np[np.newaxis], requires_grad=True)  # (1, seq_len, C)
+        self._model.eval()
+        out = self._model(inp)  # (1, pred_len, C) or (1, pred_len, C)
+        if out.ndim == 2:
+            out = out.unsqueeze(0)
+        scalar = out[0, target_step, target_channel]
+        scalar.backward()
+
+        grad = inp.grad.detach().numpy()[0]  # (seq_len, C)
+        if absolute:
+            grad = np.abs(grad)
+        return grad
+
+    def plot_saliency(
+        self,
+        X: np.ndarray,
+        *,
+        target_step: int = 0,
+        target_channel: int = 0,
+        absolute: bool = True,
+        channel_names: Optional[List[str]] = None,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Heatmap of input gradient saliency from :meth:`input_gradient`.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(seq_len, C)``.
+        target_step:
+            Forecast timestep to explain (default ``0``).
+        target_channel:
+            Output channel to explain (default ``0``).
+        absolute:
+            Use absolute gradients (default ``True``).
+        channel_names:
+            Labels for channels.  Defaults to ``["ch0", "ch1", ...]``.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_saliency()") from exc
+
+        grad = self.input_gradient(
+            X,
+            target_step=target_step,
+            target_channel=target_channel,
+            absolute=absolute,
+        )  # (seq_len, C)
+        C = grad.shape[1]
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, max(2, C)))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(grad.T, aspect="auto", cmap="hot")
+        ax.set_yticks(range(C))
+        ax.set_yticklabels(channel_names)
+        ax.set_xlabel("Input timestep")
+        ax.set_ylabel("Channel")
+        ax.set_title(
+            title
+            or f"Input saliency → output[step={target_step}, ch={target_channel}]"
+        )
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        plt.tight_layout()
+        return fig
+
+    def error_decomposition(
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        *,
+        n_bootstrap: int = 20,
+        seed: int = 0,
+    ) -> Dict[str, float]:
+        """Decompose forecast error into bias² and variance components.
+
+        Fits *n_bootstrap* models on bootstrap resamples of *X_train*
+        and evaluates them on *X_test*.  The classic bias-variance
+        decomposition gives::
+
+            MSE ≈ bias² + variance + noise²
+
+        Parameters
+        ----------
+        X_train:
+            Training time series ``(T_train, C)``.
+        X_test:
+            Test time series ``(T_test, C)``.
+        n_bootstrap:
+            Number of bootstrap resamples (default ``20``).
+        seed:
+            Random seed for reproducibility.
+
+        Returns
+        -------
+        dict with keys ``bias2``, ``variance``, ``total_mse``.
+        """
+        rng = np.random.default_rng(seed)
+        T_train = len(X_train)
+        preds_list = []
+
+        for _ in range(n_bootstrap):
+            idx = rng.integers(0, T_train, size=T_train)
+            idx_sorted = np.sort(idx)  # keep temporal ordering
+            X_boot = X_train[idx_sorted]
+            fc_b = self.clone()
+            fc_b.epochs = max(1, self.epochs)
+            try:
+                fc_b.fit(X_boot, val_split=0.1)
+                preds = fc_b.predict_rolling(X_test)  # (n_windows, pred_len, C)
+                preds_list.append(preds)
+            except Exception:
+                continue
+
+        if not preds_list:
+            raise RuntimeError("All bootstrap fits failed.")
+
+        # Align lengths
+        min_w = min(p.shape[0] for p in preds_list)
+        preds_arr = np.stack([p[:min_w] for p in preds_list], axis=0)  # (B, n_w, pred_len, C)
+        mean_pred = preds_arr.mean(axis=0)  # (n_w, pred_len, C)
+
+        # Truth windows
+        truth_windows = []
+        for t in range(min_w):
+            start = t + self.seq_len
+            truth_windows.append(X_test[start : start + self.pred_len])
+        truth = np.stack(truth_windows, axis=0)  # (n_w, pred_len, C)
+
+        bias2 = float(np.mean((mean_pred - truth) ** 2))
+        variance = float(np.mean(preds_arr.var(axis=0)))
+        total_mse = float(np.mean((preds_arr.mean(0) - truth) ** 2))
+
+        return {"bias2": bias2, "variance": variance, "total_mse": total_mse}
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

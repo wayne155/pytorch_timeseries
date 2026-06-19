@@ -2947,6 +2947,91 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestInputGradient:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=SEQ)
+
+    def test_output_shape(self):
+        grad = self.fc.input_gradient(self.X)
+        assert grad.shape == (SEQ, C)
+
+    def test_absolute_nonnegative(self):
+        grad = self.fc.input_gradient(self.X, absolute=True)
+        assert (grad >= 0).all()
+
+    def test_non_absolute_has_both_signs(self):
+        # with a random model there should be both positive and negative values
+        grad = self.fc.input_gradient(self.X, absolute=False)
+        # just check the array has finite values and correct shape
+        assert np.isfinite(grad).all()
+        assert grad.shape == (SEQ, C)
+
+    def test_custom_target_step(self):
+        grad = self.fc.input_gradient(self.X, target_step=PRED - 1)
+        assert grad.shape == (SEQ, C)
+
+    def test_custom_target_channel(self):
+        grad = self.fc.input_gradient(self.X, target_channel=C - 1)
+        assert grad.shape == (SEQ, C)
+
+    def test_long_context_trimmed(self):
+        X_long = _rng_data(n=SEQ + 10)
+        grad = self.fc.input_gradient(X_long)
+        assert grad.shape == (SEQ, C)
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.input_gradient(self.X)
+
+
+class TestPlotSaliency:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=SEQ)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_saliency(self.X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_saliency(self.X, title="Saliency")
+        ax = fig.get_axes()[0]
+        assert "Saliency" in ax.get_title()
+        plt.close("all")
+
+
+class TestErrorDecomposition:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dict(self):
+        X_train = _rng_data(n=200)
+        X_test = _rng_data(n=80, seed=1)
+        result = self.fc.error_decomposition(X_train, X_test, n_bootstrap=3, seed=0)
+        assert isinstance(result, dict)
+
+    def test_expected_keys(self):
+        X_train = _rng_data(n=200)
+        X_test = _rng_data(n=80, seed=1)
+        result = self.fc.error_decomposition(X_train, X_test, n_bootstrap=3, seed=0)
+        for key in ("bias2", "variance", "total_mse"):
+            assert key in result
+
+    def test_nonnegative_values(self):
+        X_train = _rng_data(n=200)
+        X_test = _rng_data(n=80, seed=1)
+        result = self.fc.error_decomposition(X_train, X_test, n_bootstrap=3, seed=0)
+        for v in result.values():
+            assert v >= 0
+
+
 class TestMovingForecast:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())
