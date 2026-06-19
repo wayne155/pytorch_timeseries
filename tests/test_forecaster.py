@@ -1578,6 +1578,39 @@ class TestCompareNJobs:
         assert "elapsed_s" in result["DLinear"]
 
 
+class TestCompareModels:
+    def test_returns_dict_with_all_models(self):
+        X = _rng_data(n=300)
+        fc = _quick_fc("DLinear")
+        result = fc.compare_models(
+            ["NLinear"], X[:200], X[200:],
+            print_table=False, verbose=False,
+        )
+        assert "DLinear" in result
+        assert "NLinear" in result
+
+    def test_include_self_false(self):
+        X = _rng_data(n=300)
+        fc = _quick_fc("DLinear")
+        result = fc.compare_models(
+            ["NLinear"], X[:200], X[200:],
+            include_self=False, print_table=False, verbose=False,
+        )
+        assert "NLinear" in result
+        # DLinear may or may not be present; just check NLinear is there
+
+    def test_result_has_mse(self):
+        X = _rng_data(n=300)
+        fc = _quick_fc("DLinear")
+        result = fc.compare_models(
+            ["NLinear"], X[:200], X[200:],
+            print_table=False, verbose=False,
+        )
+        for metrics in result.values():
+            if not isinstance(metrics, Exception):
+                assert "mse" in metrics
+
+
 # ── BaggingForecaster ─────────────────────────────────────────────────────────
 
 

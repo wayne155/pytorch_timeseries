@@ -2758,6 +2758,70 @@ class Forecaster:
         df.to_csv(path, index=False)
         return path
 
+    def compare_models(
+        self,
+        models: List[str],
+        X_train,
+        X_test,
+        *,
+        include_self: bool = True,
+        n_jobs: int = 1,
+        print_table: bool = True,
+        verbose: bool = False,
+    ) -> Dict[str, Dict[str, float]]:
+        """Benchmark *models* using this forecaster's hyperparameters as defaults.
+
+        A convenience wrapper around the module-level :func:`compare` that
+        inherits ``seq_len``, ``pred_len``, ``epochs``, ``lr``,
+        ``batch_size``, and ``normalize`` from the current instance.
+
+        Parameters
+        ----------
+        models:
+            List of model name strings.  The current model is added
+            automatically when *include_self* is ``True``.
+        X_train:
+            Training data, shape ``(N, C)``.
+        X_test:
+            Test data, shape ``(M, C)``.
+        include_self:
+            If ``True`` (default), prepend the current model to *models*.
+        n_jobs:
+            Parallel workers (default 1).
+        print_table:
+            Print a comparison table (default ``True``).
+        verbose:
+            Verbose training output.
+
+        Returns
+        -------
+        dict
+            Same format as :func:`compare`.
+        """
+        names = list(models)
+        self_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        if include_self and self_name not in names:
+            names = [self_name] + names
+
+        return compare(
+            names,
+            X_train=X_train,
+            X_test=X_test,
+            seq_len=self.seq_len,
+            pred_len=self.pred_len,
+            epochs=self.epochs,
+            lr=self.lr,
+            batch_size=self.batch_size,
+            normalize=self.normalize,
+            n_jobs=n_jobs,
+            print_table=print_table,
+            verbose=verbose,
+        )
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
