@@ -12,6 +12,7 @@ from torch_timeseries.forecaster import (
     _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
 )
 from torch_timeseries.dataset import list_datasets, load_dataset
+from torch_timeseries.augment import Jitter, Compose, Scale
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -1390,3 +1391,61 @@ class TestFromDataset:
         # Sine has 5 channels
         y = fc.predict(np.zeros((SEQ, 5), dtype=np.float32))
         assert y.shape == (PRED, 5)
+
+
+# ── augmentation ──────────────────────────────────────────────────────────────
+
+
+class TestAugmentation:
+    def test_trains_with_jitter(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False,
+                        augmentation=Jitter(sigma=0.05))
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+    def test_trains_with_compose(self):
+        X = _rng_data()
+        aug = Compose([Jitter(sigma=0.03), Scale(sigma=0.05)])
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, augmentation=aug)
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+    def test_no_augmentation_default(self):
+        fc = _quick_fc()
+        assert fc.augmentation is None
+
+    def test_augmentation_in_get_params(self):
+        aug = Jitter(sigma=0.01)
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        verbose=False, augmentation=aug)
+        assert fc.get_params()["augmentation"] is aug
+
+
+# ── evaluate() ────────────────────────────────────────────────────────────────
+
+
+class TestEvaluate:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dict_with_all_keys(self):
+        result = self.fc.evaluate(_rng_data(n=200))
+        for key in ("mse", "mae", "rmse", "smape", "mase"):
+            assert key in result
+
+    def test_mase_positive(self):
+        result = self.fc.evaluate(_rng_data(n=200))
+        assert result["mase"] >= 0.0
+
+    def test_mse_same_as_score(self):
+        X = _rng_data(n=200)
+        ev = self.fc.evaluate(X)
+        sc = self.fc.score(X)
+        assert abs(ev["mse"] - sc["mse"]) < 1e-6
+
+    def test_seasonal_period_param(self):
+        result = self.fc.evaluate(_rng_data(n=200), seasonal_period=7)
+        assert "mase" in result

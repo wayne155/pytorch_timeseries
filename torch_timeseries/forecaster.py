@@ -275,6 +275,7 @@ class Forecaster:
         weight_decay: float = 0.0,
         callbacks: Optional[List] = None,
         progress_bar: bool = False,
+        augmentation=None,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -294,6 +295,7 @@ class Forecaster:
         self.weight_decay = weight_decay
         self.callbacks = callbacks or []
         self.progress_bar = progress_bar
+        self.augmentation = augmentation
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
@@ -428,6 +430,8 @@ class Forecaster:
             for x_b, y_b in train_loader:
                 x_b = x_b.to(self.device)
                 y_b = y_b.to(self.device)
+                if self.augmentation is not None:
+                    x_b = self.augmentation(x_b)
                 optimiser.zero_grad()
                 pred = self._model(x_b)
                 loss = loss_fn(pred, y_b)
@@ -809,6 +813,45 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def evaluate(self, X, *, seasonal_period: int = 1) -> Dict[str, float]:
+        """Extended evaluation including SMAPE and MASE.
+
+        Computes MSE, MAE, RMSE, SMAPE, and MASE over all sliding windows of
+        *X*.  Results are in the *original* (un-normalised) scale.
+
+        Parameters
+        ----------
+        X:
+            Time series data, shape ``(N, C)``.  Needs at least
+            ``seq_len + pred_len`` timesteps.
+        seasonal_period:
+            Period used for the naive seasonal baseline in MASE (default 1,
+            i.e. the naïve one-step-ahead forecast).
+
+        Returns
+        -------
+        dict
+            ``{"mse", "mae", "rmse", "smape", "mase"}``
+        """
+        self._check_fitted()
+        X = _to_numpy(X)
+        if X.ndim == 1:
+            X = X[:, None]
+
+        base = self.score(X)
+
+        # Compute MASE: MAE / naive-mae
+        # Naive: y_t = y_{t - seasonal_period}; error on same data
+        m = seasonal_period
+        if len(X) > m:
+            naive_errors = np.abs(X[m:] - X[:-m])
+            naive_mae = float(naive_errors.mean()) + 1e-8
+        else:
+            naive_mae = 1.0
+        mase = base["mae"] / naive_mae
+
+        return {**base, "mase": mase}
+
     def feature_importance(
         self,
         X,
@@ -1034,6 +1077,7 @@ class Forecaster:
             "grad_clip": self.grad_clip,
             "weight_decay": self.weight_decay,
             "progress_bar": self.progress_bar,
+            "augmentation": self.augmentation,
         }
         params.update(self.model_kwargs)
         return params
@@ -1047,7 +1091,7 @@ class Forecaster:
         _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
                    "patience", "normalize", "verbose", "scheduler", "loss",
                    "warm_start", "grad_clip", "weight_decay", "callbacks",
-                   "progress_bar"}
+                   "progress_bar", "augmentation"}
         for k, v in params.items():
             if k == "model":
                 self.model_spec = v
@@ -1118,6 +1162,7 @@ class Forecaster:
             grad_clip=self.grad_clip,
             weight_decay=self.weight_decay,
             progress_bar=self.progress_bar,
+            augmentation=self.augmentation,
             **self.model_kwargs,
         )
 
