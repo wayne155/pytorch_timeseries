@@ -340,6 +340,12 @@ from .BiLSTMForecaster import (
     BiLSTMForecasterAnomalyDetection,
     BiLSTMForecasterImputation,
 )
+from .RandomFourierForecaster import (
+    RandomFourierForecasterForecast,
+    RandomFourierForecasterUEAClassification,
+    RandomFourierForecasterAnomalyDetection,
+    RandomFourierForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

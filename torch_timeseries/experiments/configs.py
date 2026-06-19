@@ -415,6 +415,19 @@ class BiLSTMForecasterConfig:
 
 
 @dataclass
+class RandomFourierForecasterConfig:
+    d_rff: int = 256
+    sigma: float = 1.0
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_rff <= 0:
+            raise ValueError("d_rff must be positive")
+        if self.sigma <= 0:
+            raise ValueError("sigma must be positive")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1330,6 +1343,10 @@ def split_experiment_config(
         ("BiLSTMForecaster", "AnomalyDetection"): BiLSTMForecasterConfig,
         ("BiLSTMForecaster", "Imputation"): BiLSTMForecasterConfig,
         ("BiLSTMForecaster", "UEAClassification"): BiLSTMForecasterConfig,
+        ("RandomFourierForecaster", "Forecast"): RandomFourierForecasterConfig,
+        ("RandomFourierForecaster", "AnomalyDetection"): RandomFourierForecasterConfig,
+        ("RandomFourierForecaster", "Imputation"): RandomFourierForecasterConfig,
+        ("RandomFourierForecaster", "UEAClassification"): RandomFourierForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
