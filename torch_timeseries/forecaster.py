@@ -5482,6 +5482,135 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    def persistence_forecast(
+        self,
+        X: np.ndarray,
+        *,
+        lag: int = 1,
+    ) -> np.ndarray:
+        """Naive persistence baseline: repeat the last *lag* timestep values.
+
+        This is the simplest possible forecast — repeat the last observed
+        value *pred_len* times.  It acts as the lower bound for model
+        comparison on stationary data.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(seq_len, C)`` or ``(T, C)`` (last value used).
+        lag:
+            Which past timestep to repeat.  ``1`` (default) = last
+            observation; ``7`` = last week's value (for daily data with
+            weekly seasonality).
+
+        Returns
+        -------
+        np.ndarray of shape ``(pred_len, C)``
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        last = X_np[-lag]  # (C,)
+        return np.tile(last, (self.pred_len, 1))
+
+    def score_vs_persistence(
+        self,
+        X: np.ndarray,
+        *,
+        lag: int = 1,
+    ) -> Dict[str, Dict[str, float]]:
+        """Compare model score against the persistence baseline.
+
+        Runs rolling evaluation for both the fitted model and the
+        persistence baseline and returns both result dicts for easy
+        comparison.
+
+        Parameters
+        ----------
+        X:
+            Full time series ``(T, C)``.
+        lag:
+            Lag for the persistence baseline (default ``1``).
+
+        Returns
+        -------
+        dict with keys ``"model"`` and ``"persistence"``, each a metrics
+        dict from :meth:`score`.
+        """
+        self._check_fitted()
+        model_scores = self.score(X)
+
+        # Build a PersistenceForecaster-like evaluator
+        T = len(X)
+        pred_len = self.pred_len
+        seq_len = self.seq_len
+        preds, truths = [], []
+        t = 0
+        while t + seq_len + pred_len <= T:
+            ctx = X[t : t + seq_len]
+            truth = X[t + seq_len : t + seq_len + pred_len]
+            pred = np.tile(ctx[-lag], (pred_len, 1))
+            preds.append(pred)
+            truths.append(truth)
+            t += 1
+
+        preds_arr = np.stack(preds)   # (n, pred_len, C)
+        truths_arr = np.stack(truths)
+
+        err = preds_arr - truths_arr
+        mse = float(np.mean(err ** 2))
+        mae = float(np.mean(np.abs(err)))
+        rmse = float(np.sqrt(mse))
+        denom = (np.abs(truths_arr) + np.abs(preds_arr)).clip(min=1e-8)
+        smape = float(np.mean(2 * np.abs(err) / denom) * 100)
+
+        return {
+            "model": model_scores,
+            "persistence": {"MSE": mse, "MAE": mae, "RMSE": rmse, "SMAPE": smape},
+        }
+
+    def chunked_predict(
+        self,
+        X: np.ndarray,
+        *,
+        chunk_size: int = 64,
+    ) -> np.ndarray:
+        """Memory-efficient rolling prediction on long sequences.
+
+        Equivalent to calling :meth:`predict` on batches of rolling windows
+        one chunk at a time.
+
+        Parameters
+        ----------
+        X:
+            Full time series ``(T, C)``.
+        chunk_size:
+            Number of windows per inference batch (default ``64``).
+
+        Returns
+        -------
+        np.ndarray of shape ``(n_windows, pred_len, C)``
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        T = len(X_np)
+        windows = []
+        t = 0
+        while t + self.seq_len <= T:
+            windows.append(X_np[t : t + self.seq_len])
+            t += 1
+        if not windows:
+            raise ValueError("X is shorter than seq_len.")
+
+        results = []
+        for start in range(0, len(windows), chunk_size):
+            batch = np.stack(windows[start : start + chunk_size], axis=0)  # (B, seq_len, C)
+            out = self.predict(batch)  # (B, pred_len, C)
+            results.append(out)
+        return np.concatenate(results, axis=0)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

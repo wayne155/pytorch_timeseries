@@ -2947,6 +2947,83 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestPersistenceForecast:
+    def setup_method(self):
+        self.fc = _quick_fc()  # no need to fit for persistence
+
+    def test_shape(self):
+        X = _rng_data(n=SEQ)
+        pred = self.fc.persistence_forecast(X)
+        assert pred.shape == (PRED, C)
+
+    def test_repeats_last_value(self):
+        X = _rng_data(n=SEQ)
+        pred = self.fc.persistence_forecast(X)
+        np.testing.assert_array_equal(pred[0], X[-1])
+        np.testing.assert_array_equal(pred[-1], X[-1])
+
+    def test_lag_2(self):
+        X = _rng_data(n=SEQ)
+        pred = self.fc.persistence_forecast(X, lag=2)
+        np.testing.assert_array_equal(pred[0], X[-2])
+
+    def test_1d_input(self):
+        X = _rng_data(n=SEQ)[:, 0]
+        pred = self.fc.persistence_forecast(X)
+        assert pred.shape == (PRED, 1)
+
+
+class TestScoreVsPersistence:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_returns_dict(self):
+        result = self.fc.score_vs_persistence(self.X)
+        assert isinstance(result, dict)
+
+    def test_keys_present(self):
+        result = self.fc.score_vs_persistence(self.X)
+        assert "model" in result
+        assert "persistence" in result
+
+    def test_persistence_has_metrics(self):
+        result = self.fc.score_vs_persistence(self.X)
+        for m in ("MSE", "MAE", "RMSE", "SMAPE"):
+            assert m in result["persistence"]
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.score_vs_persistence(self.X)
+
+
+class TestChunkedPredict:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_shape(self):
+        out = self.fc.chunked_predict(self.X, chunk_size=8)
+        n_windows = len(self.X) - SEQ + 1
+        assert out.shape == (n_windows, PRED, C)
+
+    def test_small_chunk_equals_large_chunk(self):
+        # same predictions regardless of chunk size
+        out1 = self.fc.chunked_predict(self.X, chunk_size=4)
+        out2 = self.fc.chunked_predict(self.X, chunk_size=32)
+        np.testing.assert_allclose(out1, out2, rtol=1e-5)
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.chunked_predict(self.X)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.chunked_predict(_rng_data(n=SEQ - 1))
+
+
 class TestInterpolateMissing:
     def test_fills_nan_linear(self):
         X = _rng_data(n=50)
