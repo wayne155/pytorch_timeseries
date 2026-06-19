@@ -496,6 +496,16 @@ class TemporalConvAttentionForecasterConfig:
 
 
 @dataclass
+class AdaptiveSpectralForecasterConfig:
+    n_filters: int = 16
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_filters <= 0:
+            raise ValueError("n_filters must be positive")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1427,6 +1437,10 @@ def split_experiment_config(
         ("TemporalConvAttentionForecaster", "AnomalyDetection"): TemporalConvAttentionForecasterConfig,
         ("TemporalConvAttentionForecaster", "Imputation"): TemporalConvAttentionForecasterConfig,
         ("TemporalConvAttentionForecaster", "UEAClassification"): TemporalConvAttentionForecasterConfig,
+        ("AdaptiveSpectralForecaster", "Forecast"): AdaptiveSpectralForecasterConfig,
+        ("AdaptiveSpectralForecaster", "AnomalyDetection"): AdaptiveSpectralForecasterConfig,
+        ("AdaptiveSpectralForecaster", "Imputation"): AdaptiveSpectralForecasterConfig,
+        ("AdaptiveSpectralForecaster", "UEAClassification"): AdaptiveSpectralForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

@@ -364,6 +364,12 @@ from .TemporalConvAttentionForecaster import (
     TemporalConvAttentionForecasterAnomalyDetection,
     TemporalConvAttentionForecasterImputation,
 )
+from .AdaptiveSpectralForecaster import (
+    AdaptiveSpectralForecasterForecast,
+    AdaptiveSpectralForecasterUEAClassification,
+    AdaptiveSpectralForecasterAnomalyDetection,
+    AdaptiveSpectralForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
