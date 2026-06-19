@@ -502,6 +502,12 @@ from .QRNNForecaster import (
     QRNNForecasterAnomalyDetection,
     QRNNForecasterImputation,
 )
+from .HGRN2Forecaster import (
+    HGRN2ForecasterForecast,
+    HGRN2ForecasterUEAClassification,
+    HGRN2ForecasterAnomalyDetection,
+    HGRN2ForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

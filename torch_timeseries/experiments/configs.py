@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class HGRN2ForecasterConfig:
+    d_model: int = 64
+    d_ffn: int = 256
+    n_layers: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_ffn <= 0:
+            raise ValueError("d_ffn must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class QRNNForecasterConfig:
     d_model: int = 64
     d_ffn: int = 256
@@ -1974,6 +1993,10 @@ def split_experiment_config(
         ("QRNNForecaster", "AnomalyDetection"): QRNNForecasterConfig,
         ("QRNNForecaster", "Imputation"): QRNNForecasterConfig,
         ("QRNNForecaster", "UEAClassification"): QRNNForecasterConfig,
+        ("HGRN2Forecaster", "Forecast"): HGRN2ForecasterConfig,
+        ("HGRN2Forecaster", "AnomalyDetection"): HGRN2ForecasterConfig,
+        ("HGRN2Forecaster", "Imputation"): HGRN2ForecasterConfig,
+        ("HGRN2Forecaster", "UEAClassification"): HGRN2ForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

@@ -94,6 +94,7 @@ from .FastFormerForecaster import FastFormerForecaster
 from .GLAForecaster import GLAForecaster
 from .DiffTransformerForecaster import DiffTransformerForecaster
 from .QRNNForecaster import QRNNForecaster
+from .HGRN2Forecaster import HGRN2Forecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -166,6 +167,7 @@ forecasting_models = [
     "GLAForecaster",
     "DiffTransformerForecaster",
     "QRNNForecaster",
+    "HGRN2Forecaster",
 ]
 
 prob_forecasting_models = [
