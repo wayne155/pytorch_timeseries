@@ -576,6 +576,12 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "xLSTMForecaster": {
+        "d_model": 32,
+        "n_layers": 2,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

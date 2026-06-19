@@ -430,6 +430,12 @@ from .LiquidNetForecaster import (
     LiquidNetForecasterAnomalyDetection,
     LiquidNetForecasterImputation,
 )
+from .xLSTMForecaster import (
+    xLSTMForecasterForecast,
+    xLSTMForecasterUEAClassification,
+    xLSTMForecasterAnomalyDetection,
+    xLSTMForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
