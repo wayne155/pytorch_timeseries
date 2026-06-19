@@ -2947,6 +2947,59 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestProfile:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=SEQ)
+
+    def test_returns_dict(self):
+        result = self.fc.profile(self.X, n_repeats=5)
+        assert isinstance(result, dict)
+
+    def test_expected_keys(self):
+        result = self.fc.profile(self.X, n_repeats=5)
+        for key in ("mean_ms", "std_ms", "min_ms", "max_ms", "throughput"):
+            assert key in result
+
+    def test_latency_positive(self):
+        result = self.fc.profile(self.X, n_repeats=5)
+        assert result["mean_ms"] > 0
+
+    def test_throughput_positive(self):
+        result = self.fc.profile(self.X, n_repeats=5)
+        assert result["throughput"] > 0
+
+    def test_min_le_mean_le_max(self):
+        result = self.fc.profile(self.X, n_repeats=5)
+        assert result["min_ms"] <= result["mean_ms"] <= result["max_ms"]
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.profile(self.X, n_repeats=2)
+
+
+class TestWarmup:
+    def test_returns_self(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.warmup(n=2)
+        assert result is fc
+
+    def test_no_input_uses_zeros(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.warmup(n=2)  # should not raise
+
+    def test_with_custom_context(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data(n=SEQ)
+        fc.warmup(X, n=2)  # should not raise
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.warmup(n=1)
+
+
 class TestResidualQQ:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

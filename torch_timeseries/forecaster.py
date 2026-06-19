@@ -4501,6 +4501,88 @@ class Forecaster:
 
         return _WindowDataset(X_np, self.seq_len, self.pred_len)
 
+    def profile(
+        self,
+        X: np.ndarray,
+        *,
+        n_repeats: int = 50,
+        batch_size: Optional[int] = None,
+    ) -> Dict[str, float]:
+        """Measure inference latency and throughput.
+
+        Runs *n_repeats* forward passes and reports wall-clock statistics.
+
+        Parameters
+        ----------
+        X:
+            Context windows ``(B, seq_len, C)`` or ``(seq_len, C)``.
+            If 2-D, a batch of *batch_size* copies is constructed.
+        n_repeats:
+            Number of timed forward passes (default ``50``).
+        batch_size:
+            Override batch size for profiling (default: ``self.batch_size``).
+
+        Returns
+        -------
+        dict with keys:
+            ``mean_ms``     — mean latency in milliseconds
+            ``std_ms``      — standard deviation in milliseconds
+            ``min_ms``      — minimum latency in milliseconds
+            ``max_ms``      — maximum latency in milliseconds
+            ``throughput``  — windows per second (``batch_size / mean_s``)
+        """
+        import time
+        self._check_fitted()
+        bs = batch_size or self.batch_size
+
+        X_np = _to_numpy(X).astype(np.float32)
+        if X_np.ndim == 2:
+            X_np = np.tile(X_np[np.newaxis], (bs, 1, 1))
+        elif X_np.ndim == 3 and X_np.shape[0] != bs:
+            X_np = np.tile(X_np[:1], (bs, 1, 1))
+
+        self._model.eval()
+        times = []
+        for _ in range(n_repeats):
+            t0 = time.perf_counter()
+            self.predict(X_np)
+            times.append((time.perf_counter() - t0) * 1000)
+
+        t = np.array(times)
+        mean_ms = float(t.mean())
+        return {
+            "mean_ms": mean_ms,
+            "std_ms": float(t.std()),
+            "min_ms": float(t.min()),
+            "max_ms": float(t.max()),
+            "throughput": float(bs / (mean_ms / 1000.0)),
+        }
+
+    def warmup(self, X: Optional[np.ndarray] = None, *, n: int = 3) -> "Forecaster":
+        """Run *n* dummy forward passes to warm up JIT/CUDA caches.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(seq_len, C)``.  If ``None``, a zero array of
+            the right shape is used.
+        n:
+            Number of warmup passes (default ``3``).
+
+        Returns
+        -------
+        self
+        """
+        self._check_fitted()
+        C = self._enc_in or 1
+        if X is None:
+            ctx = np.zeros((self.seq_len, C), dtype=np.float32)
+        else:
+            ctx = _to_numpy(X).astype(np.float32)
+        for _ in range(n):
+            self.predict(ctx)
+        return self
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
