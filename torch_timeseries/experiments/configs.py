@@ -374,6 +374,32 @@ class RetForecasterConfig:
 
 
 @dataclass
+class LinearAttentionForecasterConfig:
+    d_model: int = 64
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 128
+    patch_len: int = 16
+    stride: int = 16
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.patch_len <= 0:
+            raise ValueError("patch_len must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class WaveletForecasterConfig:
     n_levels: int = 3
     revin: bool = True
@@ -1200,6 +1226,10 @@ def split_experiment_config(
         ("WaveletForecaster", "AnomalyDetection"): WaveletForecasterConfig,
         ("WaveletForecaster", "Imputation"): WaveletForecasterConfig,
         ("WaveletForecaster", "UEAClassification"): WaveletForecasterConfig,
+        ("LinearAttentionForecaster", "Forecast"): LinearAttentionForecasterConfig,
+        ("LinearAttentionForecaster", "AnomalyDetection"): LinearAttentionForecasterConfig,
+        ("LinearAttentionForecaster", "Imputation"): LinearAttentionForecasterConfig,
+        ("LinearAttentionForecaster", "UEAClassification"): LinearAttentionForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

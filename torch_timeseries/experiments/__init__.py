@@ -310,6 +310,12 @@ from .WaveletForecaster import (
     WaveletForecasterAnomalyDetection,
     WaveletForecasterImputation,
 )
+from .LinearAttentionForecaster import (
+    LinearAttentionForecasterForecast,
+    LinearAttentionForecasterUEAClassification,
+    LinearAttentionForecasterAnomalyDetection,
+    LinearAttentionForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
