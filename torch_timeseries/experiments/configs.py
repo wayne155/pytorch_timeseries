@@ -336,6 +336,14 @@ class ETSformerConfig:
 
 
 @dataclass
+class RLinearConfig:
+    individual: bool = True
+
+    def validate(self) -> None:
+        pass  # no numeric constraints
+
+
+@dataclass
 class ModernTCNConfig:
     patch_size: int = 8
     patch_stride: int = 4
@@ -836,6 +844,10 @@ def split_experiment_config(
         ("ModernTCN", "AnomalyDetection"): ModernTCNConfig,
         ("ModernTCN", "Imputation"): ModernTCNConfig,
         ("ModernTCN", "UEAClassification"): ModernTCNConfig,
+        ("RLinear", "Forecast"): RLinearConfig,
+        ("RLinear", "AnomalyDetection"): RLinearConfig,
+        ("RLinear", "Imputation"): RLinearConfig,
+        ("RLinear", "UEAClassification"): RLinearConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

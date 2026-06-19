@@ -47,6 +47,7 @@ from .FiLM import FiLM
 from .DishTS import DishTS
 from .MambaForecaster import MambaForecaster
 from .ModernTCN import ModernTCN
+from .RLinear import RLinear
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -72,6 +73,7 @@ forecasting_models = [
     "DishTS",
     "MambaForecaster",
     "ModernTCN",
+    "RLinear",
 ]
 
 prob_forecasting_models = [

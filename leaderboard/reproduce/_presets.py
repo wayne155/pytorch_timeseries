@@ -314,6 +314,9 @@ MODEL_PARAMS = {
         "dropout": 0.05,
         "revin": True,
     },
+    "RLinear": {
+        "individual": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

@@ -220,6 +220,12 @@ from .ModernTCN import (
     ModernTCNAnomalyDetection,
     ModernTCNImputation,
 )
+from .RLinear import (
+    RLinearForecast,
+    RLinearUEAClassification,
+    RLinearAnomalyDetection,
+    RLinearImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
