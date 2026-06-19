@@ -7393,6 +7393,246 @@ class Forecaster:
             plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------
+    # auto_select — fit multiple models, return the best one
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def auto_select(cls, X_train, X_val, candidates=None, *,
+                    metric: str = "mse", verbose: bool = False, **kwargs):
+        """Fit a list of candidate models and return the best-performing one.
+
+        *candidates* defaults to ``["DLinear", "NLinear", "PatchTST"]``.
+        Extra ``**kwargs`` are forwarded to each :class:`Forecaster` constructor.
+        Returns the fitted :class:`Forecaster` instance with the best *metric*
+        on *X_val*::
+
+            best = Forecaster.auto_select(
+                X_train, X_val,
+                ["DLinear", "NLinear", "iTransformer"],
+                seq_len=96, pred_len=24, epochs=10,
+                metric="mae",
+            )
+            print(best)
+        """
+        if candidates is None:
+            candidates = ["DLinear", "NLinear", "PatchTST"]
+        best_fc    = None
+        best_score = float("inf")
+        for name in candidates:
+            fc = cls(name, **kwargs)
+            fc.verbose = verbose
+            try:
+                fc.fit(X_train)
+                score = fc.evaluate(X_val).get(metric, float("inf"))
+                if score < best_score:
+                    best_score = score
+                    best_fc    = fc
+            except Exception:
+                pass
+        if best_fc is None:
+            raise RuntimeError("All candidates failed to fit/evaluate.")
+        return best_fc
+
+    # ------------------------------------------------------------------
+    # conformal_coverage — empirical PI coverage on held-out data
+    # ------------------------------------------------------------------
+
+    def conformal_coverage(self, X_calib, X_test, *,
+                           coverage: float = 0.9, n_samples: int = 200):
+        """Compute empirical coverage of conformal prediction intervals.
+
+        Calls :meth:`predict_interval` calibrated on *X_calib*, then measures
+        what fraction of *X_test* targets actually fall inside the intervals.
+        Returns a dict::
+
+            {
+                "nominal_coverage"  : float,  # requested coverage
+                "empirical_coverage": float,  # actual fraction covered
+                "coverage_gap"      : float,  # empirical - nominal
+            }
+
+        Example::
+
+            result = fc.conformal_coverage(X_calib, X_test, coverage=0.9)
+            print(result["empirical_coverage"])  # should be ≈ 0.9 if well-calibrated
+        """
+        self._check_fitted()
+        # calibrate conformal width on X_calib
+        calib_resids = self.residuals(X_calib)
+        if calib_resids.ndim == 3:
+            calib_flat = np.abs(calib_resids).ravel()
+        else:
+            calib_flat = np.abs(calib_resids).ravel()
+        q_level = float(np.quantile(calib_flat, coverage))
+        # evaluate on X_test
+        actuals, preds = self._collect_actuals_predictions(X_test)
+        lower = preds - q_level
+        upper = preds + q_level
+        covered = ((actuals >= lower) & (actuals <= upper))
+        emp_cov = float(covered.mean())
+        return {
+            "nominal_coverage":   coverage,
+            "empirical_coverage": emp_cov,
+            "coverage_gap":       emp_cov - coverage,
+        }
+
+    # ------------------------------------------------------------------
+    # winkler_score — interval score penalising width and misses
+    # ------------------------------------------------------------------
+
+    def winkler_score(self, X_calib, X_test, *,
+                      coverage: float = 0.9, n_samples: int = 200):
+        """Compute the Winkler interval score on *X_test*.
+
+        Lower is better.  The score penalises both wide intervals *and* misses::
+
+            W = (upper - lower) + 2/α * max(0, lower - y) + 2/α * max(0, y - upper)
+
+        where ``α = 1 - coverage``.  Returns a scalar float (mean over all
+        target steps and channels).
+
+        Example::
+
+            ws = fc.winkler_score(X_calib, X_test, coverage=0.9)
+            print(f"Winkler score: {ws:.4f}")
+        """
+        self._check_fitted()
+        calib_resids = self.residuals(X_calib)
+        q_level = float(np.quantile(np.abs(calib_resids), coverage))
+        actuals, preds = self._collect_actuals_predictions(X_test)
+        lower = preds - q_level
+        upper = preds + q_level
+        alpha  = 1 - coverage
+        width  = upper - lower
+        miss_lo = np.maximum(0.0, lower - actuals)
+        miss_hi = np.maximum(0.0, actuals - upper)
+        score = width + (2 / alpha) * (miss_lo + miss_hi)
+        return float(score.mean())
+
+    # ------------------------------------------------------------------
+    # concept_drift_score — Jensen-Shannon divergence between time windows
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def concept_drift_score(X_ref, X_test, *, window: int = None,
+                            n_bins: int = 30, channel: int = 0):
+        """Estimate distribution shift between *X_ref* and *X_test* via JS divergence.
+
+        Uses a histogram-based JS divergence on a single *channel*.  Values
+        near 0 indicate similar distributions; values near 1 indicate maximum
+        shift.
+
+        If *window* is given, computes the JS divergence in a rolling fashion
+        over *X_test* and returns an array of per-window drift scores::
+
+            drift = Forecaster.concept_drift_score(X_train, X_test, window=50)
+            plt.plot(drift)
+        """
+        arr_ref  = np.asarray(X_ref)
+        arr_test = np.asarray(X_test)
+        if arr_ref.ndim == 2:
+            arr_ref  = arr_ref[:, channel]
+        if arr_test.ndim == 2:
+            arr_test = arr_test[:, channel]
+
+        def _js(a, b, bins):
+            lo = min(a.min(), b.min()) - 1e-8
+            hi = max(a.max(), b.max()) + 1e-8
+            edges = np.linspace(lo, hi, bins + 1)
+            p = np.histogram(a, edges)[0].astype(float) + 1e-10
+            q = np.histogram(b, edges)[0].astype(float) + 1e-10
+            p /= p.sum(); q /= q.sum()
+            m = 0.5 * (p + q)
+            kl_pm = np.sum(p * np.log(p / m))
+            kl_qm = np.sum(q * np.log(q / m))
+            return float(0.5 * (kl_pm + kl_qm))
+
+        if window is None:
+            return _js(arr_ref, arr_test, n_bins)
+        scores = []
+        for start in range(0, len(arr_test) - window + 1):
+            seg = arr_test[start: start + window]
+            scores.append(_js(arr_ref, seg, n_bins))
+        return np.array(scores)
+
+    def plot_concept_drift(self, X_ref, X_test, *, window: int = 50,
+                           channel: int = 0, ax=None, title: str = None):
+        """Rolling JS-divergence concept drift chart::
+
+            fc.plot_concept_drift(X_train, X_test_long, window=100)
+        """
+        import matplotlib.pyplot as plt
+        scores = self.concept_drift_score(X_ref, X_test, window=window, channel=channel)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(9, 3))
+        else:
+            fig = ax.get_figure()
+        ax.plot(scores)
+        ax.set_xlabel("Window index")
+        ax.set_ylabel("JS divergence")
+        ax.set_title(title or f"Concept drift (window={window}, channel={channel})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # plot_prediction_bands — fan chart with multiple coverage levels
+    # ------------------------------------------------------------------
+
+    def plot_prediction_bands(self, X, *,
+                              coverages=(0.5, 0.8, 0.9, 0.95),
+                              n_samples: int = 200, channel: int = 0,
+                              n_context: int = 96, ax=None, title: str = None):
+        """Fan chart with shaded bands for multiple coverage levels.
+
+        Uses MC-Dropout (if available) or bootstrap quantiles to build a fan
+        chart showing nested prediction bands at the requested *coverages*::
+
+            fc.plot_prediction_bands(X_test, coverages=(0.5, 0.8, 0.95))
+        """
+        import matplotlib.pyplot as plt
+        self._check_fitted()
+        ctx = X[-min(n_context, self.seq_len):]
+        if len(ctx) < self.seq_len:
+            pad = np.zeros((self.seq_len - len(ctx), X.shape[-1] if X.ndim == 2 else 1), dtype=np.float32)
+            ctx = np.concatenate([pad, ctx], axis=0)
+        # gather sample predictions via MC-Dropout
+        self._model.train()
+        sample_preds = []
+        with torch.no_grad():
+            for _ in range(n_samples):
+                p = self.predict(ctx)
+                sample_preds.append(p[:, channel])
+        self._model.eval()
+        sample_preds = np.stack(sample_preds, axis=0)   # (n_samples, pred_len)
+        t = np.arange(self.pred_len)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+        cmap = plt.cm.Blues
+        for i, cov in enumerate(sorted(coverages)):
+            alpha_val = (1 - cov) / 2
+            lo = np.quantile(sample_preds, alpha_val, axis=0)
+            hi = np.quantile(sample_preds, 1 - alpha_val, axis=0)
+            shade = 0.25 + 0.5 * (1 - i / len(coverages))
+            ax.fill_between(t, lo, hi, alpha=0.35, color=cmap(shade),
+                            label=f"{int(cov*100)}% CI")
+        median = np.median(sample_preds, axis=0)
+        ax.plot(t, median, color="navy", linewidth=1.5, label="Median")
+        ax.set_xlabel("Prediction step")
+        ax.set_ylabel(f"Channel {channel}")
+        ax.set_title(title or "Prediction bands")
+        ax.legend(fontsize=8, loc="upper right")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

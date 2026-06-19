@@ -3455,6 +3455,122 @@ class TestPlotForecastErrorDistribution:
         plt.close("all")
 
 
+class TestAutoSelect:
+    def test_returns_fitted_forecaster(self):
+        X = _rng_data(n=200)
+        best = Forecaster.auto_select(
+            X[:140], X[140:],
+            ["DLinear", "NLinear"],
+            seq_len=SEQ, pred_len=PRED, epochs=2,
+            batch_size=32, patience=5, verbose=False,
+        )
+        assert isinstance(best, Forecaster)
+        assert best._model is not None
+
+    def test_all_fail_raises(self):
+        X = _rng_data(n=200)
+        with pytest.raises(RuntimeError):
+            Forecaster.auto_select(
+                X[:140], X[140:],
+                ["ThisModelDoesNotExist999"],
+                seq_len=SEQ, pred_len=PRED, epochs=2,
+                batch_size=32, patience=5, verbose=False,
+            )
+
+
+class TestConformalCoverage:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.conformal_coverage(self.X, self.X, coverage=0.9)
+        assert set(result.keys()) >= {"nominal_coverage", "empirical_coverage", "coverage_gap"}
+
+    def test_nominal_preserved(self):
+        result = self.fc.conformal_coverage(self.X, self.X, coverage=0.8)
+        assert result["nominal_coverage"] == pytest.approx(0.8)
+
+    def test_empirical_in_unit_interval(self):
+        result = self.fc.conformal_coverage(self.X, self.X, coverage=0.9)
+        assert 0.0 <= result["empirical_coverage"] <= 1.0
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().conformal_coverage(self.X, self.X)
+
+
+class TestWinklerScore:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_float(self):
+        ws = self.fc.winkler_score(self.X, self.X)
+        assert isinstance(ws, float)
+
+    def test_positive(self):
+        ws = self.fc.winkler_score(self.X, self.X)
+        assert ws > 0
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().winkler_score(self.X, self.X)
+
+
+class TestConceptDriftScore:
+    def test_scalar_output(self):
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=200, seed=1)
+        score  = Forecaster.concept_drift_score(X_ref, X_test)
+        assert isinstance(score, float)
+        assert 0.0 <= score <= 1.0
+
+    def test_same_dist_near_zero(self):
+        X = _rng_data(n=500)
+        score = Forecaster.concept_drift_score(X[:250], X[250:])
+        assert score < 0.5   # same underlying distribution
+
+    def test_rolling_output(self):
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=150, seed=2)
+        scores = Forecaster.concept_drift_score(X_ref, X_test, window=50)
+        assert isinstance(scores, np.ndarray)
+        assert len(scores) == 150 - 50 + 1
+
+    def test_1d_input(self):
+        X_ref  = _rng_data(n=100)[:, 0]
+        X_test = _rng_data(n=100, seed=3)[:, 0]
+        score  = Forecaster.concept_drift_score(X_ref, X_test)
+        assert isinstance(score, float)
+
+
+class TestPlotConceptDrift:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=200, seed=1)
+        fc = _quick_fc()   # static method; fc not needed but test via instance
+        fig = fc.plot_concept_drift(X_ref, X_test, window=50)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestPlotPredictionBands:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.plot_prediction_bands(_rng_data(n=200), n_samples=10)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().plot_prediction_bands(_rng_data(n=200), n_samples=5)
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
