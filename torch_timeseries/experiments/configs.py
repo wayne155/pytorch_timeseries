@@ -374,6 +374,23 @@ class RetForecasterConfig:
 
 
 @dataclass
+class HarmonicForecasterConfig:
+    n_harmonics: int = 16
+    use_mlp: bool = True
+    d_mlp: int = 64
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_harmonics <= 0:
+            raise ValueError("n_harmonics must be positive")
+        if self.d_mlp <= 0:
+            raise ValueError("d_mlp must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class MoEForecasterConfig:
     n_experts: int = 8
     k_active: int = 2
@@ -1101,6 +1118,10 @@ def split_experiment_config(
         ("RetForecaster", "AnomalyDetection"): RetForecasterConfig,
         ("RetForecaster", "Imputation"): RetForecasterConfig,
         ("RetForecaster", "UEAClassification"): RetForecasterConfig,
+        ("HarmonicForecaster", "Forecast"): HarmonicForecasterConfig,
+        ("HarmonicForecaster", "AnomalyDetection"): HarmonicForecasterConfig,
+        ("HarmonicForecaster", "Imputation"): HarmonicForecasterConfig,
+        ("HarmonicForecaster", "UEAClassification"): HarmonicForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

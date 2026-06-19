@@ -396,6 +396,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "HarmonicForecaster": {
+        "n_harmonics": 16,
+        "use_mlp": True,
+        "d_mlp": 64,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

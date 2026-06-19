@@ -280,6 +280,12 @@ from .RetForecaster import (
     RetForecasterAnomalyDetection,
     RetForecasterImputation,
 )
+from .HarmonicForecaster import (
+    HarmonicForecasterForecast,
+    HarmonicForecasterUEAClassification,
+    HarmonicForecasterAnomalyDetection,
+    HarmonicForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
