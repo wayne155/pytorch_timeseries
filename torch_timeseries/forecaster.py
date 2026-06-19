@@ -8645,6 +8645,179 @@ class Forecaster:
             records[f"ch{c}"] = ccf_vals
         return pd.DataFrame(records, index=lags)
 
+    # ------------------------------------------------------------------
+    # batch_evaluate — evaluate on multiple test sets
+    # ------------------------------------------------------------------
+
+    def batch_evaluate(self, X_list, *, names=None, metrics=("mse", "mae", "rmse")):
+        """Evaluate on multiple test arrays and return a ranked DataFrame.
+
+        *X_list* is an iterable of numpy arrays (each a separate test set).
+        *names* provides row labels; defaults to ``["dataset_0", "dataset_1", …]``.
+
+        Example::
+
+            df = fc.batch_evaluate([X_test_A, X_test_B, X_test_C],
+                                    names=["ETTh1", "ETTh2", "Exchange"],
+                                    metrics=("mse", "mae"))
+            print(df)
+        """
+        import pandas as pd
+        self._check_fitted()
+        if names is None:
+            names = [f"dataset_{i}" for i in range(len(X_list))]
+        records = []
+        for name, X in zip(names, X_list):
+            try:
+                scores = self.evaluate(X)
+                row = {"dataset": name}
+                row.update({m: scores.get(m, float("nan")) for m in metrics})
+            except Exception as exc:
+                row = {"dataset": name, "error": str(exc)}
+            records.append(row)
+        df = pd.DataFrame(records).set_index("dataset")
+        return df
+
+    # ------------------------------------------------------------------
+    # spectral_entropy — Shannon entropy of the normalized PSD
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def spectral_entropy(X, *, channel: int = 0, n_fft: int = None,
+                         normalize: bool = True):
+        """Spectral entropy: Shannon entropy of the normalized power spectrum.
+
+        A flat (white-noise) spectrum has maximum entropy; a single-sinusoid
+        signal has near-zero entropy.  Returns a scalar in ``[0, 1]`` when
+        *normalize* is ``True`` (divided by ``log₂(n_freqs)``).
+
+        Example::
+
+            se = Forecaster.spectral_entropy(X_train, channel=0)
+            print(f"Spectral entropy: {se:.3f}")  # 1 = noise, 0 = pure sinusoid
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        n = n_fft or T
+        psd = np.abs(np.fft.rfft(arr - arr.mean(), n=n)) ** 2
+        psd = psd + 1e-15
+        psd /= psd.sum()
+        entropy = -float(np.sum(psd * np.log2(psd)))
+        if normalize:
+            entropy /= np.log2(len(psd))
+        return entropy
+
+    # ------------------------------------------------------------------
+    # forecast_bias — signed mean error per prediction step
+    # ------------------------------------------------------------------
+
+    def forecast_bias(self, X, *, channel: int = 0):
+        """Compute mean signed error (bias) at each prediction step.
+
+        Returns a 1-D array of shape ``(pred_len,)`` where positive values
+        indicate over-prediction and negative indicate under-prediction::
+
+            bias = fc.forecast_bias(X_test, channel=0)
+            plt.bar(range(len(bias)), bias)
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        # actuals, preds: (n_windows, pred_len, C)
+        errors = preds[:, :, channel] - actuals[:, :, channel]
+        return errors.mean(axis=0)   # (pred_len,)
+
+    def plot_forecast_bias(self, X, *, channel: int = 0,
+                           ax=None, title: str = None):
+        """Bar chart of per-step forecast bias.
+
+        Red bars = over-prediction; blue bars = under-prediction::
+
+            fc.plot_forecast_bias(X_test, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        bias = self.forecast_bias(X, channel=channel)
+        steps = np.arange(len(bias))
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(8, 4))
+        else:
+            fig = ax.get_figure()
+        colors = ["tomato" if b > 0 else "steelblue" for b in bias]
+        ax.bar(steps, bias, color=colors, alpha=0.8)
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.set_xlabel("Prediction step")
+        ax.set_ylabel("Mean signed error")
+        ax.set_title(title or f"Forecast bias (channel {channel})")
+        ax.grid(True, alpha=0.3, axis="y")
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # box_cox_transform — Box-Cox power transform (pure numpy)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def box_cox_transform(X, *, channel: int = 0, lam: float = None,
+                          lam_grid=None):
+        """Box-Cox power transform with optional automatic lambda selection.
+
+        If *lam* is ``None``, selects the lambda from *lam_grid* that
+        maximises the log-likelihood of normality (Box-Cox log-likelihood).
+        Returns ``(X_transformed_1d, lam_used, offset)`` where *offset* is
+        the shift added to make all values positive.
+
+        The inverse is ``Forecaster.box_cox_inverse(X_tr, lam, offset)``.
+
+        Example::
+
+            x_tr, lam, offset = Forecaster.box_cox_transform(X_train, channel=0)
+            x_back = Forecaster.box_cox_inverse(x_tr, lam, offset)
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        # shift to strictly positive
+        offset = max(0.0, -arr.min() + 1.0)
+        pos    = arr + offset
+        if lam is None:
+            grid = lam_grid or np.linspace(-2, 2, 41)
+            best_lam, best_ll = None, -np.inf
+            n = len(pos)
+            for l in grid:
+                if abs(l) < 1e-8:
+                    y = np.log(pos)
+                else:
+                    y = (pos ** l - 1) / l
+                mu = y.mean(); sig = y.std() + 1e-15
+                ll = -n / 2 * np.log(sig ** 2) + (l - 1) * np.sum(np.log(pos))
+                if ll > best_ll:
+                    best_ll, best_lam = ll, float(l)
+            lam = best_lam
+        if abs(lam) < 1e-8:
+            transformed = np.log(pos)
+        else:
+            transformed = (pos ** lam - 1) / lam
+        return transformed.astype(np.float32), float(lam), float(offset)
+
+    @staticmethod
+    def box_cox_inverse(X_transformed, lam: float, offset: float):
+        """Inverse Box-Cox transform.
+
+        Recovers the original scale from the output of
+        :meth:`box_cox_transform`::
+
+            x_back = Forecaster.box_cox_inverse(x_tr, lam, offset)
+        """
+        arr = np.asarray(X_transformed, dtype=np.float64)
+        if abs(lam) < 1e-8:
+            pos = np.exp(arr)
+        else:
+            pos = np.clip(lam * arr + 1, 0, None) ** (1.0 / lam)
+        return (pos - offset).astype(np.float32)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

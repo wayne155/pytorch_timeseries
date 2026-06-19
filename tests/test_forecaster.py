@@ -4071,6 +4071,116 @@ class TestGetTargetCorrelations:
         assert df.shape[0] == 11
 
 
+class TestBatchEvaluate:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dataframe(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X_list = [_rng_data(n=200, seed=i) for i in range(3)]
+        df = self.fc.batch_evaluate(X_list, names=["A", "B", "C"])
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 3
+
+    def test_columns_include_metrics(self):
+        pytest.importorskip("pandas")
+        X_list = [_rng_data(n=200, seed=0)]
+        df = self.fc.batch_evaluate(X_list)
+        assert "mse" in df.columns
+
+    def test_index_uses_names(self):
+        pytest.importorskip("pandas")
+        X_list = [_rng_data(n=200, seed=0), _rng_data(n=200, seed=1)]
+        df = self.fc.batch_evaluate(X_list, names=["X1", "X2"])
+        assert list(df.index) == ["X1", "X2"]
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().batch_evaluate([_rng_data(n=200)])
+
+
+class TestSpectralEntropy:
+    def test_returns_float(self):
+        X = _rng_data(n=200)
+        se = Forecaster.spectral_entropy(X, channel=0)
+        assert isinstance(se, float)
+
+    def test_normalized_in_unit_interval(self):
+        X = _rng_data(n=200)
+        se = Forecaster.spectral_entropy(X, channel=0, normalize=True)
+        assert 0.0 <= se <= 1.0
+
+    def test_white_noise_near_one(self):
+        rng = np.random.default_rng(0)
+        X = rng.standard_normal((1000, 1)).astype(np.float32)
+        se = Forecaster.spectral_entropy(X, channel=0, normalize=True)
+        assert se > 0.9   # white noise → near-max entropy
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        se = Forecaster.spectral_entropy(X)
+        assert isinstance(se, float)
+
+
+class TestForecastBias:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_shape(self):
+        bias = self.fc.forecast_bias(self.X)
+        assert bias.shape == (PRED,)
+
+    def test_finite(self):
+        bias = self.fc.forecast_bias(self.X)
+        assert np.all(np.isfinite(bias))
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().forecast_bias(self.X)
+
+
+class TestPlotForecastBias:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.plot_forecast_bias(_rng_data(n=200))
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestBoxCoxTransform:
+    def test_returns_three_items(self):
+        X = _rng_data(n=200)
+        result = Forecaster.box_cox_transform(X, channel=0)
+        assert len(result) == 3
+
+    def test_transformed_is_array(self):
+        X = _rng_data(n=200)
+        x_tr, lam, offset = Forecaster.box_cox_transform(X, channel=0)
+        assert isinstance(x_tr, np.ndarray)
+
+    def test_inverse_roundtrip(self):
+        X = _rng_data(n=200)
+        arr = X[:, 0]
+        x_tr, lam, offset = Forecaster.box_cox_transform(X, channel=0)
+        x_back = Forecaster.box_cox_inverse(x_tr, lam, offset)
+        np.testing.assert_allclose(x_back, arr, atol=1e-3, rtol=1e-3)
+
+    def test_explicit_lam(self):
+        X = _rng_data(n=200)
+        x_tr, lam, _ = Forecaster.box_cox_transform(X, channel=0, lam=0.5)
+        assert abs(lam - 0.5) < 1e-6
+
+    def test_lam_zero_is_log(self):
+        X = np.abs(_rng_data(n=100)) + 1.0   # strictly positive
+        x_tr, lam, offset = Forecaster.box_cox_transform(X, channel=0, lam=0.0)
+        arr = X[:, 0] + offset
+        np.testing.assert_allclose(x_tr, np.log(arr).astype(np.float32), atol=1e-5)
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
