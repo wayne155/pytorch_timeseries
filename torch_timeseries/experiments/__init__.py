@@ -382,6 +382,12 @@ from .S4Forecaster import (
     S4ForecasterAnomalyDetection,
     S4ForecasterImputation,
 )
+from .HyenaForecaster import (
+    HyenaForecasterForecast,
+    HyenaForecasterUEAClassification,
+    HyenaForecasterAnomalyDetection,
+    HyenaForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

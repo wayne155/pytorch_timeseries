@@ -506,6 +506,26 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class HyenaForecasterConfig:
+    d_model: int = 64
+    n_layers: int = 3
+    pos_freqs: int = 16
+    filter_dim: int = 64
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.pos_freqs <= 0:
+            raise ValueError("pos_freqs must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class S4ForecasterConfig:
     d_model: int = 64
     d_state: int = 32
@@ -1489,6 +1509,10 @@ def split_experiment_config(
         ("S4Forecaster", "AnomalyDetection"): S4ForecasterConfig,
         ("S4Forecaster", "Imputation"): S4ForecasterConfig,
         ("S4Forecaster", "UEAClassification"): S4ForecasterConfig,
+        ("HyenaForecaster", "Forecast"): HyenaForecasterConfig,
+        ("HyenaForecaster", "AnomalyDetection"): HyenaForecasterConfig,
+        ("HyenaForecaster", "Imputation"): HyenaForecasterConfig,
+        ("HyenaForecaster", "UEAClassification"): HyenaForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
