@@ -8453,6 +8453,198 @@ class Forecaster:
             yield t, pred
             t += step
 
+    # ------------------------------------------------------------------
+    # predict_autoregressive — recursive multi-step ahead forecast
+    # ------------------------------------------------------------------
+
+    def predict_autoregressive(self, X, n_steps: int):
+        """Generate *n_steps* ahead by feeding predictions back as context.
+
+        At each round, predicts ``pred_len`` steps, appends them to the
+        rolling context window, and repeats until ``n_steps`` total steps
+        are generated.  Returns a ``(n_steps, C)`` array::
+
+            y_hat = fc.predict_autoregressive(X_context, n_steps=200)
+            plt.plot(y_hat[:, 0])
+        """
+        self._check_fitted()
+        arr = np.asarray(X[-self.seq_len:], dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        generated = []
+        ctx = arr.copy()
+        while sum(p.shape[0] for p in generated) < n_steps:
+            pred = self.predict(ctx)             # (pred_len, C)
+            generated.append(pred)
+            ctx = np.concatenate([ctx[self.pred_len:], pred], axis=0)[-self.seq_len:]
+        all_steps = np.concatenate(generated, axis=0)
+        return all_steps[:n_steps]
+
+    # ------------------------------------------------------------------
+    # compare_channel_forecasts — side-by-side multi-channel forecast plot
+    # ------------------------------------------------------------------
+
+    def compare_channel_forecasts(self, X, *, channels=None, n_context: int = None,
+                                   title: str = None):
+        """Multi-panel grid of context + forecast for each requested channel.
+
+        Example::
+
+            fc.compare_channel_forecasts(X_test, channels=[0, 1, 2])
+        """
+        import matplotlib.pyplot as plt
+        self._check_fitted()
+        n_ctx = n_context or self.seq_len
+        ctx = X[-n_ctx:]
+        if ctx.ndim == 1:
+            ctx = ctx[:, None]
+        pred = self.predict(ctx[-self.seq_len:])   # (pred_len, C)
+        C_total = ctx.shape[1]
+        if channels is None:
+            channels = list(range(C_total))
+        n_ch = len(channels)
+        ncols = min(3, n_ch)
+        nrows = (n_ch + ncols - 1) // ncols
+        fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 3 * nrows),
+                                 squeeze=False)
+        t_ctx  = np.arange(n_ctx)
+        t_pred = np.arange(n_ctx, n_ctx + self.pred_len)
+        for i, ch in enumerate(channels):
+            ax = axes[i // ncols][i % ncols]
+            ax.plot(t_ctx,  ctx[:, ch], color="steelblue", label="Context")
+            ax.plot(t_pred, pred[:, ch], color="tomato",   label="Forecast")
+            ax.axvline(n_ctx, color="gray", linestyle="--", linewidth=0.8)
+            ax.set_title(f"Channel {ch}")
+            ax.grid(True, alpha=0.3)
+            if i == 0:
+                ax.legend(fontsize=8)
+        # hide unused panels
+        for j in range(len(channels), nrows * ncols):
+            axes[j // ncols][j % ncols].set_visible(False)
+        if title:
+            fig.suptitle(title, fontsize=11)
+        plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # temporal_cross_validation — expanding-window time-series CV
+    # ------------------------------------------------------------------
+
+    def temporal_cross_validation(self, X, *, n_splits: int = 5, gap: int = 0,
+                                   metric: str = "mse"):
+        """Expanding-window cross-validation for time-series data.
+
+        Returns a list of ``(train_size, score)`` tuples sorted by training
+        set size (smallest first).  The first fold uses ``1/(n_splits+1)`` of
+        the data as train, growing by the same fraction each fold.  A *gap*
+        can be inserted between train and test to prevent leakage::
+
+            cv_scores = fc.temporal_cross_validation(X, n_splits=5, metric="mae")
+            for train_size, score in cv_scores:
+                print(f"train={train_size}: {metric}={score:.4f}")
+        """
+        T = len(X)
+        min_train = max(self.seq_len * 2, T // (n_splits + 1))
+        test_size = max(self.pred_len, T // (n_splits + 1))
+        records = []
+        for split in range(n_splits):
+            train_end = min_train + split * test_size
+            test_start = train_end + gap
+            test_end   = test_start + test_size
+            if test_end > T:
+                break
+            X_tr = X[:train_end]
+            X_te = X[test_start:test_end]
+            if len(X_tr) < self.seq_len or len(X_te) < self.seq_len + self.pred_len:
+                continue
+            fc = self.clone()
+            fc.fit(X_tr)
+            score = fc.evaluate(X_te).get(metric, float("nan"))
+            records.append((train_end, score))
+        return records
+
+    # ------------------------------------------------------------------
+    # plot_learning_curve — model performance vs training set size
+    # ------------------------------------------------------------------
+
+    def plot_learning_curve(self, X, *, test_ratio: float = 0.2,
+                            n_sizes: int = 5, metric: str = "mse",
+                            ax=None, title: str = None):
+        """Train on growing subsets of *X* and plot *metric* vs training size.
+
+        A downward-sloping curve confirms the model improves with more data;
+        a flat curve suggests the model is already at capacity::
+
+            fc.plot_learning_curve(X_all, metric="mae")
+        """
+        import matplotlib.pyplot as plt
+        T = len(X)
+        n_test  = max(self.pred_len, int(T * test_ratio))
+        X_train = X[:T - n_test]
+        X_test  = X[T - n_test:]
+        min_tr  = max(self.seq_len * 2, len(X_train) // (n_sizes + 1))
+        sizes   = np.linspace(min_tr, len(X_train), n_sizes, dtype=int)
+        scores  = []
+        for sz in sizes:
+            fc = self.clone()
+            fc.fit(X_train[:sz])
+            score = fc.evaluate(X_test).get(metric, float("nan"))
+            scores.append(float(score))
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(7, 4))
+        else:
+            fig = ax.get_figure()
+        ax.plot(sizes, scores, marker="o", markersize=5, linewidth=1.5)
+        ax.set_xlabel("Training size")
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Learning curve ({metric.upper()})")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # get_target_correlations — lagged CCF of each channel with target
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_target_correlations(X, *, target_col: int = 0, max_lag: int = 20):
+        """Compute lagged cross-correlations between each channel and the target.
+
+        Returns a :class:`pandas.DataFrame` of shape ``(2*max_lag+1, C)`` where
+        each column is one channel and each row is a lag from ``-max_lag``
+        to ``+max_lag``.  Positive lag means the channel leads the target::
+
+            df = Forecaster.get_target_correlations(X_train, target_col=0)
+            df.plot()  # inspect which channels predict the target
+        """
+        import pandas as pd
+        arr  = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        T, C = arr.shape
+        target = arr[:, target_col]
+        target_centered = target - target.mean()
+        lags = np.arange(-max_lag, max_lag + 1)
+        records = {}
+        for c in range(C):
+            ch_centered = arr[:, c] - arr[:, c].mean()
+            n0 = np.dot(target_centered, target_centered)
+            nc = np.dot(ch_centered, ch_centered)
+            norm = np.sqrt(n0 * nc) + 1e-15
+            ccf_vals = []
+            for lag in lags:
+                if lag >= 0:
+                    length = T - lag
+                    val = np.dot(target_centered[lag:], ch_centered[:length]) / norm * T / length
+                else:
+                    length = T + lag
+                    val = np.dot(target_centered[:length], ch_centered[-lag:]) / norm * T / length
+                ccf_vals.append(val)
+            records[f"ch{c}"] = ccf_vals
+        return pd.DataFrame(records, index=lags)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

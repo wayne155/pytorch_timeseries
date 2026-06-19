@@ -3975,6 +3975,102 @@ class TestRollingPredictIter:
             list(_quick_fc().rolling_predict_iter(self.X))
 
 
+class TestPredictAutoregressive:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_shape(self):
+        pred = self.fc.predict_autoregressive(self.X, n_steps=50)
+        assert pred.shape == (50, C)
+
+    def test_exact_n_steps(self):
+        for n in [1, PRED, PRED + 3, 3 * PRED]:
+            pred = self.fc.predict_autoregressive(self.X, n_steps=n)
+            assert pred.shape[0] == n
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().predict_autoregressive(self.X, n_steps=10)
+
+
+class TestCompareChannelForecasts:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.compare_channel_forecasts(_rng_data(n=200), channels=[0, 1])
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().compare_channel_forecasts(_rng_data(n=200))
+
+
+class TestTemporalCrossValidation:
+    def setup_method(self):
+        self.fc = _quick_fc()
+        self.X  = _rng_data(n=400)
+
+    def test_returns_list(self):
+        result = self.fc.temporal_cross_validation(self.X, n_splits=3)
+        assert isinstance(result, list)
+
+    def test_each_item_is_pair(self):
+        result = self.fc.temporal_cross_validation(self.X, n_splits=3)
+        for item in result:
+            assert len(item) == 2
+
+    def test_scores_finite(self):
+        result = self.fc.temporal_cross_validation(self.X, n_splits=3, metric="mae")
+        for _, score in result:
+            assert np.isfinite(score)
+
+    def test_train_sizes_increasing(self):
+        result = self.fc.temporal_cross_validation(self.X, n_splits=3)
+        sizes = [r[0] for r in result]
+        assert sizes == sorted(sizes)
+
+
+class TestPlotLearningCurve:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc()
+        fig = fc.plot_learning_curve(_rng_data(n=400), n_sizes=3)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestGetTargetCorrelations:
+    def test_returns_dataframe(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X = _rng_data(n=200)
+        df = Forecaster.get_target_correlations(X, target_col=0, max_lag=10)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_shape(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=200)
+        df = Forecaster.get_target_correlations(X, target_col=0, max_lag=10)
+        assert df.shape == (21, C)
+
+    def test_index_spans_lags(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=200)
+        df = Forecaster.get_target_correlations(X, max_lag=5)
+        assert list(df.index) == list(range(-5, 6))
+
+    def test_1d_raises_gracefully_or_works(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)[:, 0]
+        # 1D → treated as single channel; target_col must be 0
+        df = Forecaster.get_target_correlations(X, target_col=0, max_lag=5)
+        assert df.shape[0] == 11
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
