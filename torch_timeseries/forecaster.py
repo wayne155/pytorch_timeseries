@@ -6171,6 +6171,220 @@ class Forecaster:
 
         return np.array(scores)
 
+    @staticmethod
+    def mutual_information(
+        X: np.ndarray,
+        *,
+        n_bins: int = 20,
+    ) -> np.ndarray:
+        """Pairwise mutual information matrix between channels.
+
+        Captures non-linear dependencies that Pearson correlation misses.
+        Uses the histogram-based estimator:
+        ``MI(i,j) = Σ p(x,y) log[ p(x,y) / (p(x)·p(y)) ]``.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        n_bins:
+            Number of histogram bins per axis (default ``20``).
+
+        Returns
+        -------
+        np.ndarray of shape ``(C, C)`` — MI in nats (symmetric, diagonal ≥ 0).
+        """
+        X_f = np.asarray(X, dtype=float)
+        T, C = X_f.shape
+        mi = np.zeros((C, C))
+        for i in range(C):
+            for j in range(i, C):
+                xi, xj = X_f[:, i], X_f[:, j]
+                if i == j:
+                    # H(X) = MI(X;X)
+                    counts, _ = np.histogram(xi, bins=n_bins)
+                    p = counts / T
+                    p = p[p > 0]
+                    mi[i, i] = float(-np.sum(p * np.log(p)))
+                    continue
+                hist2d, _, _ = np.histogram2d(xi, xj, bins=n_bins)
+                pxy = hist2d / T
+                px  = pxy.sum(axis=1, keepdims=True)
+                py  = pxy.sum(axis=0, keepdims=True)
+                mask = pxy > 0
+                val  = float(np.sum(pxy[mask] * np.log(pxy[mask] / (px * py + 1e-300)[mask])))
+                mi[i, j] = mi[j, i] = val
+        return mi
+
+    @staticmethod
+    def plot_mutual_information(
+        X: np.ndarray,
+        *,
+        n_bins: int = 20,
+        channel_names: Optional[List[str]] = None,
+        ax=None,
+        title: Optional[str] = None,
+        cmap: str = "viridis",
+    ):
+        """Heatmap of pairwise mutual information between channels.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        n_bins:
+            Histogram bins for MI estimation.
+        channel_names:
+            Labels per channel.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+        cmap:
+            Colormap (default ``"viridis"``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_mutual_information()") from exc
+
+        mi = Forecaster.mutual_information(X, n_bins=n_bins)
+        C  = mi.shape[0]
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(4, C), max(3, C)))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(mi, cmap=cmap, aspect="auto")
+        ax.set_xticks(range(C))
+        ax.set_yticks(range(C))
+        ax.set_xticklabels(channel_names, rotation=45, ha="right")
+        ax.set_yticklabels(channel_names)
+        fig.colorbar(im, ax=ax, label="MI (nats)", fraction=0.046, pad=0.04)
+        ax.set_title(title or "Pairwise mutual information")
+        plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def seasonal_strength(
+        X: np.ndarray,
+        *,
+        period: int,
+        channel: int = 0,
+    ) -> float:
+        """Measure the relative strength of seasonality using residual variance.
+
+        Based on Wang et al. (2006): decomposes the series with a moving-
+        average trend; seasonal strength is ``1 - Var(residual) / Var(deseasonalised)``.
+        A value close to ``1`` means nearly all variance is explained by
+        the seasonal component; close to ``0`` means the series has little
+        seasonality at this period.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        period:
+            Seasonal period (e.g. ``24`` for hourly data with daily seasonality).
+        channel:
+            Channel index (default ``0``).
+
+        Returns
+        -------
+        float in ``[0, 1]``
+        """
+        if period < 2:
+            raise ValueError("period must be >= 2")
+        decomp = Forecaster.seasonal_decompose(X, period=period, method="additive")
+        resid = decomp["residual"]
+        deseason = decomp["trend"]
+        r = resid[:, channel] if resid.ndim > 1 else resid
+        d = deseason[:, channel] if deseason.ndim > 1 else deseason
+        var_r = float(np.nanvar(r))
+        var_d = float(np.nanvar(d))
+        if var_d < 1e-12:
+            return 0.0
+        return float(np.clip(1.0 - var_r / var_d, 0.0, 1.0))
+
+    @staticmethod
+    def optimal_lag(
+        X: np.ndarray,
+        *,
+        max_lag: int = 100,
+        criterion: str = "aic",
+        channel: int = 0,
+    ) -> Dict[str, object]:
+        """Find the AR lag order that minimises AIC or BIC.
+
+        Fits AR(p) models for ``p`` in ``1..max_lag`` using OLS and selects
+        the order with the lowest information criterion.  Useful for choosing
+        a principled ``seq_len``.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        max_lag:
+            Maximum lag to test (default ``100``).
+        criterion:
+            ``"aic"`` (default) or ``"bic"``.
+        channel:
+            Channel index for multivariate input.
+
+        Returns
+        -------
+        dict with keys:
+
+        ``best_lag``  — integer lag with lowest criterion value
+        ``aic``       — np.ndarray of AIC values for lags 1..max_lag
+        ``bic``       — np.ndarray of BIC values
+        ``scores``    — alias for the chosen criterion array
+        """
+        criterion = criterion.lower()
+        if criterion not in ("aic", "bic"):
+            raise ValueError(f"criterion must be 'aic' or 'bic'; got {criterion!r}")
+
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        T  = len(ts)
+        aics, bics = [], []
+
+        for p in range(1, max_lag + 1):
+            n = T - p
+            if n <= p + 1:
+                aics.append(np.inf)
+                bics.append(np.inf)
+                continue
+            rows = np.column_stack(
+                [ts[p - k - 1 : T - k - 1] for k in range(p)] + [np.ones(n)]
+            )
+            coef, *_ = np.linalg.lstsq(rows, ts[p:], rcond=None)
+            resid    = ts[p:] - rows @ coef
+            sse      = float((resid ** 2).sum())
+            k        = p + 1  # number of params including intercept
+            ll       = -n / 2 * (np.log(2 * np.pi * sse / n) + 1)
+            aics.append(float(-2 * ll + 2 * k))
+            bics.append(float(-2 * ll + k * np.log(n)))
+
+        aic_arr = np.array(aics)
+        bic_arr = np.array(bics)
+        scores  = aic_arr if criterion == "aic" else bic_arr
+        best    = int(np.argmin(scores) + 1)
+
+        return {
+            "best_lag": best,
+            "aic":      aic_arr,
+            "bic":      bic_arr,
+            "scores":   scores,
+        }
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

@@ -2947,6 +2947,120 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestMutualInformation:
+    def test_shape(self):
+        X = _rng_data(n=200)
+        mi = Forecaster.mutual_information(X)
+        assert mi.shape == (C, C)
+
+    def test_symmetric(self):
+        X = _rng_data(n=200)
+        mi = Forecaster.mutual_information(X)
+        np.testing.assert_allclose(mi, mi.T, atol=1e-10)
+
+    def test_diagonal_nonnegative(self):
+        X = _rng_data(n=200)
+        mi = Forecaster.mutual_information(X)
+        assert (np.diag(mi) >= 0).all()
+
+    def test_off_diagonal_nonnegative(self):
+        X = _rng_data(n=200)
+        mi = Forecaster.mutual_information(X)
+        assert (mi >= 0).all()
+
+    def test_perfect_dependence_high_mi(self):
+        rng = np.random.default_rng(0)
+        x = rng.standard_normal(500)
+        X = np.column_stack([x, x])   # identical channels
+        mi = Forecaster.mutual_information(X)
+        # MI(0,1) should equal MI(0,0) for perfectly dependent channels
+        assert mi[0, 1] > 0
+
+
+class TestPlotMutualInformation:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_mutual_information(X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_mutual_information(X, title="MI")
+        ax = fig.get_axes()[0]
+        assert "MI" in ax.get_title()
+        plt.close("all")
+
+
+class TestSeasonalStrength:
+    def test_strong_seasonality(self):
+        # Pure sine wave → high seasonal strength
+        t = np.arange(300)
+        x = np.sin(2 * np.pi * t / 12).astype(np.float32)[:, None]
+        X = np.column_stack([x, x])
+        s = Forecaster.seasonal_strength(X, period=12, channel=0)
+        assert s > 0.5
+
+    def test_white_noise_low_strength(self):
+        rng = np.random.default_rng(0)
+        X = rng.standard_normal((300, 2)).astype(np.float32)
+        s = Forecaster.seasonal_strength(X, period=12, channel=0)
+        assert 0.0 <= s <= 1.0
+
+    def test_returns_float_in_01(self):
+        X = _rng_data(n=200)
+        s = Forecaster.seasonal_strength(X, period=7)
+        assert 0.0 <= s <= 1.0
+
+    def test_invalid_period_raises(self):
+        X = _rng_data(n=200)
+        with pytest.raises(ValueError, match="period"):
+            Forecaster.seasonal_strength(X, period=1)
+
+
+class TestOptimalLag:
+    def test_returns_dict(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10)
+        assert isinstance(result, dict)
+
+    def test_expected_keys(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10)
+        for k in ("best_lag", "aic", "bic", "scores"):
+            assert k in result
+
+    def test_best_lag_in_range(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10)
+        assert 1 <= result["best_lag"] <= 10
+
+    def test_aic_length(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10)
+        assert len(result["aic"]) == 10
+
+    def test_bic_criterion(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10, criterion="bic")
+        assert (result["scores"] == result["bic"]).all()
+
+    def test_invalid_criterion_raises(self):
+        X = _rng_data(n=200)
+        with pytest.raises(ValueError, match="criterion"):
+            Forecaster.optimal_lag(X, max_lag=10, criterion="hqic")
+
+    def test_best_lag_is_integer(self):
+        X = _rng_data(n=200)
+        result = Forecaster.optimal_lag(X, max_lag=10)
+        assert isinstance(result["best_lag"], (int, np.integer))
+
+
 class TestDashboard:
     def setup_method(self):
         pytest.importorskip("matplotlib")
