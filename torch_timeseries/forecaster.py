@@ -6385,6 +6385,260 @@ class Forecaster:
             "scores":   scores,
         }
 
+    def plot_quantile_forecast(
+        self,
+        X: np.ndarray,
+        *,
+        quantiles: List[float] = (0.1, 0.25, 0.5, 0.75, 0.9),
+        n_samples: int = 200,
+        channel: int = 0,
+        n_context: int = 96,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Fan chart of quantile forecasts from :meth:`predict_quantiles`.
+
+        Renders shaded bands between paired quantiles (e.g. q10/q90 and
+        q25/q75) plus the median as a solid line.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` (last *n_context* steps used as context).
+        quantiles:
+            Quantile levels (default: 0.1/0.25/0.5/0.75/0.9).  Should be
+            symmetric around the median for a good fan chart.
+        n_samples:
+            MC-Dropout samples to draw.
+        channel:
+            Channel to plot.
+        n_context:
+            History length shown in the plot.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_quantile_forecast()") from exc
+
+        ctx = X[-n_context:]
+        q_dict = self.predict_quantiles(ctx, quantiles=list(quantiles), n_samples=n_samples)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 4))
+        else:
+            fig = ax.get_figure()
+
+        t_ctx  = np.arange(len(X) - n_context, len(X))
+        t_pred = np.arange(len(X), len(X) + self.pred_len)
+
+        ax.plot(t_ctx, ctx[:, channel], color="#555", lw=0.9, label="history")
+        ax.axvline(len(X) - 0.5, color="#bbb", lw=0.8, ls=":")
+
+        # sort quantiles to pair them as bands
+        qs_sorted = sorted(quantiles)
+        n = len(qs_sorted)
+        alphas = np.linspace(0.15, 0.40, n // 2)
+        for i, alpha in enumerate(alphas):
+            lo_key = f"q{int(round(qs_sorted[i] * 100))}"
+            hi_key = f"q{int(round(qs_sorted[n - 1 - i] * 100))}"
+            if lo_key in q_dict and hi_key in q_dict:
+                ax.fill_between(
+                    t_pred,
+                    q_dict[lo_key][:, channel],
+                    q_dict[hi_key][:, channel],
+                    alpha=alpha, color="#4C72B0",
+                    label=f"{int(round(qs_sorted[i]*100))}–{int(round(qs_sorted[n-1-i]*100))}% PI",
+                )
+        # median
+        med_key = f"q{int(round(0.5 * 100))}"
+        if med_key in q_dict:
+            ax.plot(t_pred, q_dict[med_key][:, channel],
+                    color="#d62728", lw=1.5, label="median")
+        elif "mean" in q_dict:
+            ax.plot(t_pred, q_dict["mean"][:, channel],
+                    color="#d62728", lw=1.5, label="mean")
+
+        ax.set_title(title or f"Quantile forecast (channel {channel})")
+        ax.set_xlabel("Timestep")
+        ax.legend(fontsize=7, ncol=3)
+        ax.grid(True, alpha=0.25)
+        plt.tight_layout()
+        return fig
+
+    def fit_on_dataframe(
+        self,
+        df: "pd.DataFrame",
+        *,
+        target_cols: Optional[List[str]] = None,
+        date_col: Optional[str] = None,
+        val_split: float = 0.1,
+    ) -> "Forecaster":
+        """Fit from a pandas DataFrame.
+
+        Parameters
+        ----------
+        df:
+            DataFrame with one row per timestep.
+        target_cols:
+            Column names to use as features.  If ``None``, all numeric
+            columns except *date_col* are used.
+        date_col:
+            Name of the datetime column to exclude (default: auto-detect
+            any column that is not numeric).
+        val_split:
+            Validation fraction passed to :meth:`fit`.
+
+        Returns
+        -------
+        self
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError("pandas is required for fit_on_dataframe()") from exc
+
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError(f"df must be a pandas DataFrame; got {type(df).__name__!r}")
+
+        # auto-detect date column
+        if date_col is None:
+            for col in df.columns:
+                if pd.api.types.is_datetime64_any_dtype(df[col]) or (
+                    df[col].dtype == object and col.lower() in ("date", "time", "datetime", "timestamp")
+                ):
+                    date_col = col
+                    break
+
+        if target_cols is None:
+            exclude = {date_col} if date_col else set()
+            target_cols = [c for c in df.columns
+                           if c not in exclude and pd.api.types.is_numeric_dtype(df[c])]
+
+        X = df[target_cols].to_numpy(dtype=np.float32)
+        return self.fit(X, val_split=val_split)
+
+    @staticmethod
+    def partial_autocorrelation(
+        X: np.ndarray,
+        *,
+        max_lag: int = 40,
+        channel: int = 0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute the partial autocorrelation function (PACF) via Yule-Walker.
+
+        The PACF at lag *k* is the correlation between *x_t* and *x_{t-k}*
+        after removing the linear influence of *x_{t-1}, …, x_{t-k+1}*.
+        Unlike the ACF, it tells you the *direct* lag relationship.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        max_lag:
+            Maximum lag (default ``40``).
+        channel:
+            Channel index.
+
+        Returns
+        -------
+        lags : np.ndarray of shape ``(max_lag + 1,)``
+        pacf : np.ndarray of shape ``(max_lag + 1,)``
+        """
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        ts = ts - ts.mean()
+        n  = len(ts)
+
+        # Full autocorrelation vector r[0..max_lag]
+        c0 = float(np.dot(ts, ts))
+        r  = np.array([
+            float(np.dot(ts[: n - k], ts[k:])) / c0 if k < n else 0.0
+            for k in range(max_lag + 1)
+        ])
+
+        pacf = np.zeros(max_lag + 1)
+        pacf[0] = 1.0
+        if max_lag < 1:
+            return np.arange(max_lag + 1), pacf
+
+        # Levinson-Durbin recursion
+        phi = np.zeros((max_lag + 1, max_lag + 1))
+        phi[1, 1] = r[1]
+        pacf[1]   = r[1]
+        for k in range(2, max_lag + 1):
+            num = r[k] - np.dot(phi[k - 1, 1:k], r[k - 1 : 0 : -1])
+            den = 1.0 - np.dot(phi[k - 1, 1:k], r[1:k])
+            phi[k, k] = num / den if abs(den) > 1e-12 else 0.0
+            for j in range(1, k):
+                phi[k, j] = phi[k - 1, j] - phi[k, k] * phi[k - 1, k - j]
+            pacf[k] = phi[k, k]
+
+        return np.arange(max_lag + 1), pacf
+
+    @staticmethod
+    def plot_pacf(
+        X: np.ndarray,
+        *,
+        max_lag: int = 40,
+        channel: int = 0,
+        ax=None,
+        title: Optional[str] = None,
+        significance_level: float = 0.05,
+    ):
+        """Stem plot of the partial autocorrelation function.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        max_lag:
+            Maximum lag.
+        channel:
+            Channel index.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+        significance_level:
+            Two-tailed level for the confidence band.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_pacf()") from exc
+
+        lags, pacf = Forecaster.partial_autocorrelation(X, max_lag=max_lag, channel=channel)
+        n  = len(X)
+        ci = 1.96 / np.sqrt(n)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+
+        ax.vlines(lags, 0, pacf, linewidth=1.5)
+        ax.axhline(0,   color="black", linewidth=0.8)
+        ax.axhline( ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.axhline(-ci, color="blue", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("PACF")
+        ax.set_title(title or f"Partial autocorrelation (channel {channel})")
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

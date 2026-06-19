@@ -2947,6 +2947,116 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestPlotQuantileForecast:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_quantile_forecast(self.X, n_samples=10)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_quantile_forecast(self.X, n_samples=10, title="QF")
+        ax = fig.get_axes()[0]
+        assert "QF" in ax.get_title()
+        plt.close("all")
+
+
+class TestFitOnDataframe:
+    def test_fits_from_dataframe(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X = _rng_data(n=100)
+        df = pd.DataFrame(X, columns=[f"ch{i}" for i in range(C)])
+        fc = _quick_fc()
+        fc.fit_on_dataframe(df)
+        assert fc._model is not None
+
+    def test_non_dataframe_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(TypeError):
+            fc.fit_on_dataframe(np.zeros((100, C)))
+
+    def test_target_cols_subset(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X = _rng_data(n=100)
+        df = pd.DataFrame(X, columns=[f"ch{i}" for i in range(C)])
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED, epochs=2,
+                        batch_size=32, patience=5, verbose=False)
+        fc.fit_on_dataframe(df, target_cols=["ch0", "ch1"])
+        assert fc._enc_in == 2
+
+    def test_excludes_date_col(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X = _rng_data(n=100)
+        df = pd.DataFrame(X, columns=[f"ch{i}" for i in range(C)])
+        df.insert(0, "date", pd.date_range("2020-01-01", periods=100, freq="h"))
+        fc = _quick_fc()
+        fc.fit_on_dataframe(df, date_col="date")
+        assert fc._enc_in == C   # should not include the date column
+
+
+class TestPartialAutocorrelation:
+    def test_returns_two_arrays(self):
+        X = _rng_data(n=200)
+        lags, pacf = Forecaster.partial_autocorrelation(X, max_lag=20)
+        assert lags.shape == (21,)
+        assert pacf.shape == (21,)
+
+    def test_lag_zero_is_one(self):
+        X = _rng_data(n=200)
+        _, pacf = Forecaster.partial_autocorrelation(X)
+        assert abs(pacf[0] - 1.0) < 1e-6
+
+    def test_ar1_pacf_cuts_off(self):
+        # AR(1) with φ=0.8 → PACF should be large at lag 1 and small at lag 2
+        rng = np.random.default_rng(42)
+        x = np.zeros(500)
+        for t in range(1, 500):
+            x[t] = 0.8 * x[t - 1] + rng.standard_normal()
+        X = x[:, None].astype(np.float32)
+        _, pacf = Forecaster.partial_autocorrelation(X, max_lag=5)
+        assert abs(pacf[1]) > abs(pacf[2])   # lag-1 stronger than lag-2
+
+    def test_bounded_values(self):
+        X = _rng_data(n=200)
+        _, pacf = Forecaster.partial_autocorrelation(X, max_lag=10)
+        assert (np.abs(pacf) <= 1.0 + 1e-6).all()
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        lags, pacf = Forecaster.partial_autocorrelation(X, max_lag=10)
+        assert lags.shape == (11,)
+
+
+class TestPlotPacf:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_pacf(X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=200)
+        fig = Forecaster.plot_pacf(X, title="PACF Test")
+        ax = fig.get_axes()[0]
+        assert "PACF Test" in ax.get_title()
+        plt.close("all")
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
