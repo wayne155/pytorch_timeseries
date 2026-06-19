@@ -269,6 +269,13 @@ MODEL_PARAMS = {
         "d_ff": 512,
         "dropout": 0.1,
     },
+    "MICN": {
+        "d_model": 64,
+        "num_scales": 3,
+        "kernel_size": 5,
+        "dropout": 0.05,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

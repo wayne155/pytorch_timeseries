@@ -184,6 +184,12 @@ from .NSTransformer import (
     NSTransformerAnomalyDetection,
     NSTransformerImputation,
 )
+from .MICN import (
+    MICNForecast,
+    MICNUEAClassification,
+    MICNAnomalyDetection,
+    MICNImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

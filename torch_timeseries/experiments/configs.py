@@ -336,6 +336,25 @@ class ETSformerConfig:
 
 
 @dataclass
+class MICNConfig:
+    d_model: int = 64
+    num_scales: int = 3
+    kernel_size: int = 5
+    dropout: float = 0.05
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.num_scales < 1:
+            raise ValueError("num_scales must be >= 1")
+        if self.kernel_size < 1:
+            raise ValueError("kernel_size must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class NSTransformerConfig:
     d_model: int = 256
     n_heads: int = 8
@@ -681,6 +700,10 @@ def split_experiment_config(
         ("NSTransformer", "AnomalyDetection"): NSTransformerConfig,
         ("NSTransformer", "Imputation"): NSTransformerConfig,
         ("NSTransformer", "UEAClassification"): NSTransformerConfig,
+        ("MICN", "Forecast"): MICNConfig,
+        ("MICN", "AnomalyDetection"): MICNConfig,
+        ("MICN", "Imputation"): MICNConfig,
+        ("MICN", "UEAClassification"): MICNConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

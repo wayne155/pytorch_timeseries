@@ -41,6 +41,7 @@ from .WaveNet import WaveNet
 from .NormalizingFlowForecaster import NormalizingFlowForecaster
 from .ETSformer import ETSformer
 from .NSTransformer import NSTransformer
+from .MICN import MICN
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -60,6 +61,7 @@ forecasting_models = [
     "WaveNet",
     "ETSformer",
     "NSTransformer",
+    "MICN",
 ]
 
 prob_forecasting_models = [
