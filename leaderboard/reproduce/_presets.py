@@ -244,6 +244,15 @@ MODEL_PARAMS = {
         "revin": True,
         "dropout": 0.0,
     },
+    "WaveNet": {
+        "d_model": 64,
+        "d_skip": 64,
+        "kernel_size": 2,
+        "num_layers": 8,
+        "num_stacks": 2,
+        "dropout": 0.0,
+        "revin": True,
+    },
     "FreTS": {
         "channel_independence": True,
     },

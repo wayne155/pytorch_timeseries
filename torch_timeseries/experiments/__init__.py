@@ -165,6 +165,12 @@ from .CycleNet import (
     CycleNetAnomalyDetection,
     CycleNetImputation,
 )
+from .WaveNet import (
+    WaveNetForecast,
+    WaveNetUEAClassification,
+    WaveNetAnomalyDetection,
+    WaveNetImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

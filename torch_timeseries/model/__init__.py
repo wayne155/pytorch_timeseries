@@ -37,6 +37,7 @@ from .SOFTS import SOFTS
 from .Koopa import Koopa
 from .LightTS import LightTS
 from .CycleNet import CycleNet
+from .WaveNet import WaveNet
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -53,6 +54,7 @@ forecasting_models = [
     "Koopa",
     "LightTS",
     "CycleNet",
+    "WaveNet",
 ]
 
 prob_forecasting_models = [

@@ -309,6 +309,31 @@ class EnsembleConfig:
 
 
 @dataclass
+class WaveNetConfig:
+    d_model: int = 64
+    d_skip: int = 64
+    kernel_size: int = 2
+    num_layers: int = 8
+    num_stacks: int = 1
+    dropout: float = 0.0
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_skip <= 0:
+            raise ValueError("d_skip must be positive")
+        if self.kernel_size < 2:
+            raise ValueError("kernel_size must be >= 2")
+        if self.num_layers < 1:
+            raise ValueError("num_layers must be >= 1")
+        if self.num_stacks < 1:
+            raise ValueError("num_stacks must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class CycleNetConfig:
     cycle_len: int = 24
     backbone: str = "linear"
@@ -557,6 +582,10 @@ def split_experiment_config(
         ("CycleNet", "AnomalyDetection"): CycleNetConfig,
         ("CycleNet", "Imputation"): CycleNetConfig,
         ("CycleNet", "UEAClassification"): CycleNetConfig,
+        ("WaveNet", "Forecast"): WaveNetConfig,
+        ("WaveNet", "AnomalyDetection"): WaveNetConfig,
+        ("WaveNet", "Imputation"): WaveNetConfig,
+        ("WaveNet", "UEAClassification"): WaveNetConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

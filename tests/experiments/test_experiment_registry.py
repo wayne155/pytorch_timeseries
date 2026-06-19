@@ -29,6 +29,7 @@ FORECAST_FOUR_TASK_MODELS = [
     "Koopa",
     "LightTS",
     "CycleNet",
+    "WaveNet",
 ]
 
 FORECAST_ONLY_MODELS = ["CATS"]
@@ -98,7 +99,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 119  # +4 CycleNet tasks
+        assert len(list_experiments()) >= 123  # +4 WaveNet tasks
 
 
 # ---------------------------------------------------------------------------
