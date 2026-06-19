@@ -454,6 +454,12 @@ from .RWKVForecaster import (
     RWKVForecasterAnomalyDetection,
     RWKVForecasterImputation,
 )
+from .SpikeForecaster import (
+    SpikeForecasterForecast,
+    SpikeForecasterUEAClassification,
+    SpikeForecasterAnomalyDetection,
+    SpikeForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

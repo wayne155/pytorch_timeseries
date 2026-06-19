@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class SpikeForecasterConfig:
+    d_model: int = 64
+    n_layers: int = 2
+    surrogate_tau: float = 0.5
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.surrogate_tau <= 0:
+            raise ValueError("surrogate_tau must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class RWKVForecasterConfig:
     d_model: int = 64
     d_ffn: int = 256
@@ -1762,6 +1781,10 @@ def split_experiment_config(
         ("RWKVForecaster", "AnomalyDetection"): RWKVForecasterConfig,
         ("RWKVForecaster", "Imputation"): RWKVForecasterConfig,
         ("RWKVForecaster", "UEAClassification"): RWKVForecasterConfig,
+        ("SpikeForecaster", "Forecast"): SpikeForecasterConfig,
+        ("SpikeForecaster", "AnomalyDetection"): SpikeForecasterConfig,
+        ("SpikeForecaster", "Imputation"): SpikeForecasterConfig,
+        ("SpikeForecaster", "UEAClassification"): SpikeForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

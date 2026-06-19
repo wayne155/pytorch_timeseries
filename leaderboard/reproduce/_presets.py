@@ -603,6 +603,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "SpikeForecaster": {
+        "d_model": 64,
+        "n_layers": 2,
+        "surrogate_tau": 0.5,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
