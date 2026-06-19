@@ -2947,6 +2947,100 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestCopyWeightsFrom:
+    def test_copies_weights_no_error(self):
+        fc_src = _quick_fc().fit(_rng_data())
+        fc_dst = _quick_fc().fit(_rng_data(seed=1))
+        fc_dst.copy_weights_from(fc_src)
+        # model parameters should now be identical
+        for p_src, p_dst in zip(
+            fc_src._model.parameters(), fc_dst._model.parameters()
+        ):
+            np.testing.assert_allclose(
+                p_dst.detach().numpy(), p_src.detach().numpy(), rtol=1e-6
+            )
+
+    def test_returns_self(self):
+        fc_src = _quick_fc().fit(_rng_data())
+        fc_dst = _quick_fc().fit(_rng_data(seed=1))
+        result = fc_dst.copy_weights_from(fc_src)
+        assert result is fc_dst
+
+    def test_unfitted_dst_raises(self):
+        fc_src = _quick_fc().fit(_rng_data())
+        fc_dst = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc_dst.copy_weights_from(fc_src)
+
+    def test_unfitted_src_raises(self):
+        fc_src = _quick_fc()
+        fc_dst = _quick_fc().fit(_rng_data())
+        with pytest.raises(RuntimeError):
+            fc_dst.copy_weights_from(fc_src)
+
+
+class TestAlignChannels:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())  # trained on C=3 channels
+
+    def test_passthrough_when_matching(self):
+        X = _rng_data(n=50)
+        out = self.fc.align_channels(X)
+        np.testing.assert_array_equal(out, X)
+
+    def test_truncates_extra_channels(self):
+        X = _rng_data(n=50, c=5)
+        out = self.fc.align_channels(X)
+        assert out.shape == (50, C)
+
+    def test_pads_missing_channels(self):
+        X = _rng_data(n=50, c=1)
+        out = self.fc.align_channels(X)
+        assert out.shape == (50, C)
+        # padded columns are zero
+        assert (out[:, 1:] == 0).all()
+
+    def test_works_on_3d_input(self):
+        X = _rng_data(n=50, c=5)
+        X3d = X[np.newaxis]  # (1, 50, 5)
+        out = self.fc.align_channels(X3d)
+        assert out.shape == (1, 50, C)
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.align_channels(_rng_data(n=50))
+
+
+class TestPredictMultiStep:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=SEQ)
+
+    def test_single_horizon(self):
+        results = self.fc.predict_multi_step(self.X, horizons=[PRED])
+        assert str(PRED) in results
+        assert results[str(PRED)].shape == (PRED, C)
+
+    def test_multiple_horizons(self):
+        results = self.fc.predict_multi_step(self.X, horizons=[PRED, PRED * 2])
+        assert str(PRED) in results
+        assert str(PRED * 2) in results
+        assert results[str(PRED * 2)].shape == (PRED * 2, C)
+
+    def test_horizon_1(self):
+        results = self.fc.predict_multi_step(self.X, horizons=[1])
+        assert results["1"].shape == (1, C)
+
+    def test_invalid_horizon_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.predict_multi_step(self.X, horizons=[0])
+
+    def test_3d_input(self):
+        results = self.fc.predict_multi_step(self.X[np.newaxis], horizons=[PRED])
+        assert results[str(PRED)].shape == (PRED, C)
+
+
 class TestAutocorrelation:
     def test_returns_two_arrays(self):
         X = _rng_data(n=100)

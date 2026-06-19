@@ -4268,6 +4268,101 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    def copy_weights_from(self, source: "Forecaster") -> "Forecaster":
+        """Copy model weights from *source* into this Forecaster in-place.
+
+        Both Forecasters must be fitted and share the same model architecture
+        (same class and layer shapes).  Useful for transfer learning: fit on a
+        large source dataset, then copy weights and fine-tune with
+        :meth:`partial_fit` on the target domain.
+
+        Parameters
+        ----------
+        source:
+            A fitted :class:`Forecaster` whose weights to copy.
+
+        Returns
+        -------
+        self
+        """
+        self._check_fitted()
+        source._check_fitted()
+        self._model.load_state_dict(source._model.state_dict())
+        return self
+
+    def align_channels(self, X: np.ndarray) -> np.ndarray:
+        """Pad or truncate *X* along the channel axis to match the model's input width.
+
+        When deploying a model trained on ``C_train`` channels to data with a
+        different ``C`` channels, this helper adapts the input by:
+
+        - **Truncating** extra channels if ``C > C_train``.
+        - **Zero-padding** missing channels if ``C < C_train``.
+
+        Parameters
+        ----------
+        X:
+            Input array ``(T, C)`` or ``(N, T, C)``.
+
+        Returns
+        -------
+        np.ndarray of the same rank with the channel dimension set to the
+        model's expected ``C_train``.
+        """
+        self._check_fitted()
+        expected_c = self._enc_in
+        actual_c = X.shape[-1]
+        if actual_c == expected_c:
+            return X
+        if actual_c > expected_c:
+            return X[..., :expected_c]
+        pad_width = [(0, 0)] * X.ndim
+        pad_width[-1] = (0, expected_c - actual_c)
+        return np.pad(X, pad_width, mode="constant")
+
+    def predict_multi_step(
+        self,
+        X: np.ndarray,
+        *,
+        horizons: List[int],
+    ) -> Dict[str, np.ndarray]:
+        """Predict at multiple forecast horizons using the same fitted model.
+
+        The model is called once per horizon.  Predictions that exceed
+        ``pred_len`` are obtained by iterative autoregressive chaining.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(1, seq_len, C)`` or ``(seq_len, C)``.
+        horizons:
+            List of integer horizons to predict.  Each must be ``>= 1``.
+
+        Returns
+        -------
+        dict mapping ``str(horizon)`` → ``np.ndarray (horizon, C)``
+        """
+        self._check_fitted()
+        if X.ndim == 2:
+            X = X[np.newaxis]
+        results = {}
+        for h in horizons:
+            if h <= 0:
+                raise ValueError(f"horizon must be >= 1, got {h}")
+            ctx = X.copy()
+            collected: List[np.ndarray] = []
+            remaining = h
+            while remaining > 0:
+                step = self.predict(ctx)  # (1, pred_len, C)
+                chunk = step[0, : min(self.pred_len, remaining)]
+                collected.append(chunk)
+                remaining -= len(chunk)
+                # advance context window
+                advance = step[0, :self.pred_len]
+                ctx = np.concatenate([ctx[:, len(advance):, :], advance[np.newaxis]], axis=1)
+            results[str(h)] = np.concatenate(collected, axis=0)[:h]
+        return results
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
