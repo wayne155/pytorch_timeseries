@@ -2087,6 +2087,44 @@ class TestCompareHorizons:
 # ── partial_fit() ─────────────────────────────────────────────────────────────
 
 
+class TestSimulate:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.seed = _rng_data(n=SEQ)
+
+    def test_output_shape(self):
+        out = self.fc.simulate(self.seed, steps=20)
+        assert out.shape == (20, C)
+
+    def test_deterministic_without_noise(self):
+        out1 = self.fc.simulate(self.seed, steps=10)
+        out2 = self.fc.simulate(self.seed, steps=10)
+        np.testing.assert_array_equal(out1, out2)
+
+    def test_stochastic_with_noise(self):
+        out1 = self.fc.simulate(self.seed, steps=10, noise_scale=0.1, random_state=0)
+        out2 = self.fc.simulate(self.seed, steps=10, noise_scale=0.1, random_state=1)
+        assert not np.allclose(out1, out2)
+
+    def test_noise_reproducible_with_seed(self):
+        out1 = self.fc.simulate(self.seed, steps=10, noise_scale=0.1, random_state=42)
+        out2 = self.fc.simulate(self.seed, steps=10, noise_scale=0.1, random_state=42)
+        np.testing.assert_array_equal(out1, out2)
+
+    def test_longer_seed_accepted(self):
+        out = self.fc.simulate(_rng_data(n=100), steps=10)
+        assert out.shape == (10, C)
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.simulate(self.seed, steps=5)
+
+    def test_single_step(self):
+        out = self.fc.simulate(self.seed, steps=1)
+        assert out.shape == (1, C)
+
+
 class TestStreamPredict:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

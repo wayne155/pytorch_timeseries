@@ -1045,6 +1045,57 @@ class Forecaster:
             self.warm_start = original_warm_start
         return self
 
+    def simulate(
+        self,
+        X_seed,
+        steps: int,
+        *,
+        noise_scale: float = 0.0,
+        random_state: Optional[int] = None,
+    ) -> np.ndarray:
+        """Auto-regressively generate *steps* future timesteps one at a time.
+
+        At each step, the model forecasts the next ``pred_len`` values, appends
+        the *first* predicted timestep to the rolling buffer, and repeats.
+        Optionally adds Gaussian noise to each generated step (for stochastic
+        simulation / scenario generation).
+
+        Parameters
+        ----------
+        X_seed:
+            Seed context window, shape ``(seq_len, C)`` or longer.
+        steps:
+            Number of future timesteps to generate.
+        noise_scale:
+            Standard deviation of additive Gaussian noise applied to each
+            generated step.  ``0.0`` (default) gives deterministic output.
+        random_state:
+            NumPy seed for reproducible stochastic simulation.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(steps, C)`` — the generated future sequence.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X_seed)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        if len(X_np) > self.seq_len:
+            X_np = X_np[-self.seq_len :]
+        rng = np.random.default_rng(random_state)
+        buffer = X_np.copy()
+        generated = []
+        for _ in range(steps):
+            pred = self.predict(buffer)    # (pred_len, C)
+            next_step = pred[0].copy()     # take first step
+            if noise_scale > 0.0:
+                next_step = next_step + rng.normal(0.0, noise_scale, size=next_step.shape)
+            generated.append(next_step)
+            buffer = np.roll(buffer, -1, axis=0)
+            buffer[-1] = next_step
+        return np.stack(generated)  # (steps, C)
+
     def stream_predict(self, X):
         """Yield rolling forecasts as a generator over incoming timesteps.
 
