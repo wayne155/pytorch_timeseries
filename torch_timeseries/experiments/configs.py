@@ -506,6 +506,33 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class NystromForecasterConfig:
+    d_model: int = 64
+    n_heads: int = 4
+    n_landmarks: int = 8
+    d_ffn: int = 256
+    n_layers: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.n_landmarks <= 0:
+            raise ValueError("n_landmarks must be positive")
+        if self.d_ffn <= 0:
+            raise ValueError("d_ffn must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HGRN2ForecasterConfig:
     d_model: int = 64
     d_ffn: int = 256
@@ -1997,6 +2024,10 @@ def split_experiment_config(
         ("HGRN2Forecaster", "AnomalyDetection"): HGRN2ForecasterConfig,
         ("HGRN2Forecaster", "Imputation"): HGRN2ForecasterConfig,
         ("HGRN2Forecaster", "UEAClassification"): HGRN2ForecasterConfig,
+        ("NystromForecaster", "Forecast"): NystromForecasterConfig,
+        ("NystromForecaster", "AnomalyDetection"): NystromForecasterConfig,
+        ("NystromForecaster", "Imputation"): NystromForecasterConfig,
+        ("NystromForecaster", "UEAClassification"): NystromForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

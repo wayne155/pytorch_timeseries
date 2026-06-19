@@ -508,6 +508,12 @@ from .HGRN2Forecaster import (
     HGRN2ForecasterAnomalyDetection,
     HGRN2ForecasterImputation,
 )
+from .NystromForecaster import (
+    NystromForecasterForecast,
+    NystromForecasterUEAClassification,
+    NystromForecasterAnomalyDetection,
+    NystromForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
