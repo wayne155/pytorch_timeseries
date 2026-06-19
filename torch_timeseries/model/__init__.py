@@ -91,6 +91,7 @@ from .ConformerForecaster import ConformerForecaster
 from .MEGAForecaster import MEGAForecaster
 from .MinGRUForecaster import MinGRUForecaster
 from .FastFormerForecaster import FastFormerForecaster
+from .GLAForecaster import GLAForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -160,6 +161,7 @@ forecasting_models = [
     "MEGAForecaster",
     "MinGRUForecaster",
     "FastFormerForecaster",
+    "GLAForecaster",
 ]
 
 prob_forecasting_models = [

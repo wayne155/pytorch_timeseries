@@ -484,6 +484,12 @@ from .FastFormerForecaster import (
     FastFormerForecasterAnomalyDetection,
     FastFormerForecasterImputation,
 )
+from .GLAForecaster import (
+    GLAForecasterForecast,
+    GLAForecasterUEAClassification,
+    GLAForecasterAnomalyDetection,
+    GLAForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
