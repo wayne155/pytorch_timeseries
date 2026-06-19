@@ -2947,6 +2947,69 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestMovingForecast:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_output_shape(self):
+        pred = self.fc.moving_forecast(self.X, n_windows=3)
+        assert pred.shape == (PRED, C)
+
+    def test_single_window_matches_predict(self):
+        pred_moving = self.fc.moving_forecast(self.X, n_windows=1)
+        pred_regular = self.fc.predict(self.X[-SEQ:])
+        np.testing.assert_allclose(pred_moving, pred_regular, rtol=1e-5)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError, match="seq_len"):
+            self.fc.moving_forecast(_rng_data(n=SEQ + 1), n_windows=5)
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.moving_forecast(self.X)
+
+
+class TestResidualDistribution:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=100)
+
+    def test_returns_dict(self):
+        dist = self.fc.residual_distribution(self.X)
+        assert isinstance(dist, dict)
+
+    def test_expected_keys(self):
+        dist = self.fc.residual_distribution(self.X)
+        for key in ("mean", "std", "skewness", "kurtosis", "q5", "q25",
+                    "median", "q75", "q95", "n"):
+            assert key in dist
+
+    def test_n_positive(self):
+        dist = self.fc.residual_distribution(self.X)
+        assert dist["n"] > 0
+
+    def test_quantile_ordering(self):
+        dist = self.fc.residual_distribution(self.X)
+        assert dist["q5"] <= dist["q25"] <= dist["median"] <= dist["q75"] <= dist["q95"]
+
+    def test_std_nonnegative(self):
+        dist = self.fc.residual_distribution(self.X)
+        assert dist["std"] >= 0
+
+    def test_custom_channel(self):
+        d0 = self.fc.residual_distribution(self.X, channel=0)
+        d1 = self.fc.residual_distribution(self.X, channel=1)
+        # different channels → different distributions
+        assert d0["mean"] != d1["mean"] or d0["std"] != d1["std"]
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.residual_distribution(self.X)
+
+
 class TestChannelCorrelation:
     def test_shape(self):
         X = _rng_data(n=100)

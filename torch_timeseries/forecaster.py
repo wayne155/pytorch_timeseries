@@ -4703,6 +4703,120 @@ class Forecaster:
             index=range(start_index, start_index + self.pred_len),
         )
 
+    def moving_forecast(
+        self,
+        X: np.ndarray,
+        *,
+        n_windows: int = 5,
+    ) -> np.ndarray:
+        """Reduce forecast variance by averaging over *n_windows* overlapping predictions.
+
+        Uses the last ``n_windows`` available context windows that end at the
+        same forecast origin (the last ``seq_len`` rows of *X*) and averages
+        their step-aligned predictions.
+
+        In practice, ``n_windows`` slightly shifted contexts (each shifted by
+        1 timestep) are generated from the available history and their
+        predictions are averaged after step-alignment.  This mimics bagged
+        one-shot forecasting for a single model without retraining.
+
+        Parameters
+        ----------
+        X:
+            History array ``(T, C)``.  Must have ``T >= seq_len + n_windows - 1``.
+        n_windows:
+            Number of overlapping predictions to average (default ``5``).
+
+        Returns
+        -------
+        np.ndarray of shape ``(pred_len, C)``
+        """
+        self._check_fitted()
+        T = len(X)
+        min_required = self.seq_len + n_windows - 1
+        if T < min_required:
+            raise ValueError(
+                f"X has {T} timesteps but moving_forecast needs at least "
+                f"seq_len + n_windows - 1 = {min_required}."
+            )
+
+        preds = []
+        for offset in range(n_windows):
+            start = T - self.seq_len - (n_windows - 1 - offset)
+            end = start + self.seq_len
+            ctx = X[start:end]
+            pred = self.predict(ctx)  # (pred_len, C)
+            preds.append(pred)
+
+        return np.mean(preds, axis=0)
+
+    def residual_distribution(
+        self,
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+    ) -> Dict[str, float]:
+        """Compute summary statistics of forecast residuals for one channel.
+
+        Uses rolling one-step predictions (via :meth:`residuals`) and
+        reports distributional properties to help assess model calibration.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        channel:
+            Channel index (default ``0``).
+
+        Returns
+        -------
+        dict with keys:
+
+        ``mean``     — mean residual (bias)
+        ``std``      — standard deviation
+        ``skewness`` — third standardised moment
+        ``kurtosis`` — excess kurtosis (normal = 0)
+        ``q5``       — 5th percentile
+        ``q25``      — 25th percentile
+        ``median``   — median
+        ``q75``      — 75th percentile
+        ``q95``      — 95th percentile
+        ``n``        — number of residual values
+        """
+        self._check_fitted()
+        resids = self.residuals(X)
+        if resids.ndim == 3:
+            r = resids[:, :, channel].ravel().astype(float)
+        elif resids.ndim == 2:
+            r = resids.ravel().astype(float)
+        else:
+            r = resids.ravel().astype(float)
+
+        n = len(r)
+        mean = float(r.mean())
+        std = float(r.std())
+        if std < 1e-12:
+            skewness = 0.0
+            kurtosis = 0.0
+        else:
+            z = (r - mean) / std
+            skewness = float(np.mean(z ** 3))
+            kurtosis = float(np.mean(z ** 4) - 3.0)  # excess kurtosis
+
+        q5, q25, median, q75, q95 = np.percentile(r, [5, 25, 50, 75, 95]).tolist()
+        return {
+            "mean": mean,
+            "std": std,
+            "skewness": skewness,
+            "kurtosis": kurtosis,
+            "q5": q5,
+            "q25": q25,
+            "median": median,
+            "q75": q75,
+            "q95": q95,
+            "n": n,
+        }
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
