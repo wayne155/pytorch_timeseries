@@ -334,6 +334,12 @@ from .GATForecaster import (
     GATForecasterAnomalyDetection,
     GATForecasterImputation,
 )
+from .BiLSTMForecaster import (
+    BiLSTMForecasterForecast,
+    BiLSTMForecasterUEAClassification,
+    BiLSTMForecasterAnomalyDetection,
+    BiLSTMForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

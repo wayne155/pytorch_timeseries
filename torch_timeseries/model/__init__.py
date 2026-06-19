@@ -66,6 +66,7 @@ from .LinearAttentionForecaster import LinearAttentionForecaster
 from .DualDecompForecaster import DualDecompForecaster
 from .HyperForecaster import HyperForecaster
 from .GATForecaster import GATForecaster
+from .BiLSTMForecaster import BiLSTMForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -110,6 +111,7 @@ forecasting_models = [
     "DualDecompForecaster",
     "HyperForecaster",
     "GATForecaster",
+    "BiLSTMForecaster",
 ]
 
 prob_forecasting_models = [
