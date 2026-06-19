@@ -478,6 +478,12 @@ from .MinGRUForecaster import (
     MinGRUForecasterAnomalyDetection,
     MinGRUForecasterImputation,
 )
+from .FastFormerForecaster import (
+    FastFormerForecasterForecast,
+    FastFormerForecasterUEAClassification,
+    FastFormerForecasterAnomalyDetection,
+    FastFormerForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
