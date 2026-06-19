@@ -2947,6 +2947,98 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestAnomalyScore:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=80)
+
+    def test_returns_two_arrays(self):
+        scores, indices = self.fc.anomaly_score(self.X, stride=4)
+        assert isinstance(scores, np.ndarray)
+        assert isinstance(indices, np.ndarray)
+
+    def test_shapes_match(self):
+        scores, indices = self.fc.anomaly_score(self.X, stride=4)
+        assert scores.shape == indices.shape
+
+    def test_scores_nonnegative(self):
+        scores, _ = self.fc.anomaly_score(self.X, stride=4)
+        assert (scores >= 0).all()
+
+    def test_reduction_max_ge_mean(self):
+        s_mean, _ = self.fc.anomaly_score(self.X, stride=4, reduction="mean")
+        s_max, _ = self.fc.anomaly_score(self.X, stride=4, reduction="max")
+        assert (s_max >= s_mean).all()
+
+    def test_invalid_reduction_raises(self):
+        with pytest.raises(ValueError, match="reduction"):
+            self.fc.anomaly_score(self.X, stride=4, reduction="bad")
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.anomaly_score(self.X)
+
+
+class TestFlagAnomalies:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=80)
+
+    def test_returns_dataframe(self):
+        import pandas as pd
+        df = self.fc.flag_anomalies(self.X, stride=4)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_columns_present(self):
+        df = self.fc.flag_anomalies(self.X, stride=4)
+        for col in ("timestep", "score", "anomaly"):
+            assert col in df.columns
+
+    def test_contamination_rate(self):
+        df = self.fc.flag_anomalies(self.X, stride=2, contamination=0.1)
+        rate = df["anomaly"].mean()
+        assert 0.0 <= rate <= 0.2  # allow some slack around exact quantile
+
+    def test_explicit_threshold(self):
+        df = self.fc.flag_anomalies(self.X, stride=4, threshold=0.0)
+        assert df["anomaly"].all()  # score >= 0 always
+
+    def test_anomaly_dtype_bool(self):
+        df = self.fc.flag_anomalies(self.X, stride=4)
+        assert df["anomaly"].dtype == bool
+
+
+class TestPlotAnomalies:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=80)
+        self.df = self.fc.flag_anomalies(self.X, stride=4)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_anomalies(self.X, self.df)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_channel(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_anomalies(self.X, self.df, channel=1)
+        assert fig is not None
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_anomalies(self.X, self.df, title="MyTitle")
+        ax = fig.get_axes()[0]
+        assert "MyTitle" in ax.get_title()
+        plt.close("all")
+
+
 class TestRollingEvaluate:
     def setup_method(self):
         pytest.importorskip("pandas")

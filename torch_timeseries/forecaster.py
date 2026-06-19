@@ -3924,6 +3924,169 @@ class Forecaster:
             fc.set_params(**override_kwargs)
         return fc
 
+    def anomaly_score(
+        self,
+        X: np.ndarray,
+        *,
+        stride: int = 1,
+        reduction: str = "mean",
+    ) -> np.ndarray:
+        """Compute a rolling one-step-ahead reconstruction error as an anomaly score.
+
+        For each window the model predicts the *next* ``pred_len`` timesteps;
+        the absolute error (averaged over channels and pred_len steps) is
+        recorded at the **first** predicted timestep.  Points with high scores
+        are likely anomalies.
+
+        Parameters
+        ----------
+        X:
+            Time series array ``(T, C)``.
+        stride:
+            Stride between consecutive windows (default ``1``).
+        reduction:
+            How to collapse the error tensor per window: ``"mean"`` (default),
+            ``"max"``, or ``"sum"``.
+
+        Returns
+        -------
+        scores : np.ndarray of shape ``(n_windows,)``
+            Anomaly score for each window position.
+        indices : np.ndarray of shape ``(n_windows,)``
+            Timestep index (first predicted timestep) for each score.
+        """
+        self._check_fitted()
+        if reduction not in ("mean", "max", "sum"):
+            raise ValueError(f"reduction must be 'mean', 'max', or 'sum'; got {reduction!r}")
+
+        scores, indices = [], []
+        T = len(X)
+        t = 0
+        while t + self.seq_len + self.pred_len <= T:
+            ctx = X[t : t + self.seq_len]
+            truth = X[t + self.seq_len : t + self.seq_len + self.pred_len]
+            pred = self.predict(ctx[np.newaxis])[0]
+            err = np.abs(pred - truth)
+            if reduction == "mean":
+                sc = float(err.mean())
+            elif reduction == "max":
+                sc = float(err.max())
+            else:
+                sc = float(err.sum())
+            scores.append(sc)
+            indices.append(t + self.seq_len)
+            t += stride
+
+        return np.array(scores, dtype=np.float32), np.array(indices, dtype=np.int64)
+
+    def flag_anomalies(
+        self,
+        X: np.ndarray,
+        *,
+        stride: int = 1,
+        threshold: Optional[float] = None,
+        contamination: float = 0.05,
+        reduction: str = "mean",
+    ) -> "pd.DataFrame":
+        """Return a DataFrame flagging timesteps as anomalies.
+
+        Anomalies are determined either by an explicit *threshold* or by
+        the top *contamination* fraction of rolling anomaly scores.
+
+        Parameters
+        ----------
+        X:
+            Time series array ``(T, C)``.
+        stride:
+            Stride between windows (default ``1``).
+        threshold:
+            Explicit score threshold.  If ``None``, the ``(1-contamination)``
+            quantile of all scores is used.
+        contamination:
+            Fraction of windows to label as anomalous when no explicit
+            threshold is provided (default ``0.05``).
+        reduction:
+            Error reduction mode passed to :meth:`anomaly_score`.
+
+        Returns
+        -------
+        pandas.DataFrame with columns ``['timestep', 'score', 'anomaly']``.
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError("pandas is required for flag_anomalies()") from exc
+
+        scores, indices = self.anomaly_score(X, stride=stride, reduction=reduction)
+        if threshold is None:
+            threshold = float(np.quantile(scores, 1.0 - contamination))
+        flags = scores >= threshold
+        return pd.DataFrame({"timestep": indices, "score": scores, "anomaly": flags})
+
+    def plot_anomalies(
+        self,
+        X: np.ndarray,
+        anomaly_df: "pd.DataFrame",
+        *,
+        channel: int = 0,
+        ax=None,
+        title: Optional[str] = None,
+        alpha: float = 0.3,
+    ):
+        """Overlay anomaly flags on the raw time series.
+
+        Parameters
+        ----------
+        X:
+            Raw time series ``(T, C)``.
+        anomaly_df:
+            DataFrame from :meth:`flag_anomalies`.
+        channel:
+            Which channel to plot.
+        ax:
+            Matplotlib axes (created if ``None``).
+        title:
+            Axes title.
+        alpha:
+            Transparency for anomaly markers.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_anomalies()") from exc
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 4))
+        else:
+            fig = ax.get_figure()
+
+        ts = X[:, channel] if X.ndim > 1 else X
+        ax.plot(ts, linewidth=0.8, label="signal")
+
+        anom = anomaly_df[anomaly_df["anomaly"]]
+        if len(anom):
+            ys = ts[anom["timestep"].clip(0, len(ts) - 1).values]
+            ax.scatter(
+                anom["timestep"].values,
+                ys,
+                color="red",
+                s=30,
+                alpha=alpha,
+                zorder=5,
+                label="anomaly",
+            )
+
+        ax.set_title(title or f"Anomaly detection (channel {channel})")
+        ax.set_xlabel("Timestep")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
