@@ -2947,6 +2947,113 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestInterpolateMissing:
+    def test_fills_nan_linear(self):
+        X = _rng_data(n=50)
+        X[5, 0] = np.nan
+        X[6, 0] = np.nan
+        out = Forecaster.interpolate_missing(X)
+        assert not np.isnan(out).any()
+
+    def test_shape_preserved(self):
+        X = _rng_data(n=50)
+        X[10, 1] = np.nan
+        out = Forecaster.interpolate_missing(X)
+        assert out.shape == X.shape
+
+    def test_no_nan_passthrough(self):
+        X = _rng_data(n=50)
+        out = Forecaster.interpolate_missing(X)
+        np.testing.assert_array_equal(out, X.astype(float))
+
+    def test_forward_method(self):
+        X = _rng_data(n=50)
+        X[5:10, 0] = np.nan
+        out = Forecaster.interpolate_missing(X, method="forward")
+        assert not np.isnan(out).any()
+
+    def test_backward_method(self):
+        X = _rng_data(n=50)
+        X[5:10, 0] = np.nan
+        out = Forecaster.interpolate_missing(X, method="backward")
+        assert not np.isnan(out).any()
+
+    def test_nearest_method(self):
+        X = _rng_data(n=50)
+        X[5, 0] = np.nan
+        out = Forecaster.interpolate_missing(X, method="nearest")
+        assert not np.isnan(out).any()
+
+    def test_invalid_method_raises(self):
+        with pytest.raises(ValueError, match="method"):
+            Forecaster.interpolate_missing(_rng_data(n=50), method="spline")
+
+    def test_1d_input(self):
+        X = _rng_data(n=50)[:, 0]
+        X[5] = np.nan
+        out = Forecaster.interpolate_missing(X)
+        assert out.ndim == 1
+        assert not np.isnan(out).any()
+
+
+class TestHorizonErrorProfile:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=80)
+
+    def test_shape(self):
+        profile = self.fc.horizon_error_profile(self.X)
+        assert profile.shape == (PRED,)
+
+    def test_nonnegative(self):
+        profile = self.fc.horizon_error_profile(self.X)
+        assert (profile >= 0).all()
+
+    def test_mse_metric(self):
+        profile = self.fc.horizon_error_profile(self.X, metric="MSE")
+        assert profile.shape == (PRED,)
+
+    def test_rmse_metric(self):
+        profile = self.fc.horizon_error_profile(self.X, metric="RMSE")
+        assert profile.shape == (PRED,)
+
+    def test_rmse_ge_mae(self):
+        mae = self.fc.horizon_error_profile(self.X, metric="MAE")
+        rmse = self.fc.horizon_error_profile(self.X, metric="RMSE")
+        # RMSE >= MAE by Jensen's inequality
+        assert (rmse >= mae - 1e-6).all()
+
+    def test_invalid_metric_raises(self):
+        with pytest.raises(ValueError, match="metric"):
+            self.fc.horizon_error_profile(self.X, metric="SMAPE")
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.horizon_error_profile(self.X)
+
+
+class TestPlotHorizonErrorProfile:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=80)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_horizon_error_profile(self.X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.plot_horizon_error_profile(self.X, title="Horizon")
+        ax = fig.get_axes()[0]
+        assert "Horizon" in ax.get_title()
+        plt.close("all")
+
+
 class TestCountParameters:
     def test_returns_dict(self):
         fc = _quick_fc().fit(_rng_data())

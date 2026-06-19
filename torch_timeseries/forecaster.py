@@ -5296,6 +5296,192 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    @staticmethod
+    def interpolate_missing(
+        X: np.ndarray,
+        *,
+        method: str = "linear",
+    ) -> np.ndarray:
+        """Interpolate NaN values in *X* along the time axis.
+
+        Operates independently on each channel.  Useful as a preprocessing
+        step before calling :meth:`fit` or :meth:`predict` on data with
+        missing values.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)`` possibly containing NaN.
+        method:
+            Interpolation method: ``"linear"`` (default), ``"forward"``,
+            ``"backward"``, or ``"nearest"``.
+
+        Returns
+        -------
+        np.ndarray — same shape as *X*, NaN-free (edge NaN values are
+        forward/backward filled after interpolation).
+        """
+        valid_methods = ("linear", "forward", "backward", "nearest")
+        if method not in valid_methods:
+            raise ValueError(f"method must be one of {valid_methods}; got {method!r}")
+
+        X_out = np.asarray(X, dtype=float).copy()
+        orig_ndim = X_out.ndim
+        if X_out.ndim == 1:
+            X_out = X_out[:, None]
+
+        T, C = X_out.shape
+        idx = np.arange(T)
+
+        for c in range(C):
+            col = X_out[:, c]
+            nan_mask = np.isnan(col)
+            if not nan_mask.any():
+                continue
+            valid = ~nan_mask
+            if not valid.any():
+                continue  # all NaN — nothing to interpolate
+            valid_idx = idx[valid]
+            valid_val = col[valid]
+
+            if method == "linear":
+                col[nan_mask] = np.interp(idx[nan_mask], valid_idx, valid_val)
+            elif method == "forward":
+                # Fill each NaN with the most recent non-NaN
+                last = col[valid_idx[0]]
+                for t in range(T):
+                    if not nan_mask[t]:
+                        last = col[t]
+                    else:
+                        col[t] = last
+            elif method == "backward":
+                first = col[valid_idx[-1]]
+                for t in range(T - 1, -1, -1):
+                    if not nan_mask[t]:
+                        first = col[t]
+                    else:
+                        col[t] = first
+            elif method == "nearest":
+                for t in idx[nan_mask]:
+                    dists = np.abs(valid_idx - t)
+                    col[t] = valid_val[dists.argmin()]
+
+            # Fill any remaining edge NaN with adjacent value
+            if np.isnan(col).any():
+                # forward fill edges
+                for t in range(T):
+                    if np.isnan(col[t]) and t > 0:
+                        col[t] = col[t - 1]
+                for t in range(T - 1, -1, -1):
+                    if np.isnan(col[t]) and t < T - 1:
+                        col[t] = col[t + 1]
+            X_out[:, c] = col
+
+        if orig_ndim == 1:
+            return X_out[:, 0]
+        return X_out
+
+    def horizon_error_profile(
+        self,
+        X: np.ndarray,
+        *,
+        metric: str = "MAE",
+    ) -> np.ndarray:
+        """Compute per-horizon-step error averaged over all rolling windows.
+
+        Shows how prediction quality degrades as the forecast horizon
+        increases.
+
+        Parameters
+        ----------
+        X:
+            Full time series ``(T, C)``.
+        metric:
+            Error metric: ``"MAE"`` (default), ``"MSE"``, or ``"RMSE"``.
+
+        Returns
+        -------
+        np.ndarray of shape ``(pred_len,)`` — mean error per horizon step.
+        """
+        self._check_fitted()
+        metric = metric.upper()
+        if metric not in ("MAE", "MSE", "RMSE"):
+            raise ValueError(f"metric must be MAE, MSE, or RMSE; got {metric!r}")
+
+        errors = []
+        T = len(X)
+        t = 0
+        while t + self.seq_len + self.pred_len <= T:
+            ctx = X[t : t + self.seq_len]
+            truth = X[t + self.seq_len : t + self.seq_len + self.pred_len]
+            pred = self.predict(ctx[np.newaxis])[0]
+            err = np.abs(pred - truth) if metric != "MSE" else (pred - truth) ** 2
+            errors.append(err)  # (pred_len, C)
+            t += 1
+
+        if not errors:
+            raise ValueError("No complete windows found in X.")
+
+        arr = np.stack(errors, axis=0)  # (n_windows, pred_len, C)
+        profile = arr.mean(axis=(0, 2))  # (pred_len,)
+        if metric == "RMSE":
+            # we computed MAE above — redo with MSE
+            errors_mse = []
+            t = 0
+            while t + self.seq_len + self.pred_len <= T:
+                ctx = X[t : t + self.seq_len]
+                truth = X[t + self.seq_len : t + self.seq_len + self.pred_len]
+                pred = self.predict(ctx[np.newaxis])[0]
+                errors_mse.append((pred - truth) ** 2)
+                t += 1
+            profile = np.sqrt(np.stack(errors_mse, 0).mean(axis=(0, 2)))
+        return profile
+
+    def plot_horizon_error_profile(
+        self,
+        X: np.ndarray,
+        *,
+        metric: str = "MAE",
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Bar chart of per-horizon-step error from :meth:`horizon_error_profile`.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        metric:
+            Error metric passed to :meth:`horizon_error_profile`.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_horizon_error_profile()") from exc
+
+        profile = self.horizon_error_profile(X, metric=metric)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(6, len(profile) // 2), 4))
+        else:
+            fig = ax.get_figure()
+
+        ax.bar(np.arange(1, len(profile) + 1), profile, color="steelblue", alpha=0.8)
+        ax.set_xlabel("Forecast step")
+        ax.set_ylabel(metric)
+        ax.set_title(title or f"Horizon error profile ({metric})")
+        ax.grid(True, alpha=0.3, axis="y")
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
