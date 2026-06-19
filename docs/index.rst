@@ -7,7 +7,7 @@
        A research toolkit covering <strong>nine time-series tasks</strong> — forecasting,
        probabilistic forecasting, generation, imputation, anomaly detection, classification,
        irregular classification, irregular interpolation, and irregular forecasting — with
-       20+ built-in models, ready-made datasets, and a two-line experiment runner.
+       86+ built-in models, ready-made datasets, and a high-level <code>Forecaster</code> API.
      </p>
      <div class="hero-badges">
        <a href="https://pypi.org/project/torch-timeseries/"><img src="https://img.shields.io/pypi/v/torch-timeseries?color=2563eb&style=flat-square" alt="PyPI"/></a>
@@ -67,42 +67,54 @@
 
       Label multivariate sequences from the UEA archive.
 
+   .. grid-item-card:: Forecaster API
+      :img-top: _static/img/forecaster_hero.png
+      :link: notes/forecaster
+      :link-type: doc
+
+      sklearn-style wrapper: fit · predict · score · explain · deploy — no boilerplate.
+
 
 .. raw:: html
 
    <div class="section-divider"></div>
-   <p class="section-label">20 Built-in Models</p>
+   <p class="section-label">86+ Built-in Models</p>
 
    <div class="model-showcase">
      <div class="model-group">
        <div class="model-group-header forecast-header">
          <span class="model-group-icon">📈</span>
-         <span class="model-group-title">Forecasting</span>
-         <span class="model-group-count">14 models</span>
+         <span class="model-group-title">Forecasting (86)</span>
+         <span class="model-group-count">Transformer · MLP · CNN · RNN · SSM · Hybrid</span>
        </div>
        <div class="model-pills">
+         <a href="generated/torch_timeseries.model.iTransformer.html" class="mpill mpill-forecast">iTransformer</a>
+         <a href="generated/torch_timeseries.model.PatchTST.html" class="mpill mpill-forecast">PatchTST</a>
+         <a href="generated/torch_timeseries.model.TimeMixer.html" class="mpill mpill-forecast">TimeMixer</a>
          <a href="generated/torch_timeseries.model.DLinear.html" class="mpill mpill-forecast">DLinear</a>
          <a href="generated/torch_timeseries.model.NLinear.html" class="mpill mpill-forecast">NLinear</a>
-         <a href="generated/torch_timeseries.model.PatchTST.html" class="mpill mpill-forecast">PatchTST</a>
-         <a href="generated/torch_timeseries.model.iTransformer.html" class="mpill mpill-forecast">iTransformer</a>
-         <a href="generated/torch_timeseries.model.Informer.html" class="mpill mpill-forecast">Informer</a>
          <a href="generated/torch_timeseries.model.Autoformer.html" class="mpill mpill-forecast">Autoformer</a>
          <a href="generated/torch_timeseries.model.FEDformer.html" class="mpill mpill-forecast">FEDformer</a>
-         <a href="generated/torch_timeseries.model.TSMixer.html" class="mpill mpill-forecast">TSMixer</a>
+         <a href="generated/torch_timeseries.model.Informer.html" class="mpill mpill-forecast">Informer</a>
          <a href="generated/torch_timeseries.model.Crossformer.html" class="mpill mpill-forecast">Crossformer</a>
-         <a href="generated/torch_timeseries.model.SCINet.html" class="mpill mpill-forecast">SCINet</a>
+         <a href="generated/torch_timeseries.model.TSMixer.html" class="mpill mpill-forecast">TSMixer</a>
          <a href="generated/torch_timeseries.model.TimesNet.html" class="mpill mpill-forecast">TimesNet</a>
-         <a href="generated/torch_timeseries.model.CATS.html" class="mpill mpill-forecast">CATS</a>
+         <a href="generated/torch_timeseries.model.SCINet.html" class="mpill mpill-forecast">SCINet</a>
          <a href="generated/torch_timeseries.model.FITS.html" class="mpill mpill-forecast">FITS</a>
          <a href="generated/torch_timeseries.model.FreTS.html" class="mpill mpill-forecast">FreTS</a>
+         <a href="generated/torch_timeseries.model.SegRNN.html" class="mpill mpill-forecast">SegRNN</a>
+         <a href="generated/torch_timeseries.model.TiDE.html" class="mpill mpill-forecast">TiDE</a>
+         <a href="generated/torch_timeseries.model.NHiTS.html" class="mpill mpill-forecast">NHiTS</a>
+         <a href="generated/torch_timeseries.model.MambaForecaster.html" class="mpill mpill-forecast">Mamba</a>
+         <a href="modules/model.html" class="mpill mpill-forecast" style="opacity:0.7">+68 more →</a>
        </div>
-       <p class="model-group-note">Most models also support imputation, anomaly detection &amp; classification.</p>
+       <p class="model-group-note">Most models support imputation, anomaly detection &amp; classification via the experiment runner.</p>
      </div>
      <div class="model-group">
        <div class="model-group-header gen-header">
          <span class="model-group-icon">✨</span>
-         <span class="model-group-title">Generation</span>
-         <span class="model-group-count">6 models</span>
+         <span class="model-group-title">Generation (6)</span>
+         <span class="model-group-count">GAN · Diffusion · Flow</span>
        </div>
        <div class="model-pills">
          <a href="generated/torch_timeseries.model.TimeGAN.html" class="mpill mpill-gen">TimeGAN</a>
@@ -112,7 +124,7 @@
          <a href="generated/torch_timeseries.model.NsDiff.html" class="mpill mpill-gen">NsDiff</a>
          <a href="generated/torch_timeseries.model.TMDM.html" class="mpill mpill-gen">TMDM</a>
        </div>
-       <p class="model-group-note">GAN · Score-based diffusion · Non-stationary DDPM</p>
+       <p class="model-group-note">All expose <code>generate(n)</code> → <code>(n, seq_len, C)</code> and a <code>loss(x)</code> training method.</p>
      </div>
    </div>
 
@@ -126,6 +138,7 @@
 
    install/install
    notes/introduction
+   notes/forecaster
    notes/create_dataset
    concepts/dataloader
    concepts/experiments

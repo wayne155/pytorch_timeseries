@@ -2,9 +2,10 @@ Introduction
 ============
 
 ``torch-timeseries`` is an open-source deep learning library for time series
-research built on top of PyTorch. It provides state-of-the-art model
-implementations together with a standardised data pipeline and a one-command
-experiment runner, covering **six tasks** out of the box:
+research built on top of PyTorch. It provides 86+ state-of-the-art model
+implementations together with a standardised data pipeline, a high-level
+:doc:`Forecaster API <forecaster>`, and a one-command experiment runner,
+covering **nine tasks** out of the box:
 
 - **Forecasting** — predict future values from a look-back window
 - **Probabilistic Forecasting** — predict with calibrated uncertainty intervals
@@ -12,6 +13,9 @@ experiment runner, covering **six tasks** out of the box:
 - **Anomaly Detection** — flag unusual timesteps from reconstruction error
 - **Classification** — label multivariate sequences (UEA archive)
 - **Generation** — synthesise new realistic sequences via diffusion or GANs
+- **Irregular Classification** — classify asynchronously sampled sequences
+- **Irregular Interpolation** — reconstruct values at arbitrary query times
+- **Irregular Forecasting** — forecast from irregular observation schedules
 
 `Source code on GitHub <https://github.com/wayne155/pytorch_timeseries>`__ ·
 `API Reference <../modules/model.html>`__

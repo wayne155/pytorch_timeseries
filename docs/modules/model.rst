@@ -1,7 +1,7 @@
 torch_timeseries.model
 ======================
 
-29 built-in models covering forecasting, generation, and irregular time series.
+**86 forecasting · 6 generation · 5 irregular** — 97 built-in models in total.
 Click any card to view the full API — constructor arguments, paper reference, and task support.
 
 .. list-table:: Task coverage at a glance — regular time series
@@ -93,82 +93,316 @@ Forecasting Models
 All forecasting models accept ``(batch, seq_len, n_features)`` input and output
 ``(batch, pred_len, n_features)`` predictions.  Most also support imputation,
 anomaly detection, and classification via the built-in experiment runner.
+Use any model name with the :doc:`Forecaster API <../notes/forecaster>` for a
+scikit-learn-style fit/predict/score interface.
+
+**Transformer family**
+
+.. list-table::
+   :widths: 22 50 28
+   :header-rows: 1
+
+   * - Model
+     - Key idea
+     - Reference
+   * - VanillaTransformer
+     - Baseline encoder-decoder Transformer
+     - `Vaswani et al., 2017 <https://arxiv.org/abs/1706.03762>`__
+   * - Informer
+     - ProbSparse attention *O(L log L)*, distilling encoder
+     - `Zhou et al., AAAI 2021 <https://ojs.aaai.org/index.php/AAAI/article/view/17325>`__
+   * - Autoformer
+     - Auto-Correlation + progressive decomposition
+     - `Wu et al., NeurIPS 2021 <https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html>`__
+   * - FEDformer
+     - Frequency-enhanced decomposed Transformer *O(L)*
+     - `Zhou et al., ICML 2022 <https://proceedings.mlr.press/v162/zhou22g.html>`__
+   * - NSTransformer
+     - Non-stationary attention with de/stationarization
+     - `Liu et al., NeurIPS 2022 <https://arxiv.org/abs/2205.14415>`__
+   * - ETSformer
+     - Exponential smoothing + Fourier cross-attention
+     - `Woo et al., 2022 <https://arxiv.org/abs/2202.01381>`__
+   * - PatchTST
+     - Patch tokenisation, channel-independent Transformer
+     - `Nie et al., ICLR 2023 <https://openreview.net/forum?id=Jbdc0vTOcol>`__
+   * - Crossformer
+     - Cross-time + cross-dimension two-stage attention
+     - `Zhang & Yan, ICLR 2023 <https://openreview.net/forum?id=vSVLM2j9eie>`__
+   * - iTransformer
+     - Inverted attention — channels as tokens
+     - `Liu et al., ICLR 2024 <https://openreview.net/forum?id=JePfAI8fah>`__
+   * - Pathformer
+     - Multi-scale patch Transformer with adaptive path routing
+     - `Chen et al., ICLR 2024 <https://openreview.net/forum?id=lJkOCMP2aW>`__
+   * - CATS
+     - Auxiliary future queries extend context window
+     - `Lin et al., ICML 2024 <https://arxiv.org/abs/2403.01673>`__
+   * - Basisformer
+     - Learnable seasonal-trend basis
+     - —
+   * - FiLM
+     - Frequency-improved Legendre memory
+     - `Zhou et al., NeurIPS 2022 <https://arxiv.org/abs/2205.08897>`__
+   * - DiffTransformerForecaster
+     - Differential attention reduces noise amplification
+     - —
+   * - FastFormerForecaster
+     - Additive attention with global context
+     - —
+   * - LinearAttentionForecaster
+     - Linear-complexity Transformer attention
+     - —
+   * - NystromForecaster
+     - Nyström approximation of full attention
+     - —
+   * - SparseTransformerForecaster
+     - Sparse local + global attention patterns
+     - —
+   * - AFTForecaster
+     - Attention-free Transformer
+     - —
+   * - MEGAForecaster
+     - Multi-head EMA + gated attention
+     - —
+   * - HyperForecaster
+     - HyperNetwork-generated weights
+     - —
+
+**MLP / Linear family**
+
+.. list-table::
+   :widths: 22 50 28
+   :header-rows: 1
+
+   * - Model
+     - Key idea
+     - Reference
+   * - DLinear
+     - Decompose trend + seasonal, independent linear projections
+     - `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
+   * - NLinear
+     - Subtract last timestep before linear projection
+     - `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
+   * - RLinear
+     - Reversible normalisation + linear
+     - —
+   * - LightTS
+     - Interval-enhanced dual-sampling MLP
+     - `Zhang et al., 2022 <https://arxiv.org/abs/2207.01186>`__
+   * - TSMixer
+     - MLP-Mixer: alternating time-mix + feature-mix
+     - `Chen et al., 2023 <https://arxiv.org/abs/2303.06053>`__
+   * - TiDE
+     - Time-series dense encoder/decoder (pure MLP)
+     - `Das et al., TMLR 2023 <https://arxiv.org/abs/2304.08424>`__
+   * - FreTS
+     - All-MLP in the frequency domain
+     - `Yi et al., NeurIPS 2023 <https://arxiv.org/abs/2311.06184>`__
+   * - FITS
+     - Frequency interpolation, very low parameter count
+     - `Xu et al., ICLR 2024 <https://openreview.net/forum?id=bWcnvZ3qMb>`__
+   * - SparseTSF
+     - Period-aligned downsampling before linear projection
+     - `Han et al., ICML 2024 <https://arxiv.org/abs/2405.00946>`__
+   * - TimeMixer
+     - Past decomposable mixing at multiple time scales
+     - `Wang et al., ICLR 2024 <https://openreview.net/forum?id=7oLshfEIC2>`__
+   * - NBEATS
+     - Neural basis expansion, doubly-residual stacking
+     - `Oreshkin et al., ICLR 2020 <https://openreview.net/forum?id=r1ecqn4YwB>`__
+   * - NHiTS
+     - Hierarchical interpolation, geometrically-increasing pools
+     - `Challu et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26253>`__
+   * - PatchMixer
+     - Patch-based MLP-Mixer
+     - —
+   * - HDMixer
+     - Hierarchical dependency mixer
+     - —
+   * - CycleNet
+     - Learnable periodic cycle buffer + residual backbone
+     - —
+   * - FilterNet
+     - Learnable frequency filter bank
+     - —
+   * - GatedMLPForecaster
+     - Gated MLP with channel mixing
+     - —
+   * - FourierMixerForecaster
+     - Fourier-domain MLP mixing
+     - —
+   * - HarmonicForecaster
+     - Harmonic regression basis
+     - —
+   * - AdaptiveSpectralForecaster
+     - Adaptive spectral basis selection
+     - —
+   * - RandomFourierForecaster
+     - Random Fourier feature approximation
+     - —
+   * - DualDecompForecaster
+     - Dual trend-seasonal decomposition
+     - —
+   * - PrototypicalForecaster
+     - Prototype-based feature aggregation
+     - —
+   * - ImplicitNeuralForecaster
+     - Implicit neural representations (INR)
+     - —
+   * - NeuralBasisForecaster
+     - Learnable basis function expansion
+     - —
+   * - KANForecaster
+     - Kolmogorov-Arnold networks
+     - —
+   * - DishTS
+     - Distribution shift-aware normalisation
+     - —
+
+**CNN / TCN family**
+
+.. list-table::
+   :widths: 22 50 28
+   :header-rows: 1
+
+   * - Model
+     - Key idea
+     - Reference
+   * - SCINet
+     - Hierarchical downsample-interact-upsample conv tree
+     - `Liu et al., NeurIPS 2022 <https://proceedings.neurips.cc/paper_files/paper/2022/hash/266983d0949aed78a16fa4782237dea7-Abstract-Conference.html>`__
+   * - TimesNet
+     - 2-D temporal variation via TimesBlock + 2-D conv
+     - `Wu et al., ICLR 2023 <https://openreview.net/pdf?id=ju_Uqw384Oq>`__
+   * - MICN
+     - Multi-scale isometric convolution network
+     - `Wang et al., ICLR 2023 <https://openreview.net/forum?id=zt53IDUR1U>`__
+   * - ModernTCN
+     - Modern temporal convolutional network
+     - —
+   * - WaveNet
+     - Dilated causal convolutions with gated activations
+     - `van den Oord et al., 2016 <https://arxiv.org/abs/1609.03499>`__
+   * - TCNForecaster
+     - Vanilla TCN with residual connections
+     - —
+   * - MultiscaleConvForecaster
+     - Parallel multi-scale conv branches
+     - —
+   * - SincNetForecaster
+     - SincNet learnable band-pass filters
+     - —
+   * - WaveletForecaster
+     - Learnable wavelet filter bank
+     - —
+   * - TemporalConvAttentionForecaster
+     - TCN + attention hybrid
+     - —
+
+**RNN / SSM / Hybrid family**
+
+.. list-table::
+   :widths: 22 50 28
+   :header-rows: 1
+
+   * - Model
+     - Key idea
+     - Reference
+   * - RNNForecaster
+     - Vanilla LSTM / GRU
+     - —
+   * - BiLSTMForecaster
+     - Bidirectional LSTM
+     - —
+   * - SegRNN
+     - Segment-based RNN (IMO decoding strategy)
+     - `Lin et al., ICLR 2024 <https://openreview.net/forum?id=jeqE7rqz2L>`__
+   * - Koopa
+     - Koopman operator + Fourier learnable dynamics
+     - `Liu et al., NeurIPS 2023 <https://arxiv.org/abs/2305.18803>`__
+   * - SOFTS
+     - Scalable O(1) STAr attention
+     - `Han et al., NeurIPS 2024 <https://arxiv.org/abs/2404.04997>`__
+   * - MambaForecaster
+     - Selective state space (Mamba SSM)
+     - `Gu & Dao, 2023 <https://arxiv.org/abs/2312.00752>`__
+   * - iMamba
+     - Inverted Mamba (channels as tokens)
+     - —
+   * - SMamba
+     - Spatial Mamba for multivariate series
+     - —
+   * - S4Forecaster
+     - Structured state space (S4)
+     - `Gu et al., ICLR 2022 <https://openreview.net/forum?id=uYLFoz1vlAC>`__
+   * - LRUForecaster
+     - Linear recurrent unit
+     - —
+   * - MinGRUForecaster
+     - Minimal gated recurrent unit
+     - —
+   * - xLSTMForecaster
+     - Extended LSTM with exponential gating
+     - —
+   * - QRNNForecaster
+     - Quasi-recurrent neural network
+     - —
+   * - HGRN2Forecaster
+     - Hierarchical gated recurrent network v2
+     - —
+   * - RWKVForecaster
+     - RWKV linear attention / recurrent hybrid
+     - —
+   * - TSReservoir
+     - Echo state / reservoir computing
+     - —
+   * - EchoStateForecaster
+     - Vanilla echo state network
+     - —
+   * - LiquidNetForecaster
+     - Liquid neural networks (adaptive ODE)
+     - —
+   * - HyenaForecaster
+     - Hyena long-convolution operator
+     - —
+   * - SpikeForecaster
+     - Spiking neural network forecaster
+     - —
+
+**Graph / Attention variants**
+
+.. list-table::
+   :widths: 22 50 28
+   :header-rows: 1
+
+   * - Model
+     - Key idea
+     - Reference
+   * - GATForecaster
+     - Graph attention network on channel graph
+     - —
+   * - GCNForecaster
+     - Graph convolutional network on channel graph
+     - —
+   * - GLAForecaster
+     - Gated linear attention
+     - —
+   * - RetForecaster
+     - Retentive network (retention mechanism)
+     - —
+   * - TFT
+     - Temporal Fusion Transformer with variable selection
+     - —
+   * - MoEForecaster
+     - Mixture-of-experts gating
+     - —
+   * - CARD
+     - Channel-aligned robust dual-branch Transformer
+     - —
 
 .. grid:: 1 2 3 3
    :gutter: 3
-
-   .. grid-item-card:: DLinear
-      :link: ../generated/torch_timeseries.model.DLinear
-      :link-type: doc
-
-      Decomposes input into trend + seasonal components, then applies an
-      independent linear projection to each. Matches many Transformer
-      baselines at a fraction of the cost.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
-
-   .. grid-item-card:: NLinear
-      :link: ../generated/torch_timeseries.model.NLinear
-      :link-type: doc
-
-      Subtracts the last time step before projection (normalization trick).
-      Extremely lightweight baseline — often hard to beat on univariate data.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
-
-   .. grid-item-card:: Informer
-      :link: ../generated/torch_timeseries.model.Informer
-      :link-type: doc
-
-      ProbSparse self-attention reduces complexity to *O(L log L)*.
-      Distilling encoder layers progressively compress the sequence.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Zhou et al., AAAI 2021 <https://ojs.aaai.org/index.php/AAAI/article/view/17325>`__
-
-   .. grid-item-card:: Autoformer
-      :link: ../generated/torch_timeseries.model.Autoformer
-      :link-type: doc
-
-      Auto-Correlation mechanism discovers period-based dependencies via FFT.
-      Progressive seasonal-trend decomposition in every encoder/decoder layer.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Wu et al., NeurIPS 2021 <https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html>`__
-
-   .. grid-item-card:: FEDformer
-      :link: ../generated/torch_timeseries.model.FEDformer
-      :link-type: doc
-
-      Frequency-enhanced decomposed Transformer. Attention and mixing
-      are performed in the Fourier / Wavelet domain for *O(L)* complexity.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Zhou et al., ICML 2022 <https://proceedings.mlr.press/v162/zhou22g.html>`__
-
-   .. grid-item-card:: PatchTST
-      :link: ../generated/torch_timeseries.model.PatchTST
-      :link-type: doc
-
-      Splits the time series into patches, embeds each as a token, then
-      applies a standard Transformer encoder. Channel-independent by default.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Nie et al., ICLR 2023 <https://openreview.net/forum?id=Jbdc0vTOcol>`__
 
    .. grid-item-card:: iTransformer
       :link: ../generated/torch_timeseries.model.iTransformer
@@ -182,41 +416,53 @@ anomaly detection, and classification via the built-in experiment runner.
       +++
       `Liu et al., ICLR 2024 <https://openreview.net/forum?id=JePfAI8fah>`__
 
-   .. grid-item-card:: TSMixer
-      :link: ../generated/torch_timeseries.model.TSMixer
+   .. grid-item-card:: PatchTST
+      :link: ../generated/torch_timeseries.model.PatchTST
       :link-type: doc
 
-      MLP-Mixer architecture alternating time-mixing and feature-mixing
-      layers. No attention — pure MLP with residual connections.
+      Splits the time series into patches, embeds each as a token, then
+      applies a standard Transformer encoder. Channel-independent by default.
 
       :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
 
       +++
-      `Chen et al., KDD 2023 <https://arxiv.org/abs/2303.06053>`__
+      `Nie et al., ICLR 2023 <https://openreview.net/forum?id=Jbdc0vTOcol>`__
 
-   .. grid-item-card:: Crossformer
-      :link: ../generated/torch_timeseries.model.Crossformer
+   .. grid-item-card:: TimeMixer
+      :link: ../generated/torch_timeseries.model.TimeMixer
       :link-type: doc
 
-      Two-Stage Attention Router: cross-time attention on patches, then
-      cross-dimension attention to model inter-variable dependencies.
+      Past Decomposable Mixing at multiple scales with Future Multipredictor
+      Mixing (FMM) for aggregation.
 
       :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
 
       +++
-      `Zhang & Yan, ICLR 2023 <https://openreview.net/forum?id=vSVLM2j9eie>`__
+      `Wang et al., ICLR 2024 <https://openreview.net/forum?id=7oLshfEIC2>`__
 
-   .. grid-item-card:: SCINet
-      :link: ../generated/torch_timeseries.model.SCINet
+   .. grid-item-card:: DLinear
+      :link: ../generated/torch_timeseries.model.DLinear
       :link-type: doc
 
-      Hierarchical downsample-interact-upsample tree. Each node applies
-      sample convolution on the odd/even sub-sequences.
+      Decomposes input into trend + seasonal components, then applies an
+      independent linear projection to each.
 
       :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
 
       +++
-      `Liu et al., NeurIPS 2022 <https://proceedings.neurips.cc/paper_files/paper/2022/hash/266983d0949aed78a16fa4782237dea7-Abstract-Conference.html>`__
+      `Zeng et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26317>`__
+
+   .. grid-item-card:: Autoformer
+      :link: ../generated/torch_timeseries.model.Autoformer
+      :link-type: doc
+
+      Auto-Correlation mechanism discovers period-based dependencies via FFT.
+      Progressive seasonal-trend decomposition in every encoder/decoder layer.
+
+      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
+
+      +++
+      `Wu et al., NeurIPS 2021 <https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html>`__
 
    .. grid-item-card:: TimesNet
       :link: ../generated/torch_timeseries.model.TimesNet
@@ -230,97 +476,29 @@ anomaly detection, and classification via the built-in experiment runner.
       +++
       `Wu et al., ICLR 2023 <https://openreview.net/pdf?id=ju_Uqw384Oq>`__
 
-   .. grid-item-card:: CATS
-      :link: ../generated/torch_timeseries.model.CATS
+   .. grid-item-card:: MambaForecaster
+      :link: ../generated/torch_timeseries.model.MambaForecaster
       :link-type: doc
 
-      Contiguous Adaptive Time Series: extends the context window by
-      generating auxiliary future queries, improving long-horizon accuracy.
-
-      :bdg-primary:`Forecast`
-
-      +++
-      `Lin et al., ICML 2024 <https://arxiv.org/abs/2403.01673>`__
-
-   .. grid-item-card:: FITS
-      :link: ../generated/torch_timeseries.model.FITS
-      :link-type: doc
-
-      Frequency Interpolation: compress the look-back window in the Fourier
-      domain, then interpolate to the prediction horizon — very few params.
+      Selective State Space Model (Mamba). Linear-time recurrence with
+      selective input gates for long-range dependency modelling.
 
       :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
 
       +++
-      `Xu et al., ICLR 2024 <https://openreview.net/forum?id=bWcnvZ3qMb>`__
-
-   .. grid-item-card:: FreTS
-      :link: ../generated/torch_timeseries.model.FreTS
-      :link-type: doc
-
-      All-MLP in the frequency domain. Real and imaginary components are
-      mixed separately before converting back to the time domain.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Yi et al., NeurIPS 2023 <https://proceedings.neurips.cc/paper_files/paper/2023/hash/f1d16af76939f476b5f040fd1398c0a3-Abstract-Conference.html>`__
+      `Gu & Dao, 2023 <https://arxiv.org/abs/2312.00752>`__
 
    .. grid-item-card:: SegRNN
       :link: ../generated/torch_timeseries.model.SegRNN
       :link-type: doc
 
-      Segment Recurrent Neural Network. Divides the look-back window into
-      equal-length segments, encodes them with a GRU, then iteratively
-      decodes future segments (IMO strategy). Achieves strong accuracy on
-      long-horizon benchmarks without attention.
+      Segment-based RNN with IMO decoding. Achieves strong long-horizon
+      accuracy without attention.
 
       :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
 
       +++
       `Lin et al., ICLR 2024 <https://openreview.net/forum?id=jeqE7rqz2L>`__
-
-   .. grid-item-card:: TimeMixer
-      :link: ../generated/torch_timeseries.model.TimeMixer
-      :link-type: doc
-
-      Past Decomposable Mixing: downsamples the look-back to multiple scales,
-      mixes seasonal components bottom-up (fine → coarse) and trend components
-      top-down (coarse → fine). A Future Multipredictor Mixing (FMM) layer
-      combines the multi-scale predictions.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Wang et al., ICLR 2024 <https://openreview.net/forum?id=7oLshfEIC2>`__
-
-   .. grid-item-card:: TiDE
-      :link: ../generated/torch_timeseries.model.TiDE
-      :link-type: doc
-
-      Time-series Dense Encoder. A pure-MLP encoder-decoder: the full
-      look-back is flattened and encoded by stacked residual blocks; the
-      latent is decoded for each future time step and projected to output
-      features. A global residual carries the last observed value forward.
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Das et al., TMLR 2023 <https://arxiv.org/abs/2304.08424>`__
-
-   .. grid-item-card:: NHiTS
-      :link: ../generated/torch_timeseries.model.NHiTS
-      :link-type: doc
-
-      Neural Hierarchical Interpolation for Time Series. Stacks of blocks
-      with geometrically-increasing pool sizes decompose the signal at
-      multiple temporal scales. Each block applies a doubly-residual MLP
-      (backcast subtraction + forecast accumulation).
-
-      :bdg-primary:`Forecast` :bdg-secondary:`Impute` :bdg-warning:`Anomaly` :bdg-success:`Classify`
-
-      +++
-      `Challu et al., AAAI 2023 <https://ojs.aaai.org/index.php/AAAI/article/view/26253>`__
 
 
 ----
