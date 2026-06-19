@@ -84,7 +84,7 @@ class TestMCDropoutForecastSetup:
         exp._setup()
         exp._init_model()
         metric_names = set(exp.metrics.keys())
-        for expected in ("crps", "crps_sum", "picp", "qice", "mse", "mae", "rmse"):
+        for expected in ("crps", "crps_sum", "picp", "qice", "mis", "spread", "mse", "mae", "rmse"):
             assert expected in metric_names, f"missing metric: {expected}"
 
     def test_monitor_metric_is_crps(self, tmp_path):
@@ -152,7 +152,7 @@ class TestMCDropoutForecastRun:
         exp = _make_exp(tmp_path, T=200, epochs=1)
         result = exp.run(seed=0)
         assert isinstance(result, dict)
-        for key in ("crps", "crps_sum", "picp", "qice", "mse", "mae", "rmse"):
+        for key in ("crps", "crps_sum", "picp", "qice", "mis", "spread", "mse", "mae", "rmse"):
             assert key in result, f"missing key: {key}"
             assert np.isfinite(result[key]), f"{key} = {result[key]}"
 

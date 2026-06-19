@@ -32,7 +32,7 @@ from ..dataloader.v2 import (
     TSBatch,
     WindowConfig,
 )
-from ..metrics import CRPS, CRPSSum, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
+from ..metrics import CRPS, CRPSSum, MIS, MeanSpread, PICP, QICE, ProbMAE, ProbMSE, ProbRMSE
 from .forecast import ForecastExp
 
 
@@ -58,6 +58,8 @@ class ProbForecastExp(ForecastExp):
                 "crps_sum": CRPSSum(),
                 "qice": QICE(),
                 "picp": PICP(),
+                "mis": MIS(),
+                "spread": MeanSpread(),
                 "mse": ProbMSE(),
                 "mae": ProbMAE(),
                 "rmse": ProbRMSE(),
