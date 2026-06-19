@@ -506,6 +506,22 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class AFTForecasterConfig:
+    d_model: int = 64
+    n_layers: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class EchoStateForecasterConfig:
     d_reservoir: int = 256
     sparsity: float = 0.9
@@ -1719,6 +1735,10 @@ def split_experiment_config(
         ("EchoStateForecaster", "AnomalyDetection"): EchoStateForecasterConfig,
         ("EchoStateForecaster", "Imputation"): EchoStateForecasterConfig,
         ("EchoStateForecaster", "UEAClassification"): EchoStateForecasterConfig,
+        ("AFTForecaster", "Forecast"): AFTForecasterConfig,
+        ("AFTForecaster", "AnomalyDetection"): AFTForecasterConfig,
+        ("AFTForecaster", "Imputation"): AFTForecasterConfig,
+        ("AFTForecaster", "UEAClassification"): AFTForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

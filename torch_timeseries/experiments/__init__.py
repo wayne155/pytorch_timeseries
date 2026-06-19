@@ -442,6 +442,12 @@ from .EchoStateForecaster import (
     EchoStateForecasterAnomalyDetection,
     EchoStateForecasterImputation,
 )
+from .AFTForecaster import (
+    AFTForecasterForecast,
+    AFTForecasterUEAClassification,
+    AFTForecasterAnomalyDetection,
+    AFTForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
