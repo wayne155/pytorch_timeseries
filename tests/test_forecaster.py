@@ -2914,6 +2914,44 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestCreateWindows:
+    def test_basic_shapes(self):
+        X = _rng_data(n=200)
+        Xw, yw = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED)
+        n = 200 - SEQ - PRED + 1
+        assert Xw.shape == (n, SEQ, C)
+        assert yw.shape == (n, PRED, C)
+
+    def test_stride(self):
+        X = _rng_data(n=200)
+        Xw, yw = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED, stride=2)
+        Xw2, _ = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED, stride=1)
+        assert len(Xw) < len(Xw2)
+
+    def test_gap(self):
+        X = _rng_data(n=200)
+        Xw0, yw0 = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED, gap=0)
+        Xwg, ywg = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED, gap=5)
+        assert len(Xwg) < len(Xw0)
+
+    def test_univariate(self):
+        X = np.random.default_rng(0).standard_normal(200)
+        Xw, yw = Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED)
+        assert Xw.shape == (200 - SEQ - PRED + 1, SEQ, 1)
+
+    def test_too_short_raises(self):
+        X = _rng_data(n=5)
+        with pytest.raises(ValueError):
+            Forecaster.create_windows(X, seq_len=SEQ, pred_len=PRED)
+
+    def test_context_and_target_nonoverlapping(self):
+        X = np.arange(100, dtype=float)[:, None]
+        Xw, yw = Forecaster.create_windows(X, seq_len=10, pred_len=5)
+        # For window 0: ctx=[0..9], target=[10..14]
+        np.testing.assert_array_equal(Xw[0, :, 0], np.arange(10))
+        np.testing.assert_array_equal(yw[0, :, 0], np.arange(10, 15))
+
+
 class TestSmooth:
     def test_output_shape_2d(self):
         X = _rng_data(n=100)

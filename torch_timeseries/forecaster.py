@@ -78,7 +78,7 @@ from __future__ import annotations
 
 import copy
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -1530,6 +1530,55 @@ class Forecaster:
             else:
                 raise ValueError(f"Unknown method {method!r}. Choose 'mean' or 'median'.")
         return out.squeeze() if X.ndim == 1 else out  # type: ignore[union-attr]
+
+    @staticmethod
+    def create_windows(
+        X,
+        seq_len: int,
+        pred_len: int,
+        *,
+        stride: int = 1,
+        gap: int = 0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Create supervised (context, target) window arrays from a raw series.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)`` or ``(N,)``.
+        seq_len:
+            Context window length.
+        pred_len:
+            Forecast horizon length.
+        stride:
+            Step size between consecutive windows (default 1).
+        gap:
+            Number of timesteps between the end of the context and the start
+            of the target (default 0 = immediate).
+
+        Returns
+        -------
+        X_windows: np.ndarray
+            Shape ``(n_windows, seq_len, C)``.
+        y_windows: np.ndarray
+            Shape ``(n_windows, pred_len, C)``.
+        """
+        X_np = np.asarray(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        total = seq_len + gap + pred_len
+        if N < total:
+            raise ValueError(
+                f"X has only {N} timesteps; need at least "
+                f"seq_len + gap + pred_len = {total}."
+            )
+        starts = range(0, N - total + 1, stride)
+        X_wins = np.stack([X_np[i : i + seq_len] for i in starts])
+        y_wins = np.stack(
+            [X_np[i + seq_len + gap : i + seq_len + gap + pred_len] for i in starts]
+        )
+        return X_wins, y_wins
 
     def plot_channel_scores(
         self,
