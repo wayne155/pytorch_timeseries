@@ -286,6 +286,12 @@ from .HarmonicForecaster import (
     HarmonicForecasterAnomalyDetection,
     HarmonicForecasterImputation,
 )
+from .HDMixer import (
+    HDMixerForecast,
+    HDMixerUEAClassification,
+    HDMixerAnomalyDetection,
+    HDMixerImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

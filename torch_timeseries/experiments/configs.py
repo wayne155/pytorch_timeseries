@@ -374,6 +374,22 @@ class RetForecasterConfig:
 
 
 @dataclass
+class HDMixerConfig:
+    patch_sizes: list = field(default_factory=lambda: [4, 8, 16])
+    d_model: int = 64
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if not self.patch_sizes:
+            raise ValueError("patch_sizes must be non-empty")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HarmonicForecasterConfig:
     n_harmonics: int = 16
     use_mlp: bool = True
@@ -1122,6 +1138,10 @@ def split_experiment_config(
         ("HarmonicForecaster", "AnomalyDetection"): HarmonicForecasterConfig,
         ("HarmonicForecaster", "Imputation"): HarmonicForecasterConfig,
         ("HarmonicForecaster", "UEAClassification"): HarmonicForecasterConfig,
+        ("HDMixer", "Forecast"): HDMixerConfig,
+        ("HDMixer", "AnomalyDetection"): HDMixerConfig,
+        ("HDMixer", "Imputation"): HDMixerConfig,
+        ("HDMixer", "UEAClassification"): HDMixerConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

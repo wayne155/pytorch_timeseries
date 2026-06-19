@@ -58,6 +58,7 @@ from .GCNForecaster import GCNForecaster
 from .MoEForecaster import MoEForecaster
 from .RetForecaster import RetForecaster
 from .HarmonicForecaster import HarmonicForecaster
+from .HDMixer import HDMixer
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -94,6 +95,7 @@ forecasting_models = [
     "MoEForecaster",
     "RetForecaster",
     "HarmonicForecaster",
+    "HDMixer",
 ]
 
 prob_forecasting_models = [
