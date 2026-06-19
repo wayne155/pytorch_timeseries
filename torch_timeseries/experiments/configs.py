@@ -506,6 +506,23 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class PrototypicalForecasterConfig:
+    n_proto: int = 32
+    d_proto: int = 64
+    query_dim: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_proto <= 0:
+            raise ValueError("n_proto must be positive")
+        if self.d_proto <= 0:
+            raise ValueError("d_proto must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyenaForecasterConfig:
     d_model: int = 64
     n_layers: int = 3
@@ -1513,6 +1530,10 @@ def split_experiment_config(
         ("HyenaForecaster", "AnomalyDetection"): HyenaForecasterConfig,
         ("HyenaForecaster", "Imputation"): HyenaForecasterConfig,
         ("HyenaForecaster", "UEAClassification"): HyenaForecasterConfig,
+        ("PrototypicalForecaster", "Forecast"): PrototypicalForecasterConfig,
+        ("PrototypicalForecaster", "AnomalyDetection"): PrototypicalForecasterConfig,
+        ("PrototypicalForecaster", "Imputation"): PrototypicalForecasterConfig,
+        ("PrototypicalForecaster", "UEAClassification"): PrototypicalForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

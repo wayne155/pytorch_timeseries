@@ -388,6 +388,12 @@ from .HyenaForecaster import (
     HyenaForecasterAnomalyDetection,
     HyenaForecasterImputation,
 )
+from .PrototypicalForecaster import (
+    PrototypicalForecasterForecast,
+    PrototypicalForecasterUEAClassification,
+    PrototypicalForecasterAnomalyDetection,
+    PrototypicalForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
