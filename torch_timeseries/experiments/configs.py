@@ -239,6 +239,76 @@ class StudentTConfig:
 
 
 @dataclass
+class NBEATSConfig:
+    stack_types: list = None   # None → ["generic", "generic", "generic"]
+    num_blocks: int = 3
+    hidden_size: int = 256
+    expansion_coefficient_dim: int = 32
+    degree_of_polynomial: int = 3
+    num_harmonics: int = 1
+
+    def __post_init__(self):
+        if self.stack_types is None:
+            self.stack_types = ["generic", "generic", "generic"]
+
+    def validate(self) -> None:
+        valid = {"generic", "trend", "seasonality"}
+        for s in self.stack_types:
+            if s not in valid:
+                raise ValueError(f"stack_types must be subsets of {valid}, got '{s}'")
+        if self.num_blocks <= 0:
+            raise ValueError("num_blocks must be positive")
+        if self.hidden_size <= 0:
+            raise ValueError("hidden_size must be positive")
+        if self.expansion_coefficient_dim <= 0:
+            raise ValueError("expansion_coefficient_dim must be positive")
+        if self.degree_of_polynomial < 0:
+            raise ValueError("degree_of_polynomial must be non-negative")
+        if self.num_harmonics < 1:
+            raise ValueError("num_harmonics must be at least 1")
+
+
+@dataclass
+class SparseTSFConfig:
+    period: int = None   # None → seq_len // 4 at runtime
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.period is not None and self.period < 1:
+            raise ValueError("period must be >= 1")
+
+
+@dataclass
+class EnsembleConfig:
+    d_model: int = 256
+    n_heads: int = 4
+    e_layers: int = 3
+    d_ff: int = 512
+    dropout: float = 0.1
+    activation: str = "gelu"
+    revin: bool = True
+    num_members: int = 5
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+        if self.activation not in ("relu", "gelu"):
+            raise ValueError("activation must be 'relu' or 'gelu'")
+        if self.num_members < 1:
+            raise ValueError("num_members must be >= 1")
+
+
+@dataclass
 class QuantileConfig:
     d_model: int = 256
     n_heads: int = 4
@@ -387,6 +457,15 @@ def split_experiment_config(
         ("Gaussian", "Forecast"): GaussianConfig,
         ("StudentT", "Forecast"): StudentTConfig,
         ("Quantile", "Forecast"): QuantileConfig,
+        ("NBEATS", "Forecast"): NBEATSConfig,
+        ("NBEATS", "AnomalyDetection"): NBEATSConfig,
+        ("NBEATS", "Imputation"): NBEATSConfig,
+        ("NBEATS", "UEAClassification"): NBEATSConfig,
+        ("SparseTSF", "Forecast"): SparseTSFConfig,
+        ("SparseTSF", "AnomalyDetection"): SparseTSFConfig,
+        ("SparseTSF", "Imputation"): SparseTSFConfig,
+        ("SparseTSF", "UEAClassification"): SparseTSFConfig,
+        ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
         raise NotImplementedError(

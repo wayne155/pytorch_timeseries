@@ -2,12 +2,15 @@
 import pytest
 
 from torch_timeseries.experiments.configs import (
+    EnsembleConfig,
     GaussianConfig,
     MCDropoutConfig,
+    NBEATSConfig,
     PatchMixerConfig,
     QuantileConfig,
     RNNConfig,
     RuntimeConfig,
+    SparseTSFConfig,
     StudentTConfig,
     TCNConfig,
     VanillaTransformerConfig,
@@ -463,3 +466,114 @@ class TestQuantileConfig:
 
     def test_relu_activation_valid(self):
         QuantileConfig(activation="relu").validate()
+
+
+class TestNBEATSConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="NBEATS",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "num_blocks": 2, "hidden_size": 128,
+                "expansion_coefficient_dim": 16,
+                "degree_of_polynomial": 2, "num_harmonics": 2,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert isinstance(m, NBEATSConfig)
+        assert m.num_blocks == 2
+        assert m.hidden_size == 128
+
+    def test_default_stack_types(self):
+        cfg = NBEATSConfig()
+        assert cfg.stack_types == ["generic", "generic", "generic"]
+
+    def test_validate_invalid_stack_type(self):
+        cfg = NBEATSConfig(stack_types=["wavelet"])
+        with pytest.raises(ValueError, match="stack_types"):
+            cfg.validate()
+
+    def test_validate_num_blocks_positive(self):
+        cfg = NBEATSConfig(num_blocks=0)
+        with pytest.raises(ValueError, match="num_blocks"):
+            cfg.validate()
+
+    def test_validate_hidden_size_positive(self):
+        cfg = NBEATSConfig(hidden_size=-1)
+        with pytest.raises(ValueError, match="hidden_size"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        NBEATSConfig().validate()
+
+    def test_all_stack_types_valid(self):
+        NBEATSConfig(stack_types=["generic", "trend", "seasonality"]).validate()
+
+
+class TestSparseTSFConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="SparseTSF",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "period": 12, "revin": False,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert isinstance(m, SparseTSFConfig)
+        assert m.period == 12
+        assert m.revin is False
+
+    def test_none_period_is_valid(self):
+        SparseTSFConfig(period=None).validate()
+
+    def test_period_1_is_valid(self):
+        SparseTSFConfig(period=1).validate()
+
+    def test_period_zero_raises(self):
+        cfg = SparseTSFConfig(period=0)
+        with pytest.raises(ValueError, match="period"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        SparseTSFConfig().validate()
+
+
+class TestEnsembleConfig:
+    def test_split_accepts_flat_kwargs(self):
+        w, s, m, r = split_experiment_config(
+            model="Ensemble",
+            task="Forecast",
+            kwargs={
+                "windows": 96, "pred_len": 24,
+                "d_model": 128, "n_heads": 4, "e_layers": 2, "d_ff": 256,
+                "dropout": 0.1, "activation": "gelu", "revin": True,
+                "num_members": 3,
+                "epochs": 1, "save_dir": "./tmp",
+            },
+        )
+        assert isinstance(m, EnsembleConfig)
+        assert m.num_members == 3
+
+    def test_validate_num_members_zero(self):
+        cfg = EnsembleConfig(num_members=0)
+        with pytest.raises(ValueError, match="num_members"):
+            cfg.validate()
+
+    def test_validate_d_model_positive(self):
+        cfg = EnsembleConfig(d_model=0)
+        with pytest.raises(ValueError, match="d_model"):
+            cfg.validate()
+
+    def test_validate_n_heads_divides_d_model(self):
+        cfg = EnsembleConfig(d_model=256, n_heads=7)
+        with pytest.raises(ValueError, match="n_heads"):
+            cfg.validate()
+
+    def test_defaults_are_valid(self):
+        EnsembleConfig().validate()
+
+    def test_default_num_members(self):
+        assert EnsembleConfig().num_members == 5

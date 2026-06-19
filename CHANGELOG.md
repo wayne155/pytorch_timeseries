@@ -1,3 +1,7 @@
+## 0.2.26
+
+feat: add `NBEATSConfig`, `SparseTSFConfig`, `EnsembleConfig` to `split_experiment_config`; add corresponding tests in `test_new_model_configs.py`; 1249 tests total
+
 ## 0.2.25
 
 feat: `EnsembleForecaster` model — Deep Ensemble probabilistic forecaster (Lakshminarayanan et al., NeurIPS 2017) wrapping N independently initialised VanillaTransformer backbones; trained with mean MSE; at inference returns (B, pred_len, N, M) ensemble; `EnsembleForecast` experiment, reproduce script, 25 model tests; 1231 tests total
