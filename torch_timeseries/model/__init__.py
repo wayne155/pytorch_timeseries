@@ -65,6 +65,7 @@ from .WaveletForecaster import WaveletForecaster
 from .LinearAttentionForecaster import LinearAttentionForecaster
 from .DualDecompForecaster import DualDecompForecaster
 from .HyperForecaster import HyperForecaster
+from .GATForecaster import GATForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -108,6 +109,7 @@ forecasting_models = [
     "LinearAttentionForecaster",
     "DualDecompForecaster",
     "HyperForecaster",
+    "GATForecaster",
 ]
 
 prob_forecasting_models = [

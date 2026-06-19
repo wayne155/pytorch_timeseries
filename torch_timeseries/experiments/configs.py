@@ -374,6 +374,28 @@ class RetForecasterConfig:
 
 
 @dataclass
+class GATForecasterConfig:
+    d_model: int = 64
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1281,6 +1303,10 @@ def split_experiment_config(
         ("HyperForecaster", "AnomalyDetection"): HyperForecasterConfig,
         ("HyperForecaster", "Imputation"): HyperForecasterConfig,
         ("HyperForecaster", "UEAClassification"): HyperForecasterConfig,
+        ("GATForecaster", "Forecast"): GATForecasterConfig,
+        ("GATForecaster", "AnomalyDetection"): GATForecasterConfig,
+        ("GATForecaster", "Imputation"): GATForecasterConfig,
+        ("GATForecaster", "UEAClassification"): GATForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

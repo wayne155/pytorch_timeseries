@@ -328,6 +328,12 @@ from .HyperForecaster import (
     HyperForecasterAnomalyDetection,
     HyperForecasterImputation,
 )
+from .GATForecaster import (
+    GATForecasterForecast,
+    GATForecasterUEAClassification,
+    GATForecasterAnomalyDetection,
+    GATForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
