@@ -35,7 +35,7 @@ FORECAST_FOUR_TASK_MODELS = [
 FORECAST_ONLY_MODELS = ["CATS"]
 
 # Probabilistic models register only the Forecast task.
-PROB_FORECAST_MODELS = ["MCDropout", "Gaussian", "StudentT", "Quantile", "Ensemble"]
+PROB_FORECAST_MODELS = ["MCDropout", "Gaussian", "StudentT", "Quantile", "Ensemble", "NormalizingFlow"]
 
 GENERATION_MODELS = [
     ("TimeGAN", "Generation"),
@@ -99,7 +99,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 123  # +4 WaveNet tasks
+        assert len(list_experiments()) >= 124  # +1 NormalizingFlow/Forecast
 
 
 # ---------------------------------------------------------------------------

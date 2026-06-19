@@ -38,6 +38,7 @@ from .Koopa import Koopa
 from .LightTS import LightTS
 from .CycleNet import CycleNet
 from .WaveNet import WaveNet
+from .NormalizingFlowForecaster import NormalizingFlowForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -63,6 +64,7 @@ prob_forecasting_models = [
     "StudentTForecaster",
     "QuantileForecaster",
     "EnsembleForecaster",
+    "NormalizingFlowForecaster",
 ]
 
 generation_models = [

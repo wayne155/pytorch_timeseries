@@ -309,6 +309,42 @@ class EnsembleConfig:
 
 
 @dataclass
+class NormalizingFlowConfig:
+    d_model: int = 256
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 512
+    dropout: float = 0.1
+    activation: str = "gelu"
+    revin: bool = True
+    num_samples: int = 50
+    flow_layers: int = 6
+    flow_hidden: int = 128
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+        if self.activation not in ("relu", "gelu"):
+            raise ValueError("activation must be 'relu' or 'gelu'")
+        if self.num_samples < 1:
+            raise ValueError("num_samples must be positive")
+        if self.flow_layers < 1:
+            raise ValueError("flow_layers must be >= 1")
+        if self.flow_hidden <= 0:
+            raise ValueError("flow_hidden must be positive")
+
+
+@dataclass
 class WaveNetConfig:
     d_model: int = 64
     d_skip: int = 64
@@ -558,6 +594,7 @@ def split_experiment_config(
         ("Gaussian", "Forecast"): GaussianConfig,
         ("StudentT", "Forecast"): StudentTConfig,
         ("Quantile", "Forecast"): QuantileConfig,
+        ("NormalizingFlow", "Forecast"): NormalizingFlowConfig,
         ("NBEATS", "Forecast"): NBEATSConfig,
         ("NBEATS", "AnomalyDetection"): NBEATSConfig,
         ("NBEATS", "Imputation"): NBEATSConfig,

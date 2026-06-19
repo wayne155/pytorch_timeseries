@@ -129,6 +129,7 @@ from .GaussianForecaster import GaussianForecast
 from .StudentTForecaster import StudentTForecast
 from .QuantileForecaster import QuantileForecast
 from .EnsembleForecaster import EnsembleForecast
+from .NormalizingFlowForecaster import NormalizingFlowForecast
 from .NBEATS import (
     NBEATSForecast,
     NBEATSUEAClassification,
