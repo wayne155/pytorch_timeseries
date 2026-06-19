@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class MEGAForecasterConfig:
+    d_model: int = 64
+    d_expand: int = 32
+    n_layers: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_expand <= 0:
+            raise ValueError("d_expand must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class ConformerForecasterConfig:
     d_model: int = 64
     n_heads: int = 4
@@ -1816,6 +1835,10 @@ def split_experiment_config(
         ("ConformerForecaster", "AnomalyDetection"): ConformerForecasterConfig,
         ("ConformerForecaster", "Imputation"): ConformerForecasterConfig,
         ("ConformerForecaster", "UEAClassification"): ConformerForecasterConfig,
+        ("MEGAForecaster", "Forecast"): MEGAForecasterConfig,
+        ("MEGAForecaster", "AnomalyDetection"): MEGAForecasterConfig,
+        ("MEGAForecaster", "Imputation"): MEGAForecasterConfig,
+        ("MEGAForecaster", "UEAClassification"): MEGAForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

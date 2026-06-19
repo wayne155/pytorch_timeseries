@@ -619,6 +619,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "MEGAForecaster": {
+        "d_model": 64,
+        "d_expand": 32,
+        "n_layers": 2,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

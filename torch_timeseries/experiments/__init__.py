@@ -466,6 +466,12 @@ from .ConformerForecaster import (
     ConformerForecasterAnomalyDetection,
     ConformerForecasterImputation,
 )
+from .MEGAForecaster import (
+    MEGAForecasterForecast,
+    MEGAForecasterUEAClassification,
+    MEGAForecasterAnomalyDetection,
+    MEGAForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
