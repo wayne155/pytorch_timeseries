@@ -208,6 +208,16 @@ MODEL_PARAMS = {
         "period": 24,   # daily period for hourly data (ETT, Weather, Traffic)
         "revin": True,
     },
+    "Ensemble": {
+        "d_model": 256,
+        "n_heads": 4,
+        "e_layers": 3,
+        "d_ff": 512,
+        "dropout": 0.1,
+        "activation": "gelu",
+        "revin": True,
+        "num_members": 5,
+    },
     "FreTS": {
         "channel_independence": True,
     },

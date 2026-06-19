@@ -30,7 +30,7 @@ FORECAST_FOUR_TASK_MODELS = [
 FORECAST_ONLY_MODELS = ["CATS"]
 
 # Probabilistic models register only the Forecast task.
-PROB_FORECAST_MODELS = ["MCDropout", "Gaussian", "StudentT", "Quantile"]
+PROB_FORECAST_MODELS = ["MCDropout", "Gaussian", "StudentT", "Quantile", "Ensemble"]
 
 GENERATION_MODELS = [
     ("TimeGAN", "Generation"),
@@ -94,7 +94,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 102  # +4 SparseTSF tasks
+        assert len(list_experiments()) >= 103  # +1 Ensemble/Forecast
 
 
 # ---------------------------------------------------------------------------

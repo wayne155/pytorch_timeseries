@@ -128,6 +128,7 @@ from .MCDropoutForecaster import MCDropoutForecast
 from .GaussianForecaster import GaussianForecast
 from .StudentTForecaster import StudentTForecast
 from .QuantileForecaster import QuantileForecast
+from .EnsembleForecaster import EnsembleForecast
 from .NBEATS import (
     NBEATSForecast,
     NBEATSUEAClassification,

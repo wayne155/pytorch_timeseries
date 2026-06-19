@@ -1,3 +1,7 @@
+## 0.2.25
+
+feat: `EnsembleForecaster` model — Deep Ensemble probabilistic forecaster (Lakshminarayanan et al., NeurIPS 2017) wrapping N independently initialised VanillaTransformer backbones; trained with mean MSE; at inference returns (B, pred_len, N, M) ensemble; `EnsembleForecast` experiment, reproduce script, 25 model tests; 1231 tests total
+
 ## 0.2.24
 
 feat: `SparseTSF` model — period-based sparse forecasting with ~1K parameters (Chen et al., ICML 2024); downsamples input by period P, applies a tiny linear layer in sparse domain, then upsamples back; RevIN normalisation; supports all 4 tasks; 21 model tests; 1204 tests total
