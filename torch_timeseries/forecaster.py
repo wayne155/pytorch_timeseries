@@ -1586,6 +1586,87 @@ class Forecaster:
         return result.squeeze(1) if squeeze else result
 
     @staticmethod
+    def detrend(
+        X,
+        degree: int = 1,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Remove a polynomial trend from each channel.
+
+        Fits a degree-*degree* polynomial to the time axis for each channel
+        and returns the residuals plus the fitted coefficient matrix so the
+        trend can be restored.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)`` or ``(N,)``.
+        degree:
+            Degree of the polynomial trend (default 1 = linear).
+
+        Returns
+        -------
+        X_detrended: np.ndarray
+            Shape ``(N, C)`` — X minus the fitted trend.
+        trend_coeffs: np.ndarray
+            Shape ``(degree + 1, C)`` — per-channel polynomial coefficients
+            (highest degree first, as returned by ``np.polyfit``).
+        """
+        X_np = np.asarray(X, dtype=float)
+        squeeze = X_np.ndim == 1
+        if squeeze:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        t = np.arange(N, dtype=float)
+        coeffs = np.zeros((degree + 1, C))
+        trend = np.zeros_like(X_np)
+        for c in range(C):
+            p = np.polyfit(t, X_np[:, c], degree)
+            coeffs[:, c] = p
+            trend[:, c] = np.polyval(p, t)
+        X_det = X_np - trend
+        if squeeze:
+            X_det = X_det.squeeze(1)
+        return X_det, coeffs
+
+    @staticmethod
+    def retrend(
+        X_detrended,
+        trend_coeffs: np.ndarray,
+        offset: int = 0,
+    ) -> np.ndarray:
+        """Restore a polynomial trend removed by :meth:`detrend`.
+
+        Parameters
+        ----------
+        X_detrended:
+            Detrended series, shape ``(M, C)`` or ``(M,)``.  Typically a
+            model's prediction on detrended inputs.
+        trend_coeffs:
+            Coefficients from :meth:`detrend`, shape ``(degree + 1, C)``.
+        offset:
+            Timestep index of the first row of *X_detrended* in the
+            original time axis (default 0).  For a forecast starting after
+            N training steps, pass *N*.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(M, C)`` — *X_detrended* plus the trend restored at the
+            correct time positions.
+        """
+        Xd = np.asarray(X_detrended, dtype=float)
+        squeeze = Xd.ndim == 1
+        if squeeze:
+            Xd = Xd[:, None]
+        M, C = Xd.shape
+        t = np.arange(offset, offset + M, dtype=float)
+        trend = np.zeros((M, C))
+        for c in range(C):
+            trend[:, c] = np.polyval(trend_coeffs[:, c], t)
+        out = Xd + trend
+        return out.squeeze(1) if squeeze else out
+
+    @staticmethod
     def compute_metrics(
         y_true,
         y_pred,

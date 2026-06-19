@@ -2914,6 +2914,51 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestDetrendRetend:
+    def test_detrend_returns_tuple(self):
+        X = _rng_data(n=100)
+        out = Forecaster.detrend(X)
+        assert isinstance(out, tuple)
+        assert len(out) == 2
+
+    def test_detrend_output_shape(self):
+        X = _rng_data(n=100)
+        Xd, coeffs = Forecaster.detrend(X, degree=1)
+        assert Xd.shape == X.shape
+        assert coeffs.shape == (2, C)  # degree+1 coefficients
+
+    def test_detrend_removes_linear_trend(self):
+        # Perfectly linear series
+        t = np.arange(100)[:, None] * np.ones((1, 2))  # (100, 2)
+        Xd, _ = Forecaster.detrend(t, degree=1)
+        np.testing.assert_allclose(Xd, 0.0, atol=1e-8)
+
+    def test_detrend_quadratic(self):
+        t = np.arange(100, dtype=float)[:, None]
+        X = t ** 2
+        Xd, coeffs = Forecaster.detrend(X, degree=2)
+        assert coeffs.shape == (3, 1)
+        np.testing.assert_allclose(Xd, 0.0, atol=1e-6)
+
+    def test_retrend_inverts_detrend(self):
+        X = _rng_data(n=100)
+        Xd, coeffs = Forecaster.detrend(X, degree=1)
+        Xr = Forecaster.retrend(Xd, coeffs, offset=0)
+        np.testing.assert_allclose(Xr, X, atol=1e-8)
+
+    def test_retrend_with_offset(self):
+        X = _rng_data(n=200)
+        _, coeffs = Forecaster.detrend(X[:100], degree=1)
+        future_trend = Forecaster.retrend(np.zeros((50, C)), coeffs, offset=100)
+        assert future_trend.shape == (50, C)
+
+    def test_detrend_1d(self):
+        X = np.arange(50, dtype=float)
+        Xd, _ = Forecaster.detrend(X, degree=1)
+        assert Xd.shape == (50,)
+        np.testing.assert_allclose(Xd, 0.0, atol=1e-8)
+
+
 class TestDiffUndiff:
     def test_diff_shape_order1(self):
         X = _rng_data(n=100)
