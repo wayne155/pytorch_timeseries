@@ -5008,6 +5008,156 @@ class Forecaster:
 
         return {"bias2": bias2, "variance": variance, "total_mse": total_mse}
 
+    def set_device(self, device: str) -> "Forecaster":
+        """Move the model to *device* (e.g. ``"cuda"`` or ``"cpu"``).
+
+        Also updates ``self.device`` so subsequent :meth:`fit` / :meth:`predict`
+        calls use the new device.
+
+        Parameters
+        ----------
+        device:
+            PyTorch device string (``"cpu"``, ``"cuda"``, ``"cuda:0"``, …).
+
+        Returns
+        -------
+        self
+        """
+        self.device = device
+        if self._model is not None:
+            self._model = self._model.to(device)
+        return self
+
+    @staticmethod
+    def granger_test(
+        X: np.ndarray,
+        *,
+        max_lag: int = 5,
+    ) -> np.ndarray:
+        """Pairwise Granger causality F-statistics between all channel pairs.
+
+        For each ordered pair ``(cause, effect)`` the method tests whether
+        the past of channel *cause* improves the AR prediction of channel
+        *effect* above and beyond the past of *effect* alone.  Uses OLS
+        regression — no additional dependencies required.
+
+        A high F-statistic in position ``[i, j]`` means channel *i* Granger-
+        causes channel *j*.
+
+        Parameters
+        ----------
+        X:
+            Multivariate time series ``(T, C)``.
+        max_lag:
+            Number of lags to include in the regression (default ``5``).
+
+        Returns
+        -------
+        np.ndarray of shape ``(C, C)`` — F-statistics (diagonal is 0).
+        """
+        X = np.asarray(X, dtype=float)
+        T, C = X.shape
+
+        def _ols_ssr(A: np.ndarray, b: np.ndarray) -> float:
+            """Return SSR of OLS regression b ~ A (no bias — caller adds constant)."""
+            coef, res, _, _ = np.linalg.lstsq(A, b, rcond=None)
+            pred = A @ coef
+            return float(((b - pred) ** 2).sum())
+
+        f_mat = np.zeros((C, C), dtype=float)
+        n_obs = T - max_lag
+
+        for j in range(C):
+            # Restricted model: j ~ lags of j
+            # Unrestricted model: j ~ lags of j + lags of i
+            y = X[max_lag:, j]
+
+            # Build restricted design matrix (lags of j + constant)
+            Z_res = np.column_stack(
+                [X[max_lag - k - 1 : T - k - 1, j] for k in range(max_lag)]
+                + [np.ones(n_obs)]
+            )
+            ssr_res = _ols_ssr(Z_res, y)
+
+            for i in range(C):
+                if i == j:
+                    continue
+                # Unrestricted: add lags of i
+                Z_unres = np.column_stack(
+                    [Z_res]
+                    + [X[max_lag - k - 1 : T - k - 1, i] for k in range(max_lag)]
+                )
+                ssr_unres = _ols_ssr(Z_unres, y)
+
+                df1 = max_lag
+                df2 = n_obs - Z_unres.shape[1]
+                if df2 <= 0 or ssr_unres <= 1e-12:
+                    f_mat[i, j] = 0.0
+                else:
+                    f_mat[i, j] = ((ssr_res - ssr_unres) / df1) / (ssr_unres / df2)
+
+        return f_mat
+
+    @staticmethod
+    def plot_granger(
+        X: np.ndarray,
+        *,
+        max_lag: int = 5,
+        channel_names: Optional[List[str]] = None,
+        ax=None,
+        title: Optional[str] = None,
+        cmap: str = "YlOrRd",
+    ):
+        """Heatmap of pairwise Granger causality F-statistics.
+
+        Rows = cause, columns = effect.
+
+        Parameters
+        ----------
+        X:
+            Multivariate time series ``(T, C)``.
+        max_lag:
+            Regression lag for Granger test.
+        channel_names:
+            Labels per channel.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+        cmap:
+            Colormap (default ``"YlOrRd"``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_granger()") from exc
+
+        f_mat = Forecaster.granger_test(X, max_lag=max_lag)
+        C = f_mat.shape[0]
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(4, C), max(3, C)))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(f_mat, cmap=cmap, aspect="auto")
+        ax.set_xticks(range(C))
+        ax.set_yticks(range(C))
+        ax.set_xticklabels(channel_names, rotation=45, ha="right")
+        ax.set_yticklabels(channel_names)
+        ax.set_xlabel("Effect channel (j)")
+        ax.set_ylabel("Cause channel (i)")
+        fig.colorbar(im, ax=ax, label="F-statistic", fraction=0.046, pad=0.04)
+        ax.set_title(title or f"Granger causality (lag={max_lag})")
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

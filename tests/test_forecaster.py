@@ -2947,6 +2947,85 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestSetDevice:
+    def test_returns_self(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.set_device("cpu")
+        assert result is fc
+
+    def test_device_attribute_updated(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.set_device("cpu")
+        assert fc.device == "cpu"
+
+    def test_unfitted_no_error(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        fc.set_device("cpu")  # no model to move, but device attr should update
+        assert fc.device == "cpu"
+
+    def test_predictions_unchanged_after_cpu_move(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data(n=SEQ)
+        pred_before = fc.predict(X[np.newaxis]).copy()
+        fc.set_device("cpu")
+        pred_after = fc.predict(X[np.newaxis])
+        np.testing.assert_allclose(pred_before, pred_after, rtol=1e-5)
+
+
+class TestGrangerTest:
+    def test_shape(self):
+        X = _rng_data(n=100)
+        f = Forecaster.granger_test(X, max_lag=3)
+        assert f.shape == (C, C)
+
+    def test_diagonal_zero(self):
+        X = _rng_data(n=100)
+        f = Forecaster.granger_test(X, max_lag=3)
+        np.testing.assert_allclose(np.diag(f), 0.0)
+
+    def test_nonnegative(self):
+        X = _rng_data(n=100)
+        f = Forecaster.granger_test(X, max_lag=3)
+        assert (f >= 0).all()
+
+    def test_known_causality(self):
+        # ch0 causes ch1: ch1[t] = ch0[t-1] + noise
+        rng = np.random.default_rng(42)
+        T = 200
+        x0 = rng.standard_normal(T)
+        x1 = np.roll(x0, 1) + 0.1 * rng.standard_normal(T)
+        X = np.column_stack([x0, x1])
+        f = Forecaster.granger_test(X, max_lag=3)
+        # F(ch0 → ch1) should be large
+        assert f[0, 1] > f[1, 0]
+
+    def test_univariate_raises(self):
+        X = _rng_data(n=100, c=1)
+        # Still produces (1,1) matrix — just diagonal zeros
+        f = Forecaster.granger_test(X, max_lag=3)
+        assert f.shape == (1, 1)
+
+
+class TestPlotGranger:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_granger(X, max_lag=3)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_granger(X, max_lag=3, title="Granger")
+        ax = fig.get_axes()[0]
+        assert "Granger" in ax.get_title()
+        plt.close("all")
+
+
 class TestInputGradient:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())
