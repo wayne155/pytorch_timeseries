@@ -21,30 +21,59 @@ An all-in-one deep learning library covering the full spectrum of time series re
 
 ---
 
+## At a glance
+
+```python
+import numpy as np
+from torch_timeseries import Forecaster
+
+# Any multivariate numpy array — no preprocessing required
+data = np.load("electricity.npy")          # shape (T, 321)
+
+# Train with one line — early stopping, normalisation, GPU handled automatically
+fc = Forecaster("iTransformer", seq_len=96, pred_len=24, epochs=20)
+fc.fit(data)
+
+# Predict the next 24 steps
+pred = fc.predict(data[-96:])              # → (24, 321)
+
+# Evaluate, compare models, compute uncertainty, explain, detect anomalies …
+print(fc.score(data))                      # {'MSE': 0.17, 'MAE': 0.26, …}
+print(fc.leaderboard(data[:8000], data[8000:], ["DLinear", "NLinear", "PatchTST"],
+                      seq_len=96, pred_len=24, epochs=10))
+```
+
+Or benchmark a built-in model in one line:
+
+```python
+from torch_timeseries import Experiment
+Experiment(model="iTransformer", task="Forecast", dataset="ETTh1",
+           windows=96, pred_len=24).run(seeds=[1, 2, 3])
+# → [RunResult(metrics={'mse': 0.45, 'mae': 0.44}), …]
+```
+
+---
+
 ## Table of Contents
 
 - [Installation](#installation)
 - [Quick start — your own CSV](#quick-start--your-own-csv)
-- [Forecaster — High-Level API](#forecaster--high-level-api)
+- [Forecasting](#forecasting)
+  - [Forecaster — High-Level API](#forecaster--high-level-api)
   - [Fit · Predict · Score](#fit--predict--score)
-  - [Model Comparison](#model-comparison)
+  - [Model Comparison & Leaderboard](#model-comparison--leaderboard)
   - [Uncertainty Quantification](#uncertainty-quantification)
-  - [Anomaly Detection](#anomaly-detection-1)
-  - [Signal Analysis](#signal-analysis)
+  - [Signal Analysis & Diagnostics](#signal-analysis--diagnostics)
   - [Explainability](#explainability)
   - [Transfer Learning](#transfer-learning)
   - [Ensemble & Composition](#ensemble--composition)
   - [Deployment Utilities](#deployment-utilities)
-  - [Change Point Detection](#change-point-detection)
-  - [Granger Causality](#granger-causality)
-- [Model Training — Two Ways to Use](#model-training--two-ways-to-use)
-  - [Way 1 — Custom pipeline](#way-1--custom-pipeline-bring-your-own-training-loop)
-  - [Way 2 — Built-in experiment runner](#way-2--default-training-paradigm-built-in-or-registered-models)
+  - [Low-level Training Loop](#low-level-training-loop)
+  - [Built-in Experiment Runner](#built-in-experiment-runner)
 - [Datasets](#datasets)
   - [Custom Datasets](#custom-datasets)
   - [Fast evaluation windows](#fast-evaluation-windows-fast_val--fast_test)
 - [Time Series Tasks](#time-series-tasks)
-  - [Forecasting](#forecasting)
   - [Probabilistic Forecasting](#probabilistic-forecasting)
   - [Time Series Generation](#time-series-generation)
   - [Imputation · Anomaly Detection · Classification](#imputation--anomaly-detection--classification)
@@ -129,19 +158,17 @@ Swap `DLinear` for any of the [20 built-in models](https://pytorch-timeseries.re
 
 ---
 
----
+## Forecasting
 
-## Forecaster — High-Level API
+### Forecaster — High-Level API
 
-`Forecaster` is a scikit-learn-style wrapper that handles training, evaluation,
-uncertainty, explainability, and deployment for any of the 80+ built-in models
-— no boilerplate required.
+`Forecaster` is a scikit-learn-style wrapper that trains, evaluates, explains,
+and deploys any of the 80+ built-in models without boilerplate.
 
 ```python
 import numpy as np
 from torch_timeseries import Forecaster
 
-# Synthetic multivariate series: 2 000 timesteps × 7 channels
 rng = np.random.default_rng(0)
 X   = rng.standard_normal((2_000, 7)).astype("float32")
 ```
@@ -162,252 +189,224 @@ fc = Forecaster(
     verbose  = True,
 )
 
-fc.fit(X)                    # train / val split handled automatically
+fc.fit(X)                    # train/val split, early stopping — all automatic
 
-# Forecast the next 24 steps from the last 96
-ctx  = X[-96:]               # (96, 7)
-pred = fc.predict(ctx)       # (24, 7)
+ctx  = X[-96:]               # context window (96, 7)
+pred = fc.predict(ctx)       # → (24, 7)
 
-# Labeled DataFrame — channel names optional
+# Labeled DataFrame output
 df = fc.forecast_dataframe(
     ctx,
-    channel_names=["OT", "HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL"],
+    channel_names=["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"],
     start_index=2_000,
 )
-print(df.head())
-#       OT    HUFL    HULL    MUFL    MULL    LUFL    LULL
-# 2000  0.12  -0.33   0.87   0.04   -0.21   0.56   -0.08
-# ...
+#       OT    HUFL    HULL  ...
+# 2000  0.12  -0.33   0.87  ...
 
-# Point metrics
-print(fc.score(X))
-# {'MSE': 0.981, 'MAE': 0.789, 'RMSE': 0.990, 'SMAPE': 98.3}
-
-# Per-channel breakdown
-per_ch = fc.score_per_channel(X)
-print(per_ch["MAE"])         # np.ndarray of shape (7,)
-
-# Descriptive statistics of the input
-print(fc.describe(X, channel_names=["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"]))
-#                      OT      HUFL   ...
-# count          2000.00   2000.00   ...
-# mean              0.00      0.01   ...
-# autocorr_lag1    -0.02      0.00   ...
+# Scalar metrics
+print(fc.score(X))            # {'MSE': 0.98, 'MAE': 0.79, 'RMSE': 0.99, …}
+print(fc.score_per_channel(X)["MAE"])   # (7,) — per-channel MAE
+print(fc.summary_table(X))             # DataFrame: metric × horizon step
 ```
+
+![Forecaster — context window and 24-step forecast with prediction intervals](docs/_static/img/forecaster_hero.png)
 
 ---
 
-### Model Comparison
+### Model Comparison & Leaderboard
 
 ```python
 from torch_timeseries import compare, compare_plot
 
-# Benchmark five models on the same train / test split
 X_train, X_test = X[:1_500], X[1_500:]
 
+# Benchmark multiple models at once
 results = compare(
-    models = ["DLinear", "NLinear", "PatchTST", "iTransformer", "TimeMixer"],
-    X_train = X_train,
-    X_test  = X_test,
-    seq_len = 96,
-    pred_len= 24,
-    epochs  = 10,
-    verbose = False,
+    models  = ["DLinear", "NLinear", "PatchTST", "iTransformer", "TimeMixer"],
+    X_train = X_train, X_test = X_test,
+    seq_len = 96, pred_len = 24, epochs = 10,
 )
-# {'DLinear': {'MSE': 0.97, 'MAE': 0.78, ...}, 'PatchTST': {...}, ...}
+# {'DLinear': {'MSE': 0.97, 'MAE': 0.78}, 'PatchTST': {…}, …}
 
-# Sorted bar chart — best model on the left
-fig = compare_plot(results, metric="MAE", title="Model comparison — 7-channel synthetic")
-fig.savefig("model_comparison.png", dpi=150)
+fig = compare_plot(results, metric="MAE")
 
-# Or from an existing fitted Forecaster, inheriting its hyperparams:
-report = fc.compare_models(
-    models  = ["DLinear", "NLinear", "TimeMixer"],
-    X_train = X_train,
-    X_test  = X_test,
+# Or use the Forecaster leaderboard (returns a ranked DataFrame)
+lb = Forecaster.leaderboard(
+    X_train, X_test,
+    ["DLinear", "NLinear", "PatchTST", "iTransformer", "TimeMixer"],
+    seq_len=96, pred_len=24, epochs=10, verbose=False,
 )
+print(lb)
 
-# Compare against the naive persistence baseline in one call
+# Compare against the naive persistence baseline
 bvp = fc.score_vs_persistence(X_test)
-print(f"Model MAE : {bvp['model']['MAE']:.4f}")
-print(f"Persist.  : {bvp['persistence']['MAE']:.4f}")
+print(f"Model MAE  : {bvp['model']['MAE']:.4f}")
+print(f"Baseline   : {bvp['persistence']['MAE']:.4f}")
 ```
+
+![Model comparison bar chart — ETTh1, pred=24](docs/_static/img/forecaster_comparison.png)
 
 ---
 
 ### Uncertainty Quantification
 
-Three complementary approaches in a single API:
+Three complementary approaches — all return `(pred_len, C)` bounds:
 
 ```python
-# ── 1. MC-Dropout uncertainty ────────────────────────────────────────────────
+# 1. MC-Dropout (fast, model must have dropout)
 unc = fc.predict_uncertainty(ctx, n_samples=200)
 # {'mean': (24,7), 'std': (24,7), 'lower': (24,7), 'upper': (24,7)}
 
-# ── 2. Post-hoc calibration — adjust interval width to hit target coverage ──
+# 2. Post-hoc calibration — fit width on held-out data to hit target coverage
 fc.calibrate(X_train, target_coverage=0.90, n_samples=200)
-# Now predict_uncertainty() applies the learned scale automatically.
 unc_cal = fc.predict_uncertainty(ctx, n_samples=200)
 
-# ── 3. Conformal prediction intervals — model-free, guaranteed coverage ──────
+# 3. Conformal prediction intervals — distribution-free coverage guarantee
 intervals = fc.predict_interval(ctx, X_cal=X_train, coverage=0.90)
 # {'lower': (24,7), 'upper': (24,7)}
 
-# ── Visualise uncertainty on channel 0 ───────────────────────────────────────
-import matplotlib.pyplot as plt
+# Empirical coverage check
+cov = fc.conformal_coverage(X_train, X_test, coverage=0.90)
+print(cov["empirical_coverage"])   # should be ≈ 0.90
 
-fig, ax = plt.subplots(figsize=(11, 3.5))
-t_ctx  = np.arange(96)
-t_pred = np.arange(96, 120)
+# Winkler interval score (lower = better)
+print(fc.winkler_score(X_train, X_test, coverage=0.90))
 
-ax.plot(t_ctx, ctx[:, 0], color="#888", lw=1, label="context")
-ax.plot(t_pred, pred[:, 0], color="#d62728", lw=1.5, label="forecast")
-ax.fill_between(t_pred,
-    intervals["lower"][:, 0], intervals["upper"][:, 0],
-    alpha=0.25, color="#4C72B0", label="90% conformal PI")
-ax.fill_between(t_pred,
-    unc_cal["lower"][:, 0], unc_cal["upper"][:, 0],
-    alpha=0.20, color="#ff7f0e", label="90% calibrated MC-Dropout")
-ax.axvline(96, color="#bbb", lw=0.8, ls=":")
-ax.legend(ncol=2, fontsize=8)
-ax.set_title("Forecast with uncertainty — OT channel")
-plt.tight_layout()
-fig.savefig("uncertainty.png", dpi=150)
+# Fan chart with nested coverage bands
+fig = fc.plot_prediction_bands(X_test, coverages=(0.5, 0.8, 0.95), n_samples=200)
 
-# ── Stochastic scenario fan chart ────────────────────────────────────────────
-mc = fc.montecarlo_forecast(ctx, steps=48, n_scenarios=300)
-fig2 = fc.plot_scenarios(mc, channel=0, X_context=ctx, n_scenarios_to_plot=50)
-fig2.savefig("scenarios.png", dpi=150)
+# Stochastic scenario ensemble
+mc  = fc.montecarlo_forecast(ctx, steps=48, n_scenarios=300)
+fig = fc.plot_scenarios(mc, channel=0, X_context=ctx, n_scenarios_to_plot=50)
 ```
+
+![Forecast uncertainty — conformal prediction intervals at 50/80/95% coverage](docs/_static/img/forecaster_uncertainty.png)
 
 ---
 
-### Anomaly Detection
+### Signal Analysis & Diagnostics
+
+All methods below are **static** — no model fitting required.  Useful for
+understanding the raw data before and after modelling.
 
 ```python
-# Rolling residual-based scores
-scores, indices = fc.anomaly_score(X_test, stride=1, reduction="mean")
+# ── Autocorrelation / PACF ────────────────────────────────────────────────────
+lags, acf  = Forecaster.autocorrelation(X, max_lag=48, channel=0)
+fig = Forecaster.plot_acf(X, max_lag=48, title="ACF")
 
-# Flag the top 3 % as anomalous
-anom_df = fc.flag_anomalies(X_test, contamination=0.03)
-print(anom_df[anom_df["anomaly"]].head())
-#    timestep     score  anomaly
-# 7        7  2.341876     True
-# 42      42  1.984321     True
+lags, pacf = Forecaster.partial_autocorrelation(X, max_lag=48, channel=0)
+fig = Forecaster.plot_pacf(X, max_lag=48, title="PACF")
 
-# Inject a spike and verify detection
-X_spike = X_test.copy()
-X_spike[50:53, :] += 5.0          # abrupt spike in all channels
-anom_spike = fc.flag_anomalies(X_spike, contamination=0.05)
-
-# Visualise
-fig = fc.plot_anomalies(
-    X_spike, anom_spike,
-    channel=0,
-    title="Anomaly detection — injected spike at t=50–52",
-)
-fig.savefig("anomalies.png", dpi=150)
-```
-
----
-
-### Signal Analysis
-
-All analysis methods are **static** — no model fitting required.
-
-```python
-# ── Autocorrelation ──────────────────────────────────────────────────────────
-lags, acf = Forecaster.autocorrelation(X, max_lag=48, channel=0)
-fig = Forecaster.plot_acf(X, max_lag=48, title="ACF — OT channel")
-fig.savefig("acf.png", dpi=150)
-
-# ── Power spectrum ───────────────────────────────────────────────────────────
+# ── Power spectral density & spectrogram ─────────────────────────────────────
 freqs, psd = Forecaster.spectral_density(X, channel=0)
-fig = Forecaster.plot_spectral_density(X, title="Power spectral density")
-fig.savefig("psd.png", dpi=150)
+fig = Forecaster.plot_spectral_density(X)
 
-# ── Seasonal decomposition ───────────────────────────────────────────────────
+spec = Forecaster.spectrogram(X, channel=0, nperseg=64)    # STFT
+fig  = Forecaster.plot_spectrogram(X, channel=0, nperseg=64)
+
+se = Forecaster.spectral_entropy(X, channel=0)             # 0 = pure sinusoid, 1 = noise
+
+# ── Seasonal decomposition ────────────────────────────────────────────────────
 decomp = Forecaster.seasonal_decompose(X, period=24, method="additive")
-# decomp keys: 'original', 'trend', 'seasonal', 'residual'
+fig    = Forecaster.plot_decomposition(decomp, channel=0)
 
-fig = Forecaster.plot_decomposition(decomp, channel=0, title="Additive decomp (period=24)")
-fig.savefig("decomposition.png", dpi=150)
+strength = Forecaster.seasonal_strength(X, period=24, channel=0)  # 0–1
+ts_str   = Forecaster.trend_strength(X, window=30, channel=0)     # 0–1
 
-# ── Missing-value imputation (before fitting) ─────────────────────────────────
-X_dirty = X.copy()
-X_dirty[100:105, 0] = np.nan          # introduce NaN
-X_clean = Forecaster.interpolate_missing(X_dirty, method="linear")
+# ── Cross-correlation & Granger causality ─────────────────────────────────────
+lags, ccf = Forecaster.cross_correlation(X, max_lag=30)
+fig = Forecaster.plot_cross_correlation(X, max_lag=30)
 
-# ── Horizon-level error profile ───────────────────────────────────────────────
-profile = fc.horizon_error_profile(X_test, metric="MAE")
-print(profile)   # (24,) — error grows with horizon
+f_mat = Forecaster.granger_test(X, max_lag=5)        # (C,C) F-statistics
+fig   = Forecaster.plot_granger(X, max_lag=5)        # heatmap
 
-fig = fc.plot_horizon_error_profile(X_test, metric="MAE",
-                                    title="How error grows with forecast step")
-fig.savefig("horizon_error.png", dpi=150)
+# ── Channel correlation & network ─────────────────────────────────────────────
+corr  = Forecaster.channel_correlation(X)
+fig   = Forecaster.plot_channel_correlation(X)
+edges = Forecaster.correlation_network(X, threshold=0.3)  # [(i,j,r), …]
+fig   = Forecaster.plot_correlation_network(X, threshold=0.3)
 
-# ── Channel correlation heatmap ───────────────────────────────────────────────
-corr = Forecaster.channel_correlation(X)   # (7, 7) Pearson matrix
-fig  = Forecaster.plot_channel_correlation(
-    X,
-    channel_names=["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"],
-    title="Channel Pearson correlation",
-)
-fig.savefig("channel_corr.png", dpi=150)
+# ── Change point detection ────────────────────────────────────────────────────
+cps = Forecaster.detect_change_points(X, window=40, channel=0)
+fig = Forecaster.plot_change_points(X, cps, channel=0)
 
-# ── Rolling correlation between two channels ──────────────────────────────────
-ts, rc = Forecaster.rolling_correlation(X, window=48, channel_i=0, channel_j=1)
-fig = Forecaster.plot_rolling_correlation(X, window=48, channel_i=0, channel_j=1,
-                                          title="Rolling r(OT, HUFL) — window=48")
-fig.savefig("rolling_corr.png", dpi=150)
+# ── Regime detection (k-means on rolling stats) ───────────────────────────────
+regimes = Forecaster.regime_detection(X, n_regimes=3, window=30)
+fig     = Forecaster.plot_regimes(X, regimes, channel=0)
 
-# ── Q-Q plot: are residuals Gaussian? ────────────────────────────────────────
+# ── Residual diagnostics (requires fitted model) ─────────────────────────────
 dist = fc.residual_distribution(X_test, channel=0)
-print(f"bias={dist['mean']:.4f}  skew={dist['skewness']:.4f}  kurt={dist['kurtosis']:.4f}")
+print(f"bias={dist['mean']:.4f}  skew={dist['skewness']:.4f}")
 
-fig = fc.plot_qq(X_test, channel=0, title="Residual Q-Q (should follow y = x for Gaussian)")
-fig.savefig("qq.png", dpi=150)
+lags, resid_acf = fc.residual_acf(X_test, max_lag=20)
+fig = Forecaster.plot_residual_acf(lags, resid_acf)   # check for white noise
 
-# ── Descriptive stats DataFrame ───────────────────────────────────────────────
-stats = Forecaster.describe(X, channel_names=["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"])
-print(stats.T)   # transpose for readability
+lb  = fc.ljung_box(X_test, max_lag=20)
+print(f"Ljung-Box p-value: {lb['p_value']:.4f}")   # < 0.05 → autocorrelation remains
+
+fig = fc.plot_qq(X_test, channel=0)                # Q-Q vs Gaussian
+fig = fc.plot_forecast_bias(X_test, channel=0)     # per-step signed error
+fig = fc.plot_forecast_error_distribution(X_test)  # error ribbon
+fig = fc.plot_actual_vs_predicted(X_test)          # scatter with R²
+fig = fc.plot_calibration_curve(X_train, X_test)   # nominal vs empirical coverage
+
+# ── One-shot diagnostic report ────────────────────────────────────────────────
+diag = fc.forecast_diagnostic(X_test)
+# {'ljung_box': {…}, 'residuals': {…}, 'bias': {…}, 'metrics': {…}}
+
+# ── Preprocessing utilities ───────────────────────────────────────────────────
+X_clean  = Forecaster.interpolate_missing(X, method="linear")
+trend, cycle = Forecaster.hodrick_prescott_filter(X, lam=1600, channel=0)
+smoothed = Forecaster.exponential_smoothing(X, alpha=0.3, channel=0)
+X_normed, mu, sigma = Forecaster.z_normalize(X)
+x_tr, lam, offset   = Forecaster.box_cox_transform(X, channel=0)
+z = Forecaster.rolling_zscore(X, window=50, channel=0)
+
+# ── Stationarity test (ADF) ───────────────────────────────────────────────────
+adf = Forecaster.stationarity_test(X, channel=0)
+print(adf["p_value"])       # < 0.05 → reject unit root (series is stationary)
 ```
+
+![Signal analysis — ACF, power spectrum, decomposition, and trend](docs/_static/img/forecaster_signal_analysis.png)
+
+![ACF and PACF — AR(2) process; PACF cuts off after lag 2](docs/_static/img/forecaster_acf_pacf.png)
+*ACF and PACF of an AR(2) process (left); power spectral density and trend overlay (right).*
 
 ---
 
 ### Explainability
 
 ```python
-# ── Gradient saliency: which input timesteps drive step-1 of channel OT? ────
+# ── Gradient saliency map ─────────────────────────────────────────────────────
 grad = fc.input_gradient(
-    X_test[:96],            # context window
-    target_step    = 0,     # first forecast step
-    target_channel = 0,     # OT channel
-    absolute       = True,  # magnitude only
+    ctx, target_step=0, target_channel=0, absolute=True
 )
-# grad: (96, 7) — large values = high influence on the forecast
+# (96, 7) — which context timesteps / channels drive the first forecast step
 
-fig = fc.plot_saliency(
-    X_test[:96],
-    target_step    = 0,
-    target_channel = 0,
-    channel_names  = ["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"],
-    title          = "Input saliency → OT forecast step 1",
-)
-fig.savefig("saliency.png", dpi=150)
+fig = fc.plot_saliency(ctx, target_step=0, target_channel=0,
+                       channel_names=["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"])
+```
 
-# ── Permutation importance: which channel hurts most when shuffled? ──────────
-perm = fc.feature_importance(X_test, metric="MAE", n_repeats=10)
-# {'ch0': 0.12, 'ch1': 0.04, ...}
+![Input gradient saliency — context timesteps × channels](docs/_static/img/forecaster_saliency.png)
 
-# ── Timestep importance: which context lag matters? ──────────────────────────
-ts_imp = fc.timestep_importance(X_test, metric="MAE", n_repeats=5)
-fig    = fc.plot_timestep_importance(X_test, title="Lag importance")
-fig.savefig("timestep_importance.png", dpi=150)
+```python
+# ── Global importance (average over many windows) ────────────────────────────
+global_imp = fc.explain_global(X_test, n_samples=100)   # (96, 7)
+
+# ── Permutation importance per channel ───────────────────────────────────────
+ranking = fc.feature_importance_ranking(X_test, n_permutations=10)
+# [(2, 0.34), (0, 0.21), …]  sorted by descending impact
+
+# ── Timestep importance ───────────────────────────────────────────────────────
+fig = fc.plot_timestep_importance(X_test, title="Which lag matters most?")
 
 # ── Bias-variance decomposition via bootstrap ─────────────────────────────────
-bvd = fc.error_decomposition(X_train, X_test, n_bootstrap=20, seed=0)
-print(f"bias²={bvd['bias2']:.4f}   variance={bvd['variance']:.4f}   total={bvd['total_mse']:.4f}")
+bvd = fc.error_decomposition(X_train, X_test, n_bootstrap=20)
+print(f"bias²={bvd['bias2']:.4f}  variance={bvd['variance']:.4f}")
+
+# ── Sensitivity to a single input feature ────────────────────────────────────
+result = fc.sensitivity_analysis(X_test, channel=0, n_points=21)
+fig    = fc.plot_sensitivity(X_test, channel=0)
 ```
 
 ---
@@ -415,30 +414,26 @@ print(f"bias²={bvd['bias2']:.4f}   variance={bvd['variance']:.4f}   total={bvd[
 ### Transfer Learning
 
 ```python
-# ── Copy weights from a pretrained model, then fine-tune ─────────────────────
+# Pretrain on a large source domain
 fc_source = Forecaster("iTransformer", seq_len=96, pred_len=24, epochs=30)
 fc_source.fit(X_train)
 
-# Target domain — new dataset, same architecture
-fc_target = Forecaster("iTransformer", seq_len=96, pred_len=24, epochs=5)
-fc_target.fit(X_test[:500])         # brief fit to initialise architecture
+# Fine-tune on a smaller target domain
+fc_target = fc_source.clone()                         # unfitted copy
+fc_target.fit(X_test[:500])                           # brief init
+fc_target.copy_weights_from(fc_source)                # transplant weights
+fc_target.freeze_layers(["embedding"])                # lock embeddings
+fc_target.partial_fit(X_test[:500], epochs=5)         # fine-tune unfrozen layers
 
-fc_target.copy_weights_from(fc_source)   # transplant pretrained weights
-fc_target.freeze_layers(["embedding"])   # lock input projections
-fc_target.partial_fit(X_test[:500])      # fine-tune on target domain
+print(f"Frozen : {fc_target.frozen_parameter_count():,}")
+print(fc_target.memory_usage())                        # {total_params, size_mb, …}
 
-print(f"Frozen params : {fc_target.frozen_parameter_count():,}")
-print(f"Total params  : {fc_target.count_parameters()['total']:,}")
+# Save / reload
+fc_source.save("./checkpoints/iTransformer_pretrained")
+fc_reload = Forecaster.from_pretrained("./checkpoints/iTransformer_pretrained", device="cpu")
 
-# ── Save / reload / move to a different device ────────────────────────────────
-fc_source.save("./checkpoints/iTransformer_source")
-fc_reload = Forecaster.from_pretrained(
-    "./checkpoints/iTransformer_source",
-    device = "cpu",          # override device at load time
-)
-
-# ── Export to ONNX for production serving ────────────────────────────────────
-fc_source.to_onnx("./iTransformer.onnx")   # (seq_len, C) → (pred_len, C)
+# Export to ONNX for production serving
+fc_source.to_onnx("./iTransformer.onnx")
 ```
 
 ---
@@ -446,60 +441,32 @@ fc_source.to_onnx("./iTransformer.onnx")   # (seq_len, C) → (pred_len, C)
 ### Ensemble & Composition
 
 ```python
-from torch_timeseries import (
-    EnsembleForecaster, StackedForecaster,
-    MultiChannelForecaster, Pipeline,
-)
+from torch_timeseries import EnsembleForecaster, StackedForecaster, MultiChannelForecaster, Pipeline
 
-# ── Weighted ensemble of heterogeneous models ─────────────────────────────────
+# Weighted ensemble
 ens = EnsembleForecaster(
-    forecasters = [
-        ("dlinear",      Forecaster("DLinear",      seq_len=96, pred_len=24, epochs=10)),
-        ("patchtst",     Forecaster("PatchTST",     seq_len=96, pred_len=24, epochs=10)),
-        ("itransformer", Forecaster("iTransformer", seq_len=96, pred_len=24, epochs=10)),
+    forecasters=[
+        ("dlinear",  Forecaster("DLinear",      seq_len=96, pred_len=24, epochs=10)),
+        ("patchtst", Forecaster("PatchTST",     seq_len=96, pred_len=24, epochs=10)),
+        ("itrans",   Forecaster("iTransformer", seq_len=96, pred_len=24, epochs=10)),
     ],
-    weights = [0.2, 0.4, 0.4],          # custom weights; None = uniform
+    weights=[0.2, 0.4, 0.4],
 )
 ens.fit(X_train)
+pred = ens.predict(X_test[:96])          # (24, 7)
 
-pred_ens = ens.predict(X_test[:96])     # (24, 7)
-unc_ens  = ens.predict_std(X_test[:96]) # {'mean': ..., 'std': ...}
-
-# ── Stacked (boosted) forecaster ──────────────────────────────────────────────
-stacked = StackedForecaster(
-    base = Forecaster("DLinear",  seq_len=96, pred_len=24, epochs=10),
-    meta = Forecaster("NLinear",  seq_len=96, pred_len=24, epochs=5),
+# Preprocessing pipeline with invertible transform
+pipe = Pipeline(
+    preprocessor=lambda X: np.log1p(np.abs(X)) * np.sign(X),
+    forecaster=Forecaster("DLinear", seq_len=96, pred_len=24, epochs=10),
 )
-stacked.fit(X_train)
-
-# ── One independent model per channel (channel-independent mode at API level) ─
-mc = MultiChannelForecaster(
-    base = Forecaster("DLinear", seq_len=96, pred_len=24, epochs=10)
-)
-mc.fit(X_train)
-pred_mc = mc.predict(X_test[:96])       # (24, 7)
-
-# ── Preprocessing pipeline ────────────────────────────────────────────────────
-def log1p(X):   return np.log1p(np.abs(X)) * np.sign(X)
-def expm1(X):   return np.expm1(np.abs(X)) * np.sign(X)
-
-pipe = Pipeline(preprocessor=log1p,
-                forecaster=Forecaster("DLinear", seq_len=96, pred_len=24, epochs=10))
-pipe.set_inverse(expm1)
+pipe.set_inverse(lambda X: np.expm1(np.abs(X)) * np.sign(X))
 pipe.fit(X_train)
-pred_pipe = pipe.predict(X_test[:96])   # automatically un-transforms output
 
-# ── sklearn-compatible wrapper (GridSearchCV / Pipeline ready) ────────────────
+# sklearn-compatible wrapper
 from torch_timeseries import SklearnForecaster
-
-sk = SklearnForecaster(
-    model    = "DLinear",
-    seq_len  = 96,
-    pred_len = 24,
-    epochs   = 5,
-)
-sk.fit_ts(X_train)           # accepts (T, C) directly
-sk.score(X_test[:96])        # returns negative MSE (sklearn convention)
+sk = SklearnForecaster("DLinear", seq_len=96, pred_len=24, epochs=5)
+sk.fit_ts(X_train)
 ```
 
 ---
@@ -507,308 +474,109 @@ sk.score(X_test[:96])        # returns negative MSE (sklearn convention)
 ### Deployment Utilities
 
 ```python
-# ── Latency / throughput profiling ────────────────────────────────────────────
+# Latency / throughput
 stats = fc.profile(X_test[:96], n_repeats=100)
-print(f"mean latency : {stats['mean_ms']:.2f} ms")
-print(f"throughput   : {stats['throughput']:.0f} windows/s")
+print(f"{stats['mean_ms']:.1f} ms  ·  {stats['throughput']:.0f} windows/s")
 
-# ── Move to GPU / CPU at runtime ──────────────────────────────────────────────
-fc.set_device("cuda:0")
-pred_gpu = fc.predict(X_test[:96])
-fc.set_device("cpu")
+# Memory footprint
+print(fc.memory_usage())    # {total_params, trainable_params, size_mb}
 
-# ── Warm up JIT / CUDA caches before timing ───────────────────────────────────
-fc.warmup(n=5)
+# Move between devices at runtime
+fc.set_device("cuda:0"); fc.set_device("cpu")
 
-# ── Memory-efficient rolling prediction on a long series ─────────────────────
-preds_all = fc.chunked_predict(X_test, chunk_size=64)
-# shape: (n_windows, pred_len, C)
+# Memory-efficient rolling prediction on long series
+preds = fc.chunked_predict(X_test, chunk_size=64)    # (n_windows, 24, 7)
 
-# ── Export rolling forecasts to CSV ──────────────────────────────────────────
-fc.export_predictions(
-    X_test,
-    path          = "./forecasts.csv",
-    channel_names = ["OT","HUFL","HULL","MUFL","MULL","LUFL","LULL"],
-)
+# Real-time streaming (one step at a time)
+for t, pred_step in fc.rolling_predict_iter(X_test, step=1):
+    pass   # pred_step: (24, 7)
 
-# ── Stream one step at a time (real-time inference) ───────────────────────────
-for pred_step in fc.stream_predict(X_test):
-    pass  # pred_step: (24, 7) — updates as each new timestep arrives
+# Export predictions to CSV
+fc.export_predictions(X_test, path="forecasts.csv")
 
-# ── Wrap dataset for custom training loops ────────────────────────────────────
-import torch
-ds     = fc.to_torch_dataset(X_train)          # WindowDataset
-loader = torch.utils.data.DataLoader(ds, batch_size=32, shuffle=True)
-x, y   = next(iter(loader))                    # (32, 96, 7), (32, 24, 7)
-
-# ── Hyperparameter search ─────────────────────────────────────────────────────
-best = fc.tune(
-    X_train,
-    param_grid = {"lr": [1e-3, 5e-4], "d_model": [64, 128], "n_heads": [4, 8]},
-    n_iter     = 8,
-    n_splits   = 3,
-)
-print(best)    # {'lr': 0.0005, 'd_model': 128, 'n_heads': 8, 'val_loss': 0.83}
+# Wrap as PyTorch Dataset for custom training loops
+ds = fc.to_torch_dataset(X_train)
 ```
 
 ---
 
-### Change Point Detection
+### Low-level Training Loop
+
+Full control over loss, optimizer, and batching — ideal for custom architectures.
 
 ```python
-# ── Abrupt shift in mean ──────────────────────────────────────────────────────
-X_shift = np.vstack([
-    rng.standard_normal((500, 7)),
-    rng.standard_normal((500, 7)) + 3.0,   # level shift at t=500
-    rng.standard_normal((500, 7)),
-])
-
-cps = Forecaster.detect_change_points(X_shift, window=40, channel=0)
-print(cps)    # [490, 510, 998, ...]  — detected near t=500 and t=1000
-
-fig = Forecaster.plot_change_points(
-    X_shift, cps,
-    channel = 0,
-    title   = "Change point detection — two abrupt level shifts",
-)
-fig.savefig("change_points.png", dpi=150)
-```
-
----
-
-### Granger Causality
-
-```python
-# Build a series where channel 0 Granger-causes channel 1 with lag 3
-T = 1_000
-x0 = rng.standard_normal(T)
-x1 = np.roll(x0, 3) + 0.3 * rng.standard_normal(T)   # x1[t] ≈ x0[t-3]
-x2 = rng.standard_normal(T)                            # independent noise
-X_gc = np.column_stack([x0, x1, x2]).astype("float32")
-
-# Pairwise F-statistics — high F[i,j] = channel i Granger-causes channel j
-f_mat = Forecaster.granger_test(X_gc, max_lag=5)
-print(f_mat.round(1))
-# [[  0.   89.3   0.4]
-#  [  0.3   0.    0.3]
-#  [  0.5   0.8   0. ]]   ← F[0,1] >> everything else ✓
-
-fig = Forecaster.plot_granger(
-    X_gc,
-    max_lag       = 5,
-    channel_names = ["x0", "x1", "x2"],
-    title         = "Granger causality — x0 → x1 with lag 3",
-)
-fig.savefig("granger.png", dpi=150)
-```
-
----
-
-## Model Training — Two Ways to Use
-
-### Way 1 — Custom pipeline (bring your own training loop)
-
-Import a dataset and dataloader, then write your own training logic. Full control over loss, optimizer, and batch handling.
-
-```python
-import torch
-import torch.nn as nn
-
+import torch, torch.nn as nn
 from torch_timeseries.dataset import ETTh1
 from torch_timeseries.scaler import StandardScaler
-from torch_timeseries.dataloader.v2 import (
-    ForecastDataModule, WindowConfig, SplitConfig, LoaderConfig
-)
-
-# Dataset is downloaded automatically on first use
-# (to ~/.torchtimeseries/data by default; pass a path to override).
-dataset = ETTh1()
+from torch_timeseries.dataloader.v2 import ForecastDataModule, WindowConfig, LoaderConfig
 
 dm = ForecastDataModule(
-    dataset=dataset,
+    dataset=ETTh1(),
     scaler=StandardScaler(),
-    window=WindowConfig(window=96, horizon=1, steps=96),
-    # ETTh1 academic split: 12 months train, 4 months val, 4 months test.
-    # If split is omitted, the datamodule uses this dataset default.
-    split=SplitConfig(borders=(12 * 30 * 24, 16 * 30 * 24, 20 * 30 * 24)),
+    window=WindowConfig(window=96, horizon=1, steps=24),
     loader=LoaderConfig(batch_size=32),
 )
 
-class LinearForecaster(nn.Module):
-    """Input: (batch, input_window, features). Output: (batch, pred_len, features)."""
-
-    def __init__(self, input_window: int, pred_len: int):
-        super().__init__()
-        self.proj = nn.Linear(input_window, pred_len)
-
-    def forward(self, x):
-        # x: (B, 96, C) -> (B, C, 96) -> (B, C, 96) -> (B, 96, C)
-        return self.proj(x.transpose(1, 2)).transpose(1, 2)
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = LinearForecaster(input_window=96, pred_len=96).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-loss_fn = nn.MSELoss()
+model  = nn.Linear(96, 24).to(device)           # simplest possible forecaster
+opt    = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(1):
+for epoch in range(10):
     model.train()
     for batch in dm.train_loader:
-        # Each batch is a TSBatch.
-        x = batch.x.float().to(device)  # (B, 96, num_features)
-        y = batch.y.float().to(device)  # (B, 96, num_features)
-
-        optimizer.zero_grad()
-        pred = model(x)                 # (B, 96, num_features)
-        loss = loss_fn(pred, y)
-        loss.backward()
-        optimizer.step()
+        x = batch.x.float().to(device)          # (B, 96, 7)
+        y = batch.y.float().to(device)          # (B, 24, 7)
+        opt.zero_grad()
+        # channel-wise linear: operate on transposed channels
+        pred = model(x.permute(0,2,1)).permute(0,2,1)
+        nn.MSELoss()(pred, y).backward()
+        opt.step()
 ```
 
-Grey = input window · Blue dashed = ground truth · Orange = forecast:
-
-![LinearForecaster predictions](docs/_static/img/forecast_custom_pipeline.png)
-
-Use this pattern when you need a non-standard training loop, custom loss, or are prototyping a new architecture.
+![Custom pipeline — context window (grey) · ground truth (blue) · forecast (orange)](docs/_static/img/forecast_custom_pipeline.png)
 
 ---
 
-### Way 2 — Default training paradigm (built-in or registered models)
+### Built-in Experiment Runner
 
-Use the built-in experiment runner. Pick a model, task, and dataset — the library handles data loading, training, evaluation, and result saving.
-
-This path works for built-in models and for your own models registered with the default experiment classes.
-
-#### Architecture Direction
-
-New development targets the v2 DataModule API and the high-level `Experiment`
-entrypoint. Legacy dataloaders and direct experiment classes remain available
-for compatibility, but new task/model features should use named batches,
-Task DataModules, and result records.
-
-
-
-#### Register Custom Models
-
-To use the default training loop with your own model, subclass the task experiment class, define `_init_model`, then register it.
-
-For forecasting, the model should read `batch_x` with shape `(batch, windows, num_features)` and return predictions with shape `(batch, pred_len, num_features)`.
-
-```python
-from dataclasses import dataclass
-
-import torch
-import torch.nn as nn
-
-from torch_timeseries import Experiment, register_model
-from torch_timeseries.experiments import ForecastExp
-
-
-class MyForecastNet(nn.Module):
-    """Input: (B, seq_len, C). Output: (B, pred_len, C)."""
-
-    def __init__(self, seq_len: int, pred_len: int):
-        super().__init__()
-        self.proj = nn.Linear(seq_len, pred_len)
-
-    def forward(self, x):
-        return self.proj(x.transpose(1, 2)).transpose(1, 2)
-
-
-@dataclass
-class MyForecastModel(ForecastExp):
-    model_type: str = "MyForecastModel"
-
-    def _init_model(self):
-        self.model = MyForecastNet(
-            seq_len=self.windows,
-            pred_len=self.pred_len,
-        ).to(self.device)
-
-
-register_model(MyForecastModel)
-
-# The registered model name is the class name.
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-results = Experiment(
-    model="MyForecastModel",
-    task="Forecast",
-    dataset="ETTh1",
-    windows=96,
-    pred_len=96,
-    epochs=1,
-    device=device,
-).run(seeds=[1])
-
-print(results[0].metrics)
-```
-
-The same registered model can be launched from the CLI after the Python module containing `register_model(...)` has been imported:
-
-```bash
-pytexp --model MyForecastModel --task Forecast --dataset_type ETTh1 run 1
-```
-
-#### Run Built-In Models
-
-**Experiment builder (Python API):**
+One-line benchmarking: dataset loading, training, evaluation, and result saving.
 
 ```python
 from torch_timeseries import Experiment
 
-# single run — returns a RunResult with metrics, hparams, git commit, timing
-result = Experiment(model="DLinear", task="Forecast", dataset="ETTh1").run(seeds=[1])
-print(result[0].metrics)   # {"mse": 0.382, "mae": 0.271}
+# Single run
+result = Experiment(model="iTransformer", task="Forecast", dataset="ETTh1",
+                    windows=96, pred_len=24, epochs=20).run(seeds=[1])
+print(result[0].metrics)   # {'mse': 0.45, 'mae': 0.44}
 
-# multiple seeds, save results to disk
-results = Experiment(
-    model="DLinear",
-    task="Forecast",
-    dataset="ETTh1",
-    windows=96,
-    pred_len=96,
-    lr=0.001,
-    save_dir="./results",
-).run(seeds=[1, 2, 3])
-
-# grid search across models and datasets
+# Grid search across models and datasets
 Experiment.grid(
-    models=["DLinear", "Autoformer"],
+    models=["DLinear", "PatchTST", "iTransformer"],
     tasks=["Forecast"],
-    datasets=["ETTh1", "ETTm1"],
+    datasets=["ETTh1", "ETTm1", "Weather"],
     seeds=[1, 2, 3],
     save_dir="./results",
 ).run()
 
-# compare saved results
-Experiment.compare(save_dir="./results", task="Forecast")
+# Register your own model and use the runner
+from torch_timeseries import register_model
+from torch_timeseries.experiments import ForecastExp
+from dataclasses import dataclass
+
+@dataclass
+class MyModel(ForecastExp):
+    model_type: str = "MyModel"
+    def _init_model(self):
+        self.model = nn.Linear(self.windows, self.pred_len).to(self.device)
+
+register_model(MyModel)
+Experiment(model="MyModel", task="Forecast", dataset="ETTh1").run(seeds=[1])
 ```
 
 **CLI:**
-
 ```bash
-# forecast
-pytexp --model DLinear --task Forecast --dataset_type ETTh1 run 3
-pytexp --model DLinear --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
-
-# imputation
-pytexp --model DLinear --task Imputation --dataset_type ETTh1 run 3
-
-# anomaly detection
-pytexp --model DLinear --task AnomalyDetection --dataset_type MSL run 3
-
-# classification
-pytexp --model DLinear --task UEAClassification --dataset_type EthanolConcentration run 3
-
-# compare saved results
-pytexp compare --save_dir ./results --task Forecast
+pytexp --model iTransformer --task Forecast --dataset_type ETTh1 runs '[1,2,3]'
 ```
-
-Representative ETTh1 forecasting metrics (pred_len=96) across built-in models:
-
-![Experiment builder — ETTh1 benchmark metrics](docs/_static/img/experiment_builder.png)
-
-Use this pattern when you want to benchmark on standard tasks without writing boilerplate.
 
 ---
 
