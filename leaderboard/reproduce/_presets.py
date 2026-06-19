@@ -262,6 +262,13 @@ MODEL_PARAMS = {
         "top_k": 5,
         "revin": True,
     },
+    "NSTransformer": {
+        "d_model": 256,
+        "n_heads": 8,
+        "e_layers": 3,
+        "d_ff": 512,
+        "dropout": 0.1,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

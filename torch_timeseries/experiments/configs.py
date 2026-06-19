@@ -336,6 +336,29 @@ class ETSformerConfig:
 
 
 @dataclass
+class NSTransformerConfig:
+    d_model: int = 256
+    n_heads: int = 8
+    e_layers: int = 3
+    d_ff: int = 512
+    dropout: float = 0.1
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class NormalizingFlowConfig:
     d_model: int = 256
     n_heads: int = 4
@@ -654,6 +677,10 @@ def split_experiment_config(
         ("ETSformer", "AnomalyDetection"): ETSformerConfig,
         ("ETSformer", "Imputation"): ETSformerConfig,
         ("ETSformer", "UEAClassification"): ETSformerConfig,
+        ("NSTransformer", "Forecast"): NSTransformerConfig,
+        ("NSTransformer", "AnomalyDetection"): NSTransformerConfig,
+        ("NSTransformer", "Imputation"): NSTransformerConfig,
+        ("NSTransformer", "UEAClassification"): NSTransformerConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

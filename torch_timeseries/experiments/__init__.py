@@ -178,6 +178,12 @@ from .ETSformer import (
     ETSformerAnomalyDetection,
     ETSformerImputation,
 )
+from .NSTransformer import (
+    NSTransformerForecast,
+    NSTransformerUEAClassification,
+    NSTransformerAnomalyDetection,
+    NSTransformerImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
