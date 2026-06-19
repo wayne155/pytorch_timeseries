@@ -474,6 +474,17 @@ MODEL_PARAMS = {
         "sigma": 1.0,
         "revin": True,
     },
+    "SparseTransformerForecaster": {
+        "patch_size": 8,
+        "d_model": 64,
+        "n_heads": 4,
+        "e_layers": 2,
+        "d_ff": 128,
+        "local_window": 3,
+        "stride": 4,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

@@ -346,6 +346,12 @@ from .RandomFourierForecaster import (
     RandomFourierForecasterAnomalyDetection,
     RandomFourierForecasterImputation,
 )
+from .SparseTransformerForecaster import (
+    SparseTransformerForecasterForecast,
+    SparseTransformerForecasterUEAClassification,
+    SparseTransformerForecasterAnomalyDetection,
+    SparseTransformerForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

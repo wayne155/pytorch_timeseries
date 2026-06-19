@@ -428,6 +428,37 @@ class RandomFourierForecasterConfig:
 
 
 @dataclass
+class SparseTransformerForecasterConfig:
+    patch_size: int = 8
+    d_model: int = 64
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 128
+    local_window: int = 3
+    stride: int = 4
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.patch_size <= 0:
+            raise ValueError("patch_size must be positive")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.local_window < 0:
+            raise ValueError("local_window must be non-negative")
+        if self.stride <= 0:
+            raise ValueError("stride must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1347,6 +1378,10 @@ def split_experiment_config(
         ("RandomFourierForecaster", "AnomalyDetection"): RandomFourierForecasterConfig,
         ("RandomFourierForecaster", "Imputation"): RandomFourierForecasterConfig,
         ("RandomFourierForecaster", "UEAClassification"): RandomFourierForecasterConfig,
+        ("SparseTransformerForecaster", "Forecast"): SparseTransformerForecasterConfig,
+        ("SparseTransformerForecaster", "AnomalyDetection"): SparseTransformerForecasterConfig,
+        ("SparseTransformerForecaster", "Imputation"): SparseTransformerForecasterConfig,
+        ("SparseTransformerForecaster", "UEAClassification"): SparseTransformerForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
