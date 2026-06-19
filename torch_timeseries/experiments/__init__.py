@@ -496,6 +496,12 @@ from .DiffTransformerForecaster import (
     DiffTransformerForecasterAnomalyDetection,
     DiffTransformerForecasterImputation,
 )
+from .QRNNForecaster import (
+    QRNNForecasterForecast,
+    QRNNForecasterUEAClassification,
+    QRNNForecasterAnomalyDetection,
+    QRNNForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

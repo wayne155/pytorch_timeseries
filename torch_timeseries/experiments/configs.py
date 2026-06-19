@@ -506,6 +506,28 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class QRNNForecasterConfig:
+    d_model: int = 64
+    d_ffn: int = 256
+    n_layers: int = 2
+    kernel_size: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_ffn <= 0:
+            raise ValueError("d_ffn must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.kernel_size % 2 == 0:
+            raise ValueError("kernel_size must be odd")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class DiffTransformerForecasterConfig:
     d_model: int = 64
     n_heads: int = 4
@@ -1948,6 +1970,10 @@ def split_experiment_config(
         ("DiffTransformerForecaster", "AnomalyDetection"): DiffTransformerForecasterConfig,
         ("DiffTransformerForecaster", "Imputation"): DiffTransformerForecasterConfig,
         ("DiffTransformerForecaster", "UEAClassification"): DiffTransformerForecasterConfig,
+        ("QRNNForecaster", "Forecast"): QRNNForecasterConfig,
+        ("QRNNForecaster", "AnomalyDetection"): QRNNForecasterConfig,
+        ("QRNNForecaster", "Imputation"): QRNNForecasterConfig,
+        ("QRNNForecaster", "UEAClassification"): QRNNForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
