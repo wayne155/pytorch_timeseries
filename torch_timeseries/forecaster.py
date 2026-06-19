@@ -1291,6 +1291,77 @@ class Forecaster:
                 raise ValueError(f"Unknown method {method!r}. Choose 'mean' or 'median'.")
         return out.squeeze() if X.ndim == 1 else out  # type: ignore[union-attr]
 
+    def plot_channel_scores(
+        self,
+        X,
+        *,
+        metric: str = "mse",
+        ax=None,
+        title: Optional[str] = None,
+        channel_names: Optional[List[str]] = None,
+    ):
+        """Bar chart of per-channel forecast error.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        X:
+            Time series used for evaluation, shape ``(N, C)``.
+        metric:
+            Which metric to plot: ``"mse"`` (default), ``"mae"``, or
+            ``"rmse"``.
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.  Defaults to ``"<model> — per-channel <metric>"``.
+        channel_names:
+            Optional list of length C for x-axis tick labels.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        self._check_fitted()
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_channel_scores(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        scores = self.score_per_channel(X)
+        if metric not in scores:
+            raise ValueError(
+                f"metric must be one of {list(scores.keys())}; got {metric!r}."
+            )
+        values = scores[metric]
+        C = len(values)
+        labels = channel_names if channel_names else [f"ch{i}" for i in range(C)]
+
+        created_fig = ax is None
+        if created_fig:
+            fig_w = max(4, C * 0.6 + 1.5)
+            _, ax = plt.subplots(figsize=(fig_w, 4))
+
+        colors = plt.cm.coolwarm(np.linspace(0, 1, C))
+        ax.bar(labels, values, color=colors)
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — per-channel {metric.upper()}")
+        ax.set_xlabel("Channel")
+        ax.set_ylabel(metric.upper())
+        ax.tick_params(axis="x", rotation=45)
+        ax.grid(True, axis="y", alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def fit_score(
         self,
         X,

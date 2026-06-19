@@ -2101,6 +2101,45 @@ class TestFitScore:
 # ── detect_anomalies() ────────────────────────────────────────────────────────
 
 
+class TestPlotChannelScores:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_channel_scores(self.X)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_channel_scores(self.X, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_metric(self):
+        import matplotlib.axes
+        ax = self.fc.plot_channel_scores(self.X, metric="mae")
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_invalid_metric_raises(self):
+        with pytest.raises(ValueError, match="metric"):
+            self.fc.plot_channel_scores(self.X, metric="bogus")
+
+    def test_custom_channel_names(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_channel_scores(self.X, channel_names=["a", "b", "c"])
+        labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert "a" in labels
+        plt.close("all")
+
+
 class TestScorePerChannel:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())
