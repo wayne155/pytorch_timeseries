@@ -298,6 +298,12 @@ from .KANForecaster import (
     KANForecasterAnomalyDetection,
     KANForecasterImputation,
 )
+from .TSReservoir import (
+    TSReservoirForecast,
+    TSReservoirUEAClassification,
+    TSReservoirAnomalyDetection,
+    TSReservoirImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

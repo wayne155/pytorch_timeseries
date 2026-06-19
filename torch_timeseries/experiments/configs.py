@@ -374,6 +374,23 @@ class RetForecasterConfig:
 
 
 @dataclass
+class TSReservoirConfig:
+    d_res: int = 256
+    spectral_radius: float = 0.9
+    input_scale: float = 0.1
+    pool_states: bool = True
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_res <= 0:
+            raise ValueError("d_res must be positive")
+        if not (0 < self.spectral_radius < 1):
+            raise ValueError("spectral_radius must be in (0, 1)")
+        if self.input_scale <= 0:
+            raise ValueError("input_scale must be positive")
+
+
+@dataclass
 class KANForecasterConfig:
     hidden: int = 64
     e_layers: int = 2
@@ -1165,6 +1182,10 @@ def split_experiment_config(
         ("KANForecaster", "AnomalyDetection"): KANForecasterConfig,
         ("KANForecaster", "Imputation"): KANForecasterConfig,
         ("KANForecaster", "UEAClassification"): KANForecasterConfig,
+        ("TSReservoir", "Forecast"): TSReservoirConfig,
+        ("TSReservoir", "AnomalyDetection"): TSReservoirConfig,
+        ("TSReservoir", "Imputation"): TSReservoirConfig,
+        ("TSReservoir", "UEAClassification"): TSReservoirConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

@@ -416,6 +416,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "TSReservoir": {
+        "d_res": 256,
+        "spectral_radius": 0.9,
+        "input_scale": 0.1,
+        "pool_states": True,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
