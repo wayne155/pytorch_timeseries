@@ -238,6 +238,12 @@ MODEL_PARAMS = {
         "revin": True,
         "dropout": 0.0,
     },
+    "CycleNet": {
+        "cycle_len": 24,
+        "backbone": "linear",
+        "revin": True,
+        "dropout": 0.0,
+    },
     "FreTS": {
         "channel_independence": True,
     },

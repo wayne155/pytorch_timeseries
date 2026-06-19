@@ -159,6 +159,12 @@ from .LightTS import (
     LightTSAnomalyDetection,
     LightTSImputation,
 )
+from .CycleNet import (
+    CycleNetForecast,
+    CycleNetUEAClassification,
+    CycleNetAnomalyDetection,
+    CycleNetImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

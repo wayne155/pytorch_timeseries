@@ -309,6 +309,25 @@ class EnsembleConfig:
 
 
 @dataclass
+class CycleNetConfig:
+    cycle_len: int = 24
+    backbone: str = "linear"
+    d_model: int = 512
+    revin: bool = True
+    dropout: float = 0.0
+
+    def validate(self) -> None:
+        if self.cycle_len < 1:
+            raise ValueError("cycle_len must be >= 1")
+        if self.backbone not in ("linear", "mlp"):
+            raise ValueError("backbone must be 'linear' or 'mlp'")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class LightTSConfig:
     chunk_size: Optional[int] = None
     d_model: int = 64
@@ -534,6 +553,10 @@ def split_experiment_config(
         ("LightTS", "AnomalyDetection"): LightTSConfig,
         ("LightTS", "Imputation"): LightTSConfig,
         ("LightTS", "UEAClassification"): LightTSConfig,
+        ("CycleNet", "Forecast"): CycleNetConfig,
+        ("CycleNet", "AnomalyDetection"): CycleNetConfig,
+        ("CycleNet", "Imputation"): CycleNetConfig,
+        ("CycleNet", "UEAClassification"): CycleNetConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
