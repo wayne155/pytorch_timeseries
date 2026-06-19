@@ -7633,6 +7633,205 @@ class Forecaster:
             plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------
+    # plot_calibration_curve — reliability diagram for conformal PI coverage
+    # ------------------------------------------------------------------
+
+    def plot_calibration_curve(self, X_calib, X_test, *,
+                               n_levels: int = 10, ax=None, title: str = None):
+        """Reliability diagram: nominal vs empirical PI coverage.
+
+        For each target coverage level from ``1/n_levels`` to ``1``, computes
+        the empirical coverage of the conformal interval on *X_test* and plots
+        it against the nominal level.  A perfectly calibrated model follows the
+        diagonal.
+
+        Example::
+
+            fc.plot_calibration_curve(X_calib, X_test, n_levels=10)
+        """
+        import matplotlib.pyplot as plt
+        self._check_fitted()
+        calib_resids = self.residuals(X_calib)
+        q_abs        = np.abs(calib_resids).ravel()
+        actuals, preds = self._collect_actuals_predictions(X_test)
+        errors  = np.abs(actuals - preds).ravel()
+        levels  = np.linspace(1 / n_levels, 1.0, n_levels)
+        emp_covs = []
+        for cov in levels:
+            q = float(np.quantile(q_abs, cov))
+            emp_covs.append(float((errors <= q).mean()))
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(5, 5))
+        else:
+            fig = ax.get_figure()
+        ax.plot(levels, emp_covs, marker="o", markersize=5, label="Model")
+        ax.plot([0, 1], [0, 1], "k--", linewidth=0.8, label="Perfect")
+        ax.set_xlabel("Nominal coverage")
+        ax.set_ylabel("Empirical coverage")
+        ax.set_title(title or "Calibration curve")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # rolling_zscore — z-score normalised rolling window signal
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def rolling_zscore(X, *, window: int = 30, channel: int = 0,
+                       min_periods: int = 1):
+        """Rolling z-score: ``(X[t] - μ_window) / (σ_window + ε)``.
+
+        Returns a 1-D array of the same length as *X*.  Values in the warm-up
+        region (fewer than *min_periods* samples) are set to 0.
+
+        Example::
+
+            z = Forecaster.rolling_zscore(X_train, window=50, channel=0)
+            plt.plot(z)
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        z = np.zeros(T, dtype=np.float32)
+        for t in range(T):
+            start = max(0, t - window + 1)
+            seg   = arr[start: t + 1]
+            if len(seg) >= min_periods:
+                mu  = seg.mean()
+                sig = seg.std() + 1e-8
+                z[t] = (arr[t] - mu) / sig
+        return z
+
+    # ------------------------------------------------------------------
+    # multistep_score — per-horizon metric without re-fitting
+    # ------------------------------------------------------------------
+
+    def multistep_score(self, X, *, metric: str = "mse"):
+        """Return the *metric* at each prediction step without re-fitting.
+
+        Uses rolling evaluation on *X* and computes the metric at steps
+        ``0, 1, …, pred_len - 1`` independently.  Returns a dict mapping
+        ``step → score``::
+
+            scores = fc.multistep_score(X_test, metric="mae")
+            plt.plot(list(scores.keys()), list(scores.values()))
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        # actuals/preds: (n_windows, pred_len, C)
+        step_scores = {}
+        for h in range(self.pred_len):
+            y_t = actuals[:, h, :].ravel()
+            y_p = preds[:, h, :].ravel()
+            if metric == "mse":
+                s = float(np.mean((y_t - y_p) ** 2))
+            elif metric == "mae":
+                s = float(np.mean(np.abs(y_t - y_p)))
+            elif metric == "rmse":
+                s = float(np.sqrt(np.mean((y_t - y_p) ** 2)))
+            elif metric == "smape":
+                denom = np.abs(y_t) + np.abs(y_p) + 1e-8
+                s = float(np.mean(2.0 * np.abs(y_t - y_p) / denom))
+            else:
+                raise ValueError(f"Unknown metric: {metric!r}")
+            step_scores[h] = s
+        return step_scores
+
+    def plot_multistep_score(self, X, *, metric: str = "mse",
+                             ax=None, title: str = None):
+        """Bar chart of per-horizon metric from :meth:`multistep_score`::
+
+            fc.plot_multistep_score(X_test, metric="mae")
+        """
+        import matplotlib.pyplot as plt
+        step_scores = self.multistep_score(X, metric=metric)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(8, 4))
+        else:
+            fig = ax.get_figure()
+        steps = list(step_scores.keys())
+        vals  = list(step_scores.values())
+        ax.bar(steps, vals, color="steelblue", alpha=0.75)
+        ax.set_xlabel("Prediction step")
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Per-step {metric.upper()}")
+        ax.grid(True, alpha=0.3, axis="y")
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # feature_drift — per-channel JS divergence between two datasets
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def feature_drift(X_ref, X_test, *, n_bins: int = 30):
+        """Compute per-channel JS divergence between *X_ref* and *X_test*.
+
+        Returns a 1-D array of shape ``(C,)`` where each entry is the JS
+        divergence for that channel.  Values near 0 indicate no distribution
+        shift; values near 1 indicate maximum shift::
+
+            drift = Forecaster.feature_drift(X_train, X_test_new)
+            # drift[0] is the drift for channel 0, etc.
+        """
+        arr_ref  = np.asarray(X_ref,  dtype=np.float64)
+        arr_test = np.asarray(X_test, dtype=np.float64)
+        if arr_ref.ndim == 1:
+            arr_ref  = arr_ref[:, None]
+        if arr_test.ndim == 1:
+            arr_test = arr_test[:, None]
+        C = arr_ref.shape[1]
+        scores = np.zeros(C)
+        for c in range(C):
+            a = arr_ref[:, c]
+            b = arr_test[:, c]
+            lo = min(a.min(), b.min()) - 1e-8
+            hi = max(a.max(), b.max()) + 1e-8
+            edges = np.linspace(lo, hi, n_bins + 1)
+            p = np.histogram(a, edges)[0].astype(float) + 1e-10
+            q = np.histogram(b, edges)[0].astype(float) + 1e-10
+            p /= p.sum(); q /= q.sum()
+            m = 0.5 * (p + q)
+            scores[c] = 0.5 * (np.sum(p * np.log(p / m)) + np.sum(q * np.log(q / m)))
+        return scores
+
+    @staticmethod
+    def plot_feature_drift(X_ref, X_test, *, n_bins: int = 30,
+                           channel_names=None, ax=None, title: str = None):
+        """Horizontal bar chart of per-channel JS drift scores.
+
+        Example::
+
+            Forecaster.plot_feature_drift(X_train, X_test_shifted)
+        """
+        import matplotlib.pyplot as plt
+        scores = Forecaster.feature_drift(X_ref, X_test, n_bins=n_bins)
+        C = len(scores)
+        labels = channel_names or [f"ch{i}" for i in range(C)]
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(6, max(3, C * 0.4 + 1)))
+        else:
+            fig = ax.get_figure()
+        colors = ["tomato" if s > 0.1 else "steelblue" for s in scores]
+        ax.barh(labels, scores, color=colors, alpha=0.8)
+        ax.axvline(0.1, color="red", linestyle="--", linewidth=0.8, label="Drift threshold (0.1)")
+        ax.set_xlabel("JS Divergence")
+        ax.set_title(title or "Per-channel feature drift")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3, axis="x")
+        if created:
+            plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

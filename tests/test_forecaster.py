@@ -3571,6 +3571,115 @@ class TestPlotPredictionBands:
             _quick_fc().plot_prediction_bands(_rng_data(n=200), n_samples=5)
 
 
+class TestPlotCalibrationCurve:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_figure(self):
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fig = self.fc.plot_calibration_curve(self.X, self.X, n_levels=5)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().plot_calibration_curve(self.X, self.X)
+
+
+class TestRollingZscore:
+    def test_shape(self):
+        X = _rng_data(n=200)
+        z = Forecaster.rolling_zscore(X, window=30, channel=0)
+        assert z.shape == (200,)
+
+    def test_1d_input(self):
+        X = _rng_data(n=100)[:, 0]
+        z = Forecaster.rolling_zscore(X, window=20)
+        assert z.shape == (100,)
+
+    def test_typical_magnitude(self):
+        X = _rng_data(n=500)
+        z = Forecaster.rolling_zscore(X, window=50, channel=0)
+        # z-scores of a standard normal should mostly be in [-4, 4]
+        assert np.abs(z[50:]).max() < 8.0
+
+
+class TestMultistepScore:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        scores = self.fc.multistep_score(self.X, metric="mse")
+        assert isinstance(scores, dict)
+        assert len(scores) == PRED
+
+    def test_keys_are_steps(self):
+        scores = self.fc.multistep_score(self.X)
+        assert set(scores.keys()) == set(range(PRED))
+
+    def test_all_positive(self):
+        scores = self.fc.multistep_score(self.X, metric="mae")
+        assert all(v >= 0 for v in scores.values())
+
+    def test_unknown_metric_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.multistep_score(self.X, metric="unknown_metric")
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().multistep_score(self.X)
+
+
+class TestPlotMultistepScore:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.plot_multistep_score(_rng_data(n=200), metric="mae")
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestFeatureDrift:
+    def test_shape(self):
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=200, seed=1)
+        scores = Forecaster.feature_drift(X_ref, X_test)
+        assert scores.shape == (C,)
+
+    def test_range(self):
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=200, seed=1)
+        scores = Forecaster.feature_drift(X_ref, X_test)
+        assert (scores >= 0).all()
+
+    def test_same_data_near_zero(self):
+        X = _rng_data(n=500)
+        scores = Forecaster.feature_drift(X[:250], X[250:])
+        # same distribution, JS should be low
+        assert scores.max() < 0.3
+
+    def test_1d_input(self):
+        X_ref  = _rng_data(n=100)[:, 0]
+        X_test = _rng_data(n=100, seed=2)[:, 0]
+        scores = Forecaster.feature_drift(X_ref, X_test)
+        assert scores.shape == (1,)
+
+
+class TestPlotFeatureDrift:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X_ref  = _rng_data(n=200)
+        X_test = _rng_data(n=200, seed=1)
+        fig = Forecaster.plot_feature_drift(X_ref, X_test)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
