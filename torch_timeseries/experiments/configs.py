@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class SincNetForecasterConfig:
+    n_filters: int = 32
+    kernel_size: int = 25
+    n_conv_layers: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.n_filters <= 0:
+            raise ValueError("n_filters must be positive")
+        if self.kernel_size <= 0:
+            raise ValueError("kernel_size must be positive")
+        if self.n_conv_layers < 0:
+            raise ValueError("n_conv_layers must be non-negative")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class NeuralBasisForecasterConfig:
     n_basis: int = 32
     d_hidden: int = 64
@@ -1577,6 +1596,10 @@ def split_experiment_config(
         ("NeuralBasisForecaster", "AnomalyDetection"): NeuralBasisForecasterConfig,
         ("NeuralBasisForecaster", "Imputation"): NeuralBasisForecasterConfig,
         ("NeuralBasisForecaster", "UEAClassification"): NeuralBasisForecasterConfig,
+        ("SincNetForecaster", "Forecast"): SincNetForecasterConfig,
+        ("SincNetForecaster", "AnomalyDetection"): SincNetForecasterConfig,
+        ("SincNetForecaster", "Imputation"): SincNetForecasterConfig,
+        ("SincNetForecaster", "UEAClassification"): SincNetForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

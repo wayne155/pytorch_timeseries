@@ -406,6 +406,12 @@ from .NeuralBasisForecaster import (
     NeuralBasisForecasterAnomalyDetection,
     NeuralBasisForecasterImputation,
 )
+from .SincNetForecaster import (
+    SincNetForecasterForecast,
+    SincNetForecasterUEAClassification,
+    SincNetForecasterAnomalyDetection,
+    SincNetForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

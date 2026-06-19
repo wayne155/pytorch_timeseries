@@ -78,6 +78,7 @@ from .HyenaForecaster import HyenaForecaster
 from .PrototypicalForecaster import PrototypicalForecaster
 from .MultiscaleConvForecaster import MultiscaleConvForecaster
 from .NeuralBasisForecaster import NeuralBasisForecaster
+from .SincNetForecaster import SincNetForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -134,6 +135,7 @@ forecasting_models = [
     "PrototypicalForecaster",
     "MultiscaleConvForecaster",
     "NeuralBasisForecaster",
+    "SincNetForecaster",
 ]
 
 prob_forecasting_models = [

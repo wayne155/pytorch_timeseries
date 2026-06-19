@@ -546,6 +546,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "SincNetForecaster": {
+        "n_filters": 32,
+        "kernel_size": 25,
+        "n_conv_layers": 2,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
