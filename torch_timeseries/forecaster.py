@@ -8272,6 +8272,187 @@ class Forecaster:
             "nominal": coverage,
         }
 
+    # ------------------------------------------------------------------
+    # forecast_with_trend — detrend → predict → re-add trend
+    # ------------------------------------------------------------------
+
+    def forecast_with_trend(self, X, *, degree: int = 1):
+        """Predict on polynomial-detrended input and re-add the extrapolated trend.
+
+        Fits a degree-*degree* polynomial to the context window, subtracts it,
+        calls :meth:`predict`, then extrapolates the polynomial over the
+        prediction horizon and adds it back.  Useful for non-stationary series
+        where the model was trained on stationary data::
+
+            y_pred = fc.forecast_with_trend(X_context, degree=1)
+        """
+        self._check_fitted()
+        arr = np.asarray(X[-self.seq_len:], dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        T, C = arr.shape
+        t_ctx  = np.arange(T, dtype=np.float64)
+        t_pred = np.arange(T, T + self.pred_len, dtype=np.float64)
+        # fit per-channel polynomial trend on context
+        trends_ctx  = np.zeros_like(arr)
+        trends_pred = np.zeros((self.pred_len, C), dtype=np.float32)
+        for c in range(C):
+            coeffs = np.polyfit(t_ctx, arr[:, c].astype(np.float64), degree)
+            trends_ctx[:, c]  = np.polyval(coeffs, t_ctx).astype(np.float32)
+            trends_pred[:, c] = np.polyval(coeffs, t_pred).astype(np.float32)
+        detrended  = arr - trends_ctx
+        pred_det   = self.predict(detrended)          # (pred_len, C)
+        return pred_det + trends_pred
+
+    # ------------------------------------------------------------------
+    # compute_pinball_loss — quantile (pinball) loss per step
+    # ------------------------------------------------------------------
+
+    def compute_pinball_loss(self, X, quantiles=(0.1, 0.25, 0.5, 0.75, 0.9), *,
+                             n_samples: int = 200):
+        """Compute pinball loss at each quantile over rolling windows.
+
+        For each quantile *q*, the pinball (quantile) loss is::
+
+            ρ_q(y, ŷ) = max(q·(y - ŷ), (q-1)·(y - ŷ))
+
+        Returns a dict mapping each quantile → mean pinball loss::
+
+            losses = fc.compute_pinball_loss(X_test, quantiles=(0.1, 0.5, 0.9))
+            print(losses)   # {0.1: 0.043, 0.5: 0.021, 0.9: 0.038}
+        """
+        self._check_fitted()
+        # gather quantile predictions via MC-Dropout
+        self._model.train()
+        sample_preds = []
+        actuals_list = []
+        T = len(X)
+        n_w = max(1, (T - self.seq_len - self.pred_len) // self.pred_len + 1)
+        with torch.no_grad():
+            for _ in range(n_samples):
+                preds_run = []
+                for i in range(n_w):
+                    start = i * self.pred_len
+                    ctx   = X[start: start + self.seq_len]
+                    tgt   = X[start + self.seq_len: start + self.seq_len + self.pred_len]
+                    if len(ctx) < self.seq_len or len(tgt) < self.pred_len:
+                        break
+                    preds_run.append(self.predict(ctx))
+                if preds_run:
+                    sample_preds.append(np.stack(preds_run, axis=0))
+        self._model.eval()
+        if not sample_preds:
+            return {q: float("nan") for q in quantiles}
+        sample_preds = np.stack(sample_preds, axis=0)  # (n_samples, n_w, pred_len, C)
+        # collect actuals once
+        for i in range(n_w):
+            start = i * self.pred_len
+            tgt   = X[start + self.seq_len: start + self.seq_len + self.pred_len]
+            if len(tgt) < self.pred_len:
+                break
+            actuals_list.append(tgt)
+        actuals = np.stack(actuals_list, axis=0)   # (n_w, pred_len, C)
+        result = {}
+        for q in quantiles:
+            q_hat = np.quantile(sample_preds, q, axis=0)  # (n_w, pred_len, C)
+            errors = actuals - q_hat
+            pinball = np.maximum(q * errors, (q - 1) * errors)
+            result[float(q)] = float(pinball.mean())
+        return result
+
+    # ------------------------------------------------------------------
+    # wavelet_decomposition — Haar DWT in pure numpy
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def wavelet_decomposition(X, *, n_levels: int = 4, channel: int = 0):
+        """Discrete wavelet transform (Haar) with *n_levels* of decomposition.
+
+        Returns a dict::
+
+            {
+                "approx"  : 1-D array — final approximation coefficients,
+                "details" : list of 1-D arrays — detail coefficients per level
+                            (finest first),
+            }
+
+        The Haar DWT is computed in pure numpy (no pywt / scipy required).
+
+        Example::
+
+            decomp = Forecaster.wavelet_decomposition(X_train, n_levels=4)
+            # decomp["details"][0] is the finest-scale detail
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        # pad to next power-of-2 length
+        T = len(arr)
+        target = 1
+        while target < T:
+            target *= 2
+        signal = np.concatenate([arr, np.zeros(target - T)])
+        details = []
+        approx  = signal
+        for _ in range(n_levels):
+            n = len(approx)
+            if n < 2:
+                break
+            a = (approx[0::2] + approx[1::2]) / np.sqrt(2)
+            d = (approx[0::2] - approx[1::2]) / np.sqrt(2)
+            details.append(d)
+            approx = a
+        return {"approx": approx, "details": details}
+
+    @staticmethod
+    def plot_wavelet(X, *, n_levels: int = 4, channel: int = 0,
+                     title: str = None):
+        """Multi-panel plot of Haar wavelet approximation + details.
+
+        Example::
+
+            Forecaster.plot_wavelet(X_train, n_levels=4, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        decomp = Forecaster.wavelet_decomposition(X, n_levels=n_levels, channel=channel)
+        n_panels = len(decomp["details"]) + 1
+        fig, axes = plt.subplots(n_panels, 1, figsize=(10, 2 * n_panels), sharex=False)
+        if n_panels == 1:
+            axes = [axes]
+        axes[0].plot(decomp["approx"], linewidth=0.8)
+        axes[0].set_title(title or f"Wavelet (channel {channel})")
+        axes[0].set_ylabel("Approx")
+        axes[0].grid(True, alpha=0.3)
+        for i, d in enumerate(decomp["details"]):
+            axes[i + 1].plot(d, linewidth=0.8, color="tomato")
+            axes[i + 1].set_ylabel(f"Detail {i + 1}")
+            axes[i + 1].grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # rolling_predict_iter — generator for one-step-ahead streaming forecast
+    # ------------------------------------------------------------------
+
+    def rolling_predict_iter(self, X, *, step: int = 1):
+        """Generator that yields ``(t, prediction)`` for each rolling window.
+
+        Slides a context window of size ``seq_len`` over *X* with stride
+        *step*, yielding a ``(t, np.ndarray)`` tuple at each position where
+        ``t`` is the index of the first predicted timestep::
+
+            for t, pred in fc.rolling_predict_iter(X_test):
+                print(f"t={t}: pred shape={pred.shape}")  # (pred_len, C)
+        """
+        self._check_fitted()
+        T = len(X)
+        t = self.seq_len
+        while t + self.pred_len <= T:
+            ctx  = X[t - self.seq_len: t]
+            pred = self.predict(ctx)
+            yield t, pred
+            t += step
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

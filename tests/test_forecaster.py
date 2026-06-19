@@ -3868,6 +3868,113 @@ class TestReliabilityScore:
             _quick_fc().reliability_score(self.X, self.X)
 
 
+class TestForecastWithTrend:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_shape(self):
+        pred = self.fc.forecast_with_trend(self.X, degree=1)
+        assert pred.shape == (PRED, C)
+
+    def test_higher_degree(self):
+        pred = self.fc.forecast_with_trend(self.X, degree=2)
+        assert pred.shape == (PRED, C)
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().forecast_with_trend(self.X)
+
+
+class TestComputePinballLoss:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.compute_pinball_loss(self.X, quantiles=(0.1, 0.5, 0.9), n_samples=5)
+        assert isinstance(result, dict)
+        assert set(result.keys()) == {0.1, 0.5, 0.9}
+
+    def test_non_negative(self):
+        result = self.fc.compute_pinball_loss(self.X, quantiles=(0.1, 0.5), n_samples=5)
+        for v in result.values():
+            if not np.isnan(v):
+                assert v >= 0
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().compute_pinball_loss(self.X)
+
+
+class TestWaveletDecomposition:
+    def test_returns_dict(self):
+        X = _rng_data(n=256)
+        decomp = Forecaster.wavelet_decomposition(X, n_levels=4, channel=0)
+        assert set(decomp.keys()) == {"approx", "details"}
+
+    def test_n_details_equals_levels(self):
+        X = _rng_data(n=256)
+        decomp = Forecaster.wavelet_decomposition(X, n_levels=3, channel=0)
+        assert len(decomp["details"]) == 3
+
+    def test_1d_input(self):
+        X = _rng_data(n=128)[:, 0]
+        decomp = Forecaster.wavelet_decomposition(X, n_levels=2)
+        assert "approx" in decomp
+
+    def test_finite_values(self):
+        X = _rng_data(n=128)
+        decomp = Forecaster.wavelet_decomposition(X, n_levels=3)
+        assert np.all(np.isfinite(decomp["approx"]))
+        for d in decomp["details"]:
+            assert np.all(np.isfinite(d))
+
+
+class TestPlotWavelet:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        X = _rng_data(n=256)
+        fig = Forecaster.plot_wavelet(X, n_levels=3, channel=0)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_correct_panel_count(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=256)
+        fig = Forecaster.plot_wavelet(X, n_levels=4)
+        assert len(fig.get_axes()) == 5  # 1 approx + 4 details
+        plt.close("all")
+
+
+class TestRollingPredictIter:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_is_generator(self):
+        import types
+        gen = self.fc.rolling_predict_iter(self.X)
+        assert isinstance(gen, types.GeneratorType)
+
+    def test_yields_correct_shape(self):
+        gen = self.fc.rolling_predict_iter(self.X)
+        t, pred = next(gen)
+        assert pred.shape == (PRED, C)
+        assert t == SEQ
+
+    def test_step_advances_correctly(self):
+        results = list(self.fc.rolling_predict_iter(self.X, step=PRED))
+        if len(results) >= 2:
+            assert results[1][0] - results[0][0] == PRED
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            list(_quick_fc().rolling_predict_iter(self.X))
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
