@@ -4583,6 +4583,126 @@ class Forecaster:
             self.predict(ctx)
         return self
 
+    @staticmethod
+    def channel_correlation(X: np.ndarray) -> np.ndarray:
+        """Compute the Pearson correlation matrix across channels.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+
+        Returns
+        -------
+        np.ndarray of shape ``(C, C)`` with values in ``[-1, 1]``.
+        """
+        X_f = X.astype(float)
+        X_centered = X_f - X_f.mean(axis=0)
+        cov = X_centered.T @ X_centered / (len(X) - 1)
+        std = np.sqrt(np.diag(cov)).clip(min=1e-12)
+        return cov / np.outer(std, std)
+
+    @staticmethod
+    def plot_channel_correlation(
+        X: np.ndarray,
+        *,
+        channel_names: Optional[List[str]] = None,
+        ax=None,
+        title: Optional[str] = None,
+        cmap: str = "coolwarm",
+    ):
+        """Plot a heatmap of the channel-wise Pearson correlation matrix.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        channel_names:
+            Labels for each channel.  Defaults to ``["ch0", "ch1", ...]``.
+        ax:
+            Matplotlib axes (created if ``None``).
+        title:
+            Axes title.
+        cmap:
+            Colormap (default ``"coolwarm"``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_channel_correlation()") from exc
+
+        corr = Forecaster.channel_correlation(X)
+        C = corr.shape[0]
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(4, C), max(3, C)))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(corr, cmap=cmap, vmin=-1, vmax=1, aspect="auto")
+        ax.set_xticks(range(C))
+        ax.set_yticks(range(C))
+        ax.set_xticklabels(channel_names, rotation=45, ha="right")
+        ax.set_yticklabels(channel_names)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        ax.set_title(title or "Channel correlation")
+        plt.tight_layout()
+        return fig
+
+    def forecast_dataframe(
+        self,
+        X: np.ndarray,
+        *,
+        channel_names: Optional[List[str]] = None,
+        start_index: int = 0,
+    ) -> "pd.DataFrame":
+        """Return the forecast as a labeled pandas DataFrame.
+
+        The context is ``X[-seq_len:]`` and the forecast covers the next
+        ``pred_len`` timesteps.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(T, C)`` or ``(seq_len, C)``.  If longer than
+            ``seq_len`` the last ``seq_len`` rows are used.
+        channel_names:
+            Column labels.  Defaults to ``["ch0", "ch1", ...]``.
+        start_index:
+            Integer index of the first predicted timestep (default ``0``).
+
+        Returns
+        -------
+        pandas.DataFrame with shape ``(pred_len, C)`` and columns
+        ``channel_names``.  The DataFrame index runs from *start_index* to
+        ``start_index + pred_len - 1``.
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError("pandas is required for forecast_dataframe()") from exc
+
+        self._check_fitted()
+        pred = self.predict(X)
+        if pred.ndim == 3:
+            pred = pred[0]  # (pred_len, C)
+
+        C = pred.shape[1] if pred.ndim > 1 else 1
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        return pd.DataFrame(
+            pred,
+            columns=channel_names,
+            index=range(start_index, start_index + self.pred_len),
+        )
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

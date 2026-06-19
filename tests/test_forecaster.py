@@ -2947,6 +2947,101 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestChannelCorrelation:
+    def test_shape(self):
+        X = _rng_data(n=100)
+        corr = Forecaster.channel_correlation(X)
+        assert corr.shape == (C, C)
+
+    def test_diagonal_ones(self):
+        X = _rng_data(n=100)
+        corr = Forecaster.channel_correlation(X)
+        np.testing.assert_allclose(np.diag(corr), 1.0, atol=1e-6)
+
+    def test_symmetric(self):
+        X = _rng_data(n=100)
+        corr = Forecaster.channel_correlation(X)
+        np.testing.assert_allclose(corr, corr.T, atol=1e-10)
+
+    def test_values_in_minus1_to_1(self):
+        X = _rng_data(n=100)
+        corr = Forecaster.channel_correlation(X)
+        assert (corr >= -1.0 - 1e-6).all() and (corr <= 1.0 + 1e-6).all()
+
+    def test_perfect_correlation(self):
+        # perfectly correlated channels
+        x = np.arange(100, dtype=float)[:, None]
+        X = np.concatenate([x, 2 * x], axis=1)
+        corr = Forecaster.channel_correlation(X)
+        assert abs(corr[0, 1] - 1.0) < 1e-6
+
+
+class TestPlotChannelCorrelation:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_channel_correlation(X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_channel_correlation(X, title="Corr")
+        ax = fig.get_axes()[0]
+        assert "Corr" in ax.get_title()
+        plt.close("all")
+
+    def test_custom_channel_names(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        names = ["a", "b", "c"]
+        fig = Forecaster.plot_channel_correlation(X, channel_names=names)
+        ax = fig.get_axes()[0]
+        labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert labels == names
+        plt.close("all")
+
+
+class TestForecastDataframe:
+    def setup_method(self):
+        pytest.importorskip("pandas")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=SEQ)
+
+    def test_returns_dataframe(self):
+        import pandas as pd
+        df = self.fc.forecast_dataframe(self.X)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_shape(self):
+        df = self.fc.forecast_dataframe(self.X)
+        assert df.shape == (PRED, C)
+
+    def test_default_column_names(self):
+        df = self.fc.forecast_dataframe(self.X)
+        assert list(df.columns) == [f"ch{i}" for i in range(C)]
+
+    def test_custom_column_names(self):
+        names = ["A", "B", "D"]
+        df = self.fc.forecast_dataframe(self.X, channel_names=names)
+        assert list(df.columns) == names
+
+    def test_start_index(self):
+        df = self.fc.forecast_dataframe(self.X, start_index=100)
+        assert df.index[0] == 100
+        assert df.index[-1] == 100 + PRED - 1
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.forecast_dataframe(self.X)
+
+
 class TestProfile:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())
