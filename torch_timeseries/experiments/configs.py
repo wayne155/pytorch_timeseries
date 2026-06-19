@@ -309,6 +309,25 @@ class EnsembleConfig:
 
 
 @dataclass
+class SOFTSConfig:
+    d_model: int = 512
+    d_core: Optional[int] = None
+    e_layers: int = 2
+    dropout: float = 0.0
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_core is not None and self.d_core <= 0:
+            raise ValueError("d_core must be positive or None")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class QuantileConfig:
     d_model: int = 256
     n_heads: int = 4
@@ -465,6 +484,10 @@ def split_experiment_config(
         ("SparseTSF", "AnomalyDetection"): SparseTSFConfig,
         ("SparseTSF", "Imputation"): SparseTSFConfig,
         ("SparseTSF", "UEAClassification"): SparseTSFConfig,
+        ("SOFTS", "Forecast"): SOFTSConfig,
+        ("SOFTS", "AnomalyDetection"): SOFTSConfig,
+        ("SOFTS", "Imputation"): SOFTSConfig,
+        ("SOFTS", "UEAClassification"): SOFTSConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

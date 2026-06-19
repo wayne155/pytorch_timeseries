@@ -218,6 +218,13 @@ MODEL_PARAMS = {
         "revin": True,
         "num_members": 5,
     },
+    "SOFTS": {
+        "d_model": 512,
+        "d_core": 512,
+        "e_layers": 2,
+        "dropout": 0.0,
+        "revin": True,
+    },
     "FreTS": {
         "channel_independence": True,
     },

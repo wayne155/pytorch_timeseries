@@ -33,6 +33,7 @@ from .StudentTForecaster import StudentTForecaster
 from .QuantileForecaster import QuantileForecaster
 from .NBEATS import NBEATS
 from .SparseTSF import SparseTSF
+from .SOFTS import SOFTS
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -45,6 +46,7 @@ forecasting_models = [
     "SegRNN", "TimeMixer", "TiDE", "NHiTS",
     "NBEATS",
     "SparseTSF",
+    "SOFTS",
 ]
 
 prob_forecasting_models = [

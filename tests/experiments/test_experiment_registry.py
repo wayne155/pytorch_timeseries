@@ -25,6 +25,7 @@ FORECAST_FOUR_TASK_MODELS = [
     "TCN", "PatchMixer", "RNN", "VanillaTransformer",
     "NBEATS",
     "SparseTSF",
+    "SOFTS",
 ]
 
 FORECAST_ONLY_MODELS = ["CATS"]
@@ -94,7 +95,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 103  # +1 Ensemble/Forecast
+        assert len(list_experiments()) >= 107  # +4 SOFTS tasks
 
 
 # ---------------------------------------------------------------------------

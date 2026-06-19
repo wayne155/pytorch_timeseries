@@ -141,6 +141,12 @@ from .SparseTSF import (
     SparseTSFAnomalyDetection,
     SparseTSFImputation,
 )
+from .SOFTS import (
+    SOFTSForecast,
+    SOFTSUEAClassification,
+    SOFTSAnomalyDetection,
+    SOFTSImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
