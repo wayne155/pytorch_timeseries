@@ -8,8 +8,9 @@ import torch.nn as nn
 
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
-    compare, compare_to_dataframe, list_models, _WindowDataset,
-    _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
+    compare, compare_to_dataframe, list_models, time_series_split,
+    _WindowDataset, _EarlyStopping, _make_scheduler,
+    _print_compare_table, _resolve_loss,
 )
 from torch_timeseries.dataset import list_datasets, load_dataset
 from torch_timeseries.augment import Jitter, Compose, Scale
@@ -1619,3 +1620,50 @@ class TestPipeline:
         y_no_inv = pipe2.predict(X[-SEQ:])
         # With inverse the output differs from no-inverse output
         assert y_with_inv.shape == (PRED, C)
+
+
+# ── time_series_split() ───────────────────────────────────────────────────────
+
+
+class TestTimeSeriesSplit:
+    def test_returns_list_of_tuples(self):
+        X = _rng_data(n=500)
+        splits = time_series_split(X, n_splits=3)
+        assert isinstance(splits, list)
+        assert len(splits) > 0
+        for train_idx, test_idx in splits:
+            assert hasattr(train_idx, "__len__")
+            assert hasattr(test_idx, "__len__")
+
+    def test_train_before_test(self):
+        X = _rng_data(n=500)
+        splits = time_series_split(X, n_splits=3)
+        for train_idx, test_idx in splits:
+            assert train_idx.max() < test_idx.min()
+
+    def test_n_splits_limit(self):
+        X = _rng_data(n=500)
+        splits = time_series_split(X, n_splits=5)
+        assert len(splits) <= 5
+
+    def test_custom_test_size(self):
+        X = _rng_data(n=500)
+        splits = time_series_split(X, n_splits=3, test_size=50)
+        for _, test_idx in splits:
+            assert len(test_idx) == 50
+
+    def test_gap_respected(self):
+        X = _rng_data(n=500)
+        gap = 10
+        splits = time_series_split(X, n_splits=3, gap=gap)
+        for train_idx, test_idx in splits:
+            assert test_idx.min() - train_idx.max() >= gap
+
+    def test_usable_for_cross_validation(self):
+        X = _rng_data(n=400)
+        splits = time_series_split(X, n_splits=2)
+        for train_idx, test_idx in splits:
+            fc = _quick_fc()
+            fc.fit(X[train_idx])
+            result = fc.score(X[test_idx])
+            assert "mse" in result

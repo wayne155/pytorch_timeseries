@@ -1609,6 +1609,57 @@ class Forecaster:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def time_series_split(
+    X,
+    *,
+    n_splits: int = 5,
+    test_size: Optional[int] = None,
+    gap: int = 0,
+) -> List[tuple]:
+    """Generate time-series aware (walk-forward) train/test index splits.
+
+    Unlike random K-fold, each fold has all data up to a cutoff as training
+    and the next ``test_size`` timesteps as test — simulating real deployment.
+
+    Parameters
+    ----------
+    X:
+        Time series array or any object with ``len()``.
+    n_splits:
+        Number of folds.
+    test_size:
+        Number of test timesteps per fold.  If *None*, uses
+        ``len(X) // (n_splits + 1)``.
+    gap:
+        Number of timesteps between the end of the training slice and the
+        start of the test slice (to avoid leakage from overlapping windows).
+
+    Returns
+    -------
+    list of (train_indices, test_indices) tuples
+        Each element is a pair of ``np.ndarray`` index arrays.
+
+    Examples
+    --------
+    >>> splits = time_series_split(X, n_splits=5)
+    >>> for train_idx, test_idx in splits:
+    ...     X_train, X_test = X[train_idx], X[test_idx]
+    ...     fc.fit(X_train).score(X_test)
+    """
+    N = len(_to_numpy(X)) if not isinstance(X, int) else X
+    if test_size is None:
+        test_size = N // (n_splits + 1)
+    splits = []
+    for i in range(n_splits):
+        test_start = N - (n_splits - i) * test_size
+        test_end = test_start + test_size
+        train_end = test_start - gap
+        if train_end <= 0 or test_start >= N:
+            continue
+        splits.append((np.arange(train_end), np.arange(test_start, test_end)))
+    return splits
+
+
 def list_models() -> List[str]:
     """Return a sorted list of all available forecasting model names.
 

@@ -28,6 +28,6 @@ from .results import RunResult, LocalBackend, WandbBackend
 from .experiment import Experiment, register_model
 from .forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
-    compare, compare_to_dataframe, list_models,
+    compare, compare_to_dataframe, list_models, time_series_split,
 )
 from .dataset import list_datasets, load_dataset
