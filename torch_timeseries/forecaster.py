@@ -6639,6 +6639,300 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------
+    # Residual ACF — model adequacy diagnostic
+    # ------------------------------------------------------------------
+
+    def residual_acf(self, X, *, max_lag: int = 40, channel: int = 0):
+        """ACF of model residuals on *X*.
+
+        Useful for diagnosing whether residuals are white noise (adequately
+        fitted model).  Returns ``(lags, acf)`` arrays of shape ``(max_lag+1,)``.
+        """
+        self._check_fitted()
+        resids = self.residuals(X)
+        if resids.ndim == 3:
+            r = resids[:, :, channel].ravel()
+        elif resids.ndim == 2:
+            r = resids[:, channel].ravel()
+        else:
+            r = resids.ravel()
+        r = r - r.mean()
+        n = len(r)
+        c0 = np.dot(r, r) / n
+        lags = np.arange(max_lag + 1)
+        acf = np.array([1.0 if k == 0 else np.dot(r[k:], r[:-k]) / (n * c0) for k in lags])
+        return lags, acf
+
+    @staticmethod
+    def plot_residual_acf(lags, acf, *, significance_level: float = 0.05,
+                          ax=None, title: str = None):
+        """Stem plot of residual ACF with confidence bands.
+
+        Pass the output of :meth:`residual_acf` directly::
+
+            lags, acf = fc.residual_acf(X_test)
+            fc.plot_residual_acf(lags, acf)
+        """
+        import matplotlib.pyplot as plt
+        n = len(lags)
+        p = 1 - significance_level / 2
+        t_val = np.sqrt(-2.0 * np.log(1 - p))
+        a = [2.515517, 0.802853, 0.010328]
+        b = [1.432788, 0.189269, 0.001308]
+        z = t_val - (a[0] + a[1] * t_val + a[2] * t_val ** 2) / (
+            1 + b[0] * t_val + b[1] * t_val ** 2 + b[2] * t_val ** 3
+        )
+        ci = z / np.sqrt(n)
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(10, 3))
+        else:
+            fig = ax.get_figure()
+        ax.vlines(lags, 0, acf, linewidth=1.5)
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.axhline(ci,  color="red", linestyle="--", linewidth=0.9, alpha=0.8, label=f"{int((1-significance_level)*100)}% CI")
+        ax.axhline(-ci, color="red", linestyle="--", linewidth=0.9, alpha=0.8)
+        ax.set_xlabel("Lag")
+        ax.set_ylabel("ACF")
+        ax.set_title(title or "Residual ACF")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # clone — unfitted copy of the forecaster
+    # ------------------------------------------------------------------
+
+    def clone(self):
+        """Return an unfitted :class:`Forecaster` with identical hyperparameters.
+
+        Useful for cross-validation loops where you need multiple independent
+        instances with the same configuration::
+
+            base = Forecaster("PatchTST", seq_len=96, pred_len=24, epochs=10)
+            for X_train, X_val in splits:
+                clone = base.clone()
+                clone.fit(X_train)
+                print(clone.score(X_val))
+        """
+        import copy
+        init_kwargs = dict(
+            seq_len=self.seq_len,
+            pred_len=self.pred_len,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            lr=self.lr,
+            patience=self.patience,
+            verbose=self.verbose,
+            device=str(self.device),
+            loss=self.loss,
+            scheduler=self.scheduler,
+            grad_clip=self.grad_clip,
+            weight_decay=self.weight_decay,
+            warm_start=False,   # clones always start unfitted
+        )
+        return Forecaster(copy.deepcopy(self.model_spec), **init_kwargs)
+
+    # ------------------------------------------------------------------
+    # leaderboard — compare multiple models on the same data
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def leaderboard(cls, X_train, X_test, models, *,
+                    metric: str = "mse", sort: bool = True, **kwargs):
+        """Fit and evaluate multiple models; return a ranked :class:`pandas.DataFrame`.
+
+        *models* may be model-name strings or already-instantiated
+        :class:`Forecaster` objects (they are cloned so the originals are
+        unchanged).  Extra ``**kwargs`` are forwarded to the :class:`Forecaster`
+        constructor when *models* contains strings.
+
+        Example::
+
+            df = Forecaster.leaderboard(
+                X_train, X_test,
+                ["DLinear", "NLinear", "PatchTST", "iTransformer"],
+                metric="mae",
+                seq_len=96, pred_len=24, epochs=5,
+            )
+            print(df)
+        """
+        import pandas as pd
+        records = []
+        for m in models:
+            if isinstance(m, cls):
+                fc = m.clone()
+                label = getattr(m, "model_spec", repr(m))
+                if not isinstance(label, str):
+                    label = type(label).__name__
+            else:
+                label = str(m)
+                fc = cls(m, **kwargs)
+            try:
+                fc.fit(X_train)
+                scores = fc.evaluate(X_test)
+                scores["model"] = label
+                records.append(scores)
+            except Exception as exc:
+                records.append({"model": label, "error": str(exc)})
+        df = pd.DataFrame(records).set_index("model")
+        if sort and metric in df.columns:
+            df = df.sort_values(metric, ascending=True)
+        return df
+
+    # ------------------------------------------------------------------
+    # sensitivity_analysis — track prediction change under input perturbation
+    # ------------------------------------------------------------------
+
+    def sensitivity_analysis(self, X, *, channel: int = 0,
+                             timestep: int = None, n_points: int = 11,
+                             delta_range: float = 3.0):
+        """Measure how a single input feature affects the forecast.
+
+        Perturbs *channel* at *timestep* (default: last timestep of context
+        window) uniformly from ``-delta_range`` to ``+delta_range`` standard
+        deviations and records the change in mean absolute prediction.
+
+        Returns a dict with keys:
+
+        * ``"deltas"``      – 1-D array of perturbation values (shape ``(n_points,)``)
+        * ``"pred_change"`` – mean absolute change in predictions for each delta
+        * ``"baseline"``    – unperturbed prediction array
+
+        Example::
+
+            result = fc.sensitivity_analysis(X_context, channel=0, n_points=21)
+            plt.plot(result["deltas"], result["pred_change"])
+        """
+        self._check_fitted()
+        ctx = X[-self.seq_len:]                   # (seq_len, C)
+        baseline = self.predict(ctx)              # (pred_len, C)
+        if timestep is None:
+            timestep = self.seq_len - 1
+        std = float(ctx[:, channel].std()) or 1.0
+        deltas = np.linspace(-delta_range * std, delta_range * std, n_points)
+        pred_changes = np.zeros(n_points)
+        for i, d in enumerate(deltas):
+            ctx_perturbed = ctx.copy().astype(np.float32)
+            ctx_perturbed[timestep, channel] += d
+            pred_perturbed = self.predict(ctx_perturbed)
+            pred_changes[i] = float(np.abs(pred_perturbed - baseline).mean())
+        return {"deltas": deltas, "pred_change": pred_changes, "baseline": baseline}
+
+    def plot_sensitivity(self, X, *, channel: int = 0, timestep: int = None,
+                         n_points: int = 21, delta_range: float = 3.0,
+                         ax=None, title: str = None):
+        """Line chart of prediction sensitivity to a single input perturbation.
+
+        Wraps :meth:`sensitivity_analysis`::
+
+            fc.plot_sensitivity(X_context, channel=0)
+        """
+        import matplotlib.pyplot as plt
+        result = self.sensitivity_analysis(
+            X, channel=channel, timestep=timestep,
+            n_points=n_points, delta_range=delta_range,
+        )
+        created = ax is None
+        if created:
+            fig, ax = plt.subplots(figsize=(7, 4))
+        else:
+            fig = ax.get_figure()
+        ax.plot(result["deltas"], result["pred_change"], marker="o", markersize=4)
+        ax.axvline(0, color="gray", linestyle="--", linewidth=0.8)
+        ax.set_xlabel(f"Perturbation on channel {channel}")
+        ax.set_ylabel("Mean |ΔPrediction|")
+        ax.set_title(title or f"Sensitivity — channel {channel}")
+        ax.grid(True, alpha=0.3)
+        if created:
+            plt.tight_layout()
+        return fig
+
+    # ------------------------------------------------------------------
+    # train_val_test_split — static time-series-safe split utility
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def train_val_test_split(X, *, val_ratio: float = 0.1,
+                             test_ratio: float = 0.1, gap: int = 0):
+        """Split array *X* into train / val / test segments (no shuffle).
+
+        The split is chronological: train comes first, validation second,
+        test last.  An optional *gap* can be inserted between splits to
+        prevent look-ahead leakage when the model uses multi-step context.
+
+        Returns ``(X_train, X_val, X_test)``.
+
+        Example::
+
+            X_train, X_val, X_test = Forecaster.train_val_test_split(
+                data, val_ratio=0.1, test_ratio=0.2, gap=24
+            )
+            fc.fit(X_train)
+            print(fc.score(X_test))
+        """
+        n = len(X)
+        n_test = max(1, int(n * test_ratio))
+        n_val  = max(1, int(n * val_ratio))
+        n_train = n - n_val - n_test - 2 * gap
+        if n_train < 1:
+            raise ValueError(
+                f"Not enough data: {n} samples, but train/val/test/gap need "
+                f"{n_train + n_val + n_test + 2 * gap}"
+            )
+        train_end = n_train
+        val_start = train_end + gap
+        val_end   = val_start + n_val
+        test_start = val_end + gap
+        return X[:train_end], X[val_start:val_end], X[test_start:]
+
+    # ------------------------------------------------------------------
+    # ljung_box — test residual whiteness
+    # ------------------------------------------------------------------
+
+    def ljung_box(self, X, *, max_lag: int = 20, channel: int = 0):
+        """Ljung-Box Q statistic on model residuals.
+
+        Tests whether residuals are consistent with white noise (H₀: no
+        autocorrelation up to *max_lag*).  Returns a dict::
+
+            {
+                "Q": float,       # Ljung-Box Q statistic
+                "df": int,        # degrees of freedom (= max_lag)
+                "p_value": float, # approximate chi-squared p-value
+            }
+
+        p-value < 0.05 suggests significant autocorrelation remains
+        (model may be misspecified).  P-value computed via chi-squared
+        CDF approximation — no scipy required.
+
+        Example::
+
+            result = fc.ljung_box(X_test, max_lag=20)
+            print(result["p_value"])   # < 0.05 → residuals not white noise
+        """
+        self._check_fitted()
+        _, acf = self.residual_acf(X, max_lag=max_lag, channel=channel)
+        n_resid = len(self.residuals(X).ravel())
+        lags = np.arange(1, max_lag + 1)
+        Q = float(n_resid * (n_resid + 2) * np.sum(acf[1:] ** 2 / (n_resid - lags)))
+
+        # chi-squared survival function via regularised incomplete gamma
+        # P(χ²_k > Q) = 1 - P(χ²_k ≤ Q) ≈ using Wilson-Hilferty normal approx
+        k = max_lag
+        # Wilson-Hilferty: (χ²/k)^(1/3) ≈ N(1 - 2/(9k), 2/(9k))
+        mu  = 1.0 - 2.0 / (9 * k)
+        sig = np.sqrt(2.0 / (9 * k))
+        z   = ((Q / k) ** (1.0 / 3) - mu) / (sig + 1e-15)
+        # standard normal CDF via error function
+        p_value = float(0.5 * (1.0 + np.sign(z) * (1.0 - np.exp(-0.7213475 * z ** 2 - 0.2316419 * abs(z)))))
+        p_value = max(0.0, min(1.0, 1.0 - p_value))
+
+        return {"Q": Q, "df": k, "p_value": p_value}
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

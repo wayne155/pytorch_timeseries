@@ -3057,6 +3057,164 @@ class TestPlotPacf:
         plt.close("all")
 
 
+class TestResidualAcf:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_arrays(self):
+        lags, acf = self.fc.residual_acf(self.X, max_lag=20)
+        assert lags.shape == (21,) and acf.shape == (21,)
+
+    def test_lag_zero_is_one(self):
+        _, acf = self.fc.residual_acf(self.X, max_lag=10)
+        assert abs(acf[0] - 1.0) < 1e-5
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().residual_acf(self.X)
+
+
+class TestPlotResidualAcf:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        lags, acf = fc.residual_acf(_rng_data(n=200), max_lag=15)
+        fig = Forecaster.plot_residual_acf(lags, acf)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestClone:
+    def test_clone_is_unfitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        cloned = fc.clone()
+        assert cloned._model is None
+
+    def test_clone_has_same_config(self):
+        fc = _quick_fc()
+        c = fc.clone()
+        assert c.seq_len == fc.seq_len
+        assert c.pred_len == fc.pred_len
+        assert c.epochs == fc.epochs
+
+    def test_clone_fits_independently(self):
+        fc = _quick_fc().fit(_rng_data())
+        cloned = fc.clone()
+        cloned.fit(_rng_data(seed=1))
+        # original model untouched
+        assert fc._model is not None
+
+
+class TestLeaderboard:
+    def test_returns_dataframe(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=200)
+        df = Forecaster.leaderboard(
+            X[:140], X[140:],
+            ["DLinear", "NLinear"],
+            seq_len=SEQ, pred_len=PRED, epochs=2,
+            batch_size=32, patience=5, verbose=False,
+        )
+        assert "mse" in df.columns
+        assert len(df) == 2
+
+    def test_sort_by_metric(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=200)
+        df = Forecaster.leaderboard(
+            X[:140], X[140:],
+            ["DLinear", "NLinear"],
+            metric="mae", sort=True,
+            seq_len=SEQ, pred_len=PRED, epochs=2,
+            batch_size=32, patience=5, verbose=False,
+        )
+        vals = df["mae"].dropna().values
+        assert list(vals) == sorted(vals)
+
+
+class TestSensitivityAnalysis:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.sensitivity_analysis(self.X, channel=0, n_points=5)
+        assert set(result.keys()) == {"deltas", "pred_change", "baseline"}
+
+    def test_correct_shapes(self):
+        result = self.fc.sensitivity_analysis(self.X, channel=0, n_points=7)
+        assert result["deltas"].shape == (7,)
+        assert result["pred_change"].shape == (7,)
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().sensitivity_analysis(self.X, channel=0)
+
+
+class TestPlotSensitivity:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure, matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        fig = fc.plot_sensitivity(_rng_data(n=200), channel=0, n_points=5)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+
+class TestTrainValTestSplit:
+    def test_basic_split(self):
+        X = _rng_data(n=1000)
+        tr, va, te = Forecaster.train_val_test_split(X, val_ratio=0.1, test_ratio=0.2)
+        assert len(tr) + len(va) + len(te) == 1000
+        assert len(te) == pytest.approx(200, abs=2)
+        assert len(va) == pytest.approx(100, abs=2)
+
+    def test_chronological_order(self):
+        X = np.arange(1000).reshape(-1, 1).astype(np.float32)
+        tr, va, te = Forecaster.train_val_test_split(X, val_ratio=0.1, test_ratio=0.1)
+        assert float(tr[-1]) < float(va[0])
+        assert float(va[-1]) < float(te[0])
+
+    def test_gap_removes_samples(self):
+        X = _rng_data(n=1000)
+        tr_no_gap, va_no_gap, te_no_gap = Forecaster.train_val_test_split(X)
+        tr_gap,    va_gap,    te_gap    = Forecaster.train_val_test_split(X, gap=10)
+        assert len(tr_gap) < len(tr_no_gap)
+
+    def test_too_small_raises(self):
+        X = _rng_data(n=2)
+        with pytest.raises(ValueError):
+            Forecaster.train_val_test_split(X, val_ratio=0.5, test_ratio=0.5)
+
+
+class TestLjungBox:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        result = self.fc.ljung_box(self.X, max_lag=10)
+        assert set(result.keys()) >= {"Q", "df", "p_value"}
+
+    def test_df_equals_max_lag(self):
+        result = self.fc.ljung_box(self.X, max_lag=15)
+        assert result["df"] == 15
+
+    def test_p_value_in_unit_interval(self):
+        result = self.fc.ljung_box(self.X, max_lag=10)
+        assert 0.0 <= result["p_value"] <= 1.0
+
+    def test_Q_is_positive(self):
+        result = self.fc.ljung_box(self.X, max_lag=10)
+        assert result["Q"] > 0
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().ljung_box(self.X)
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
