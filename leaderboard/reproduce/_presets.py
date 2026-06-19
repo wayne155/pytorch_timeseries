@@ -317,6 +317,10 @@ MODEL_PARAMS = {
     "RLinear": {
         "individual": True,
     },
+    "FilterNet": {
+        "num_filters": 8,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

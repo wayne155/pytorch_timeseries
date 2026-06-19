@@ -336,6 +336,16 @@ class ETSformerConfig:
 
 
 @dataclass
+class FilterNetConfig:
+    num_filters: int = 8
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.num_filters < 1:
+            raise ValueError("num_filters must be >= 1")
+
+
+@dataclass
 class RLinearConfig:
     individual: bool = True
 
@@ -848,6 +858,10 @@ def split_experiment_config(
         ("RLinear", "AnomalyDetection"): RLinearConfig,
         ("RLinear", "Imputation"): RLinearConfig,
         ("RLinear", "UEAClassification"): RLinearConfig,
+        ("FilterNet", "Forecast"): FilterNetConfig,
+        ("FilterNet", "AnomalyDetection"): FilterNetConfig,
+        ("FilterNet", "Imputation"): FilterNetConfig,
+        ("FilterNet", "UEAClassification"): FilterNetConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

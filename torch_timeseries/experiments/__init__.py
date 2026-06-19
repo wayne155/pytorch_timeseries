@@ -226,6 +226,12 @@ from .RLinear import (
     RLinearAnomalyDetection,
     RLinearImputation,
 )
+from .FilterNet import (
+    FilterNetForecast,
+    FilterNetUEAClassification,
+    FilterNetAnomalyDetection,
+    FilterNetImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
