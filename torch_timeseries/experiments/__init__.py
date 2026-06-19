@@ -460,6 +460,12 @@ from .SpikeForecaster import (
     SpikeForecasterAnomalyDetection,
     SpikeForecasterImputation,
 )
+from .ConformerForecaster import (
+    ConformerForecasterForecast,
+    ConformerForecasterUEAClassification,
+    ConformerForecasterAnomalyDetection,
+    ConformerForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

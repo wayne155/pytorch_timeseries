@@ -610,6 +610,15 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "ConformerForecaster": {
+        "d_model": 64,
+        "n_heads": 4,
+        "d_ffn": 256,
+        "n_layers": 2,
+        "kernel_size": 9,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

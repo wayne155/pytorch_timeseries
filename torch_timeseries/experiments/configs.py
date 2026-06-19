@@ -506,6 +506,33 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class ConformerForecasterConfig:
+    d_model: int = 64
+    n_heads: int = 4
+    d_ffn: int = 256
+    n_layers: int = 2
+    kernel_size: int = 9
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_ffn <= 0:
+            raise ValueError("d_ffn must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.kernel_size % 2 == 0:
+            raise ValueError("kernel_size must be odd")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class SpikeForecasterConfig:
     d_model: int = 64
     n_layers: int = 2
@@ -1785,6 +1812,10 @@ def split_experiment_config(
         ("SpikeForecaster", "AnomalyDetection"): SpikeForecasterConfig,
         ("SpikeForecaster", "Imputation"): SpikeForecasterConfig,
         ("SpikeForecaster", "UEAClassification"): SpikeForecasterConfig,
+        ("ConformerForecaster", "Forecast"): ConformerForecasterConfig,
+        ("ConformerForecaster", "AnomalyDetection"): ConformerForecasterConfig,
+        ("ConformerForecaster", "Imputation"): ConformerForecasterConfig,
+        ("ConformerForecaster", "UEAClassification"): ConformerForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

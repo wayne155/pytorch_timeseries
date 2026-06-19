@@ -87,6 +87,7 @@ from .EchoStateForecaster import EchoStateForecaster
 from .AFTForecaster import AFTForecaster
 from .RWKVForecaster import RWKVForecaster
 from .SpikeForecaster import SpikeForecaster
+from .ConformerForecaster import ConformerForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -152,6 +153,7 @@ forecasting_models = [
     "AFTForecaster",
     "RWKVForecaster",
     "SpikeForecaster",
+    "ConformerForecaster",
 ]
 
 prob_forecasting_models = [
