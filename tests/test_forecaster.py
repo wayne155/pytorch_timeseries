@@ -2101,6 +2101,41 @@ class TestFitScore:
 # ── detect_anomalies() ────────────────────────────────────────────────────────
 
 
+class TestScorePerChannel:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_expected_keys(self):
+        result = self.fc.score_per_channel(_rng_data(n=200))
+        for key in ("mse", "mae", "rmse"):
+            assert key in result
+
+    def test_shape_equals_n_channels(self):
+        result = self.fc.score_per_channel(_rng_data(n=200))
+        assert result["mse"].shape == (C,)
+        assert result["mae"].shape == (C,)
+        assert result["rmse"].shape == (C,)
+
+    def test_values_non_negative(self):
+        result = self.fc.score_per_channel(_rng_data(n=200))
+        assert (result["mse"] >= 0.0).all()
+        assert (result["mae"] >= 0.0).all()
+        assert (result["rmse"] >= 0.0).all()
+
+    def test_rmse_equals_sqrt_mse(self):
+        result = self.fc.score_per_channel(_rng_data(n=200))
+        np.testing.assert_allclose(result["rmse"], np.sqrt(result["mse"]), rtol=1e-5)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.score_per_channel(np.zeros((5, C)))
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.score_per_channel(_rng_data(n=200))
+
+
 class TestDetectAnomalies:
     def setup_method(self):
         self.fc = _quick_fc().fit(_rng_data())

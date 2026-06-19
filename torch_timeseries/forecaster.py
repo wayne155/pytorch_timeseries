@@ -1335,6 +1335,48 @@ class Forecaster:
         self.fit(X_np[:n_train], val_split=val_split)
         return self.evaluate(X_np[n_train:], seasonal_period=seasonal_period)
 
+    def score_per_channel(self, X) -> Dict[str, np.ndarray]:
+        """Per-channel MSE, MAE, and RMSE over sliding windows of *X*.
+
+        Useful for diagnosing which channels are hard to forecast.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)``.
+
+        Returns
+        -------
+        dict
+            ``{"mse": (C,), "mae": (C,), "rmse": (C,)}`` — one value per
+            channel.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        seq, pred = self.seq_len, self.pred_len
+        min_len = seq + pred
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - seq - pred + 1
+        windows = np.stack([X_np[i : i + seq] for i in range(n_windows)])
+        truths = np.stack(
+            [X_np[i + seq : i + seq + pred] for i in range(n_windows)]
+        )
+        preds = self.predict(windows)  # (W, pred, C)
+        diff = preds - truths          # (W, pred, C)
+        mse_c = (diff ** 2).mean(axis=(0, 1))      # (C,)
+        mae_c = np.abs(diff).mean(axis=(0, 1))     # (C,)
+        return {
+            "mse": mse_c,
+            "mae": mae_c,
+            "rmse": np.sqrt(mse_c),
+        }
+
     def detect_anomalies(
         self,
         X,
