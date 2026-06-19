@@ -1,9 +1,11 @@
 """High-level scikit-learn-style API for time-series forecasting.
 
 Also provides :func:`compare` — a one-liner for benchmarking multiple models
-on the same dataset::
+on the same dataset, and :func:`list_models` for discovery::
 
-    from torch_timeseries import compare
+    from torch_timeseries import compare, list_models
+
+    print(list_models())          # sorted list of all available model names
 
     results = compare(
         ["DLinear", "PatchTST", "iTransformer"],
@@ -13,7 +15,8 @@ on the same dataset::
         pred_len=24,
         epochs=5,
     )
-    # returns a dict: {"DLinear": {"mse": ..., "mae": ..., "rmse": ...}, ...}
+    # prints a ranked table and returns a dict:
+    # {"DLinear": {"mse": ..., "mae": ..., "rmse": ..., "smape": ...}, ...}
 
 
 Users bring their own data as a NumPy array or pandas DataFrame — no dataset
@@ -27,14 +30,23 @@ Quick start::
     # 1000 timesteps, 3 channels
     X = np.random.randn(1000, 3)
 
-    fc = Forecaster("DLinear", seq_len=96, pred_len=24)
+    fc = Forecaster("DLinear", seq_len=96, pred_len=24, scheduler="cosine")
     fc.fit(X)
+
+    # Inspect per-epoch loss history
+    print(fc.history_[:3])
+    # [{"epoch": 1, "train_loss": 1.02, "val_loss": 0.99}, ...]
 
     # Predict next 24 steps given the last 96
     y_hat = fc.predict(X[-96:])          # shape: (24, 3)
 
-    # Evaluate MSE / MAE on a held-out slice
-    print(fc.score(X[-200:]))            # {"mse": 0.97, "mae": 0.78}
+    # Evaluate with extended metrics
+    print(fc.score(X[-200:]))
+    # {"mse": 0.97, "mae": 0.78, "rmse": 0.99, "smape": 12.3}
+
+    # Persist and reload
+    fc.save("my_model.pt")
+    fc2 = Forecaster.load("my_model.pt")
 
 Any model from ``torch_timeseries.model.forecasting_models`` is supported by
 name.  Model-specific hyper-parameters can be passed as keyword arguments::
@@ -126,6 +138,33 @@ def _to_numpy(X) -> np.ndarray:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Scheduler factory
+# ──────────────────────────────────────────────────────────────────────────────
+
+_SCHEDULER_CHOICES = ("cosine", "plateau", "step")
+
+
+def _make_scheduler(optimiser, scheduler_name: Optional[str], epochs: int, patience: int):
+    """Create an LR scheduler from a string name, or None for no scheduling."""
+    if scheduler_name is None:
+        return None
+    name = scheduler_name.lower()
+    if name == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=max(1, epochs))
+    if name == "plateau":
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimiser, patience=max(1, patience // 2), factor=0.5
+        )
+    if name == "step":
+        step_size = max(1, epochs // 3)
+        return torch.optim.lr_scheduler.StepLR(optimiser, step_size=step_size, gamma=0.5)
+    raise ValueError(
+        f"Unknown scheduler {scheduler_name!r}. "
+        f"Choose from {_SCHEDULER_CHOICES} or None."
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Public API
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -187,6 +226,7 @@ class Forecaster:
         patience: int = 5,
         normalize: bool = True,
         verbose: bool = True,
+        scheduler: Optional[str] = None,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -199,11 +239,13 @@ class Forecaster:
         self.patience = patience
         self.normalize = normalize
         self.verbose = verbose
+        self.scheduler = scheduler
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
         self._scaler: Optional[StandardScaler] = None
         self._enc_in: Optional[int] = None
+        self.history_: List[dict] = []
 
     # ── construction ──────────────────────────────────────────────────────────
 
@@ -303,7 +345,9 @@ class Forecaster:
         )
 
         self._model = self._build_model(C)
+        self.history_ = []
         optimiser = torch.optim.Adam(self._model.parameters(), lr=self.lr)
+        sched = _make_scheduler(optimiser, self.scheduler, self.epochs, self.patience)
         loss_fn = nn.MSELoss()
         stopper = _EarlyStopping(self.patience)
 
@@ -325,11 +369,26 @@ class Forecaster:
             val_loss = self._eval_loss(val_loader, loss_fn) if len(val_ds) > 0 else float("inf")
             train_loss_avg = float(np.mean(train_losses))
 
+            self.history_.append({
+                "epoch": epoch,
+                "train_loss": train_loss_avg,
+                "val_loss": val_loss,
+                "lr": optimiser.param_groups[0]["lr"],
+            })
+
+            if sched is not None:
+                if isinstance(sched, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    sched.step(val_loss)
+                else:
+                    sched.step()
+
             if self.verbose:
+                lr_now = optimiser.param_groups[0]["lr"]
                 print(
                     f"Epoch {epoch:3d}/{self.epochs}  "
                     f"train_loss={train_loss_avg:.6f}  "
-                    f"val_loss={val_loss:.6f}"
+                    f"val_loss={val_loss:.6f}  "
+                    f"lr={lr_now:.2e}"
                 )
 
             stopper(val_loss, self._model)
@@ -403,7 +462,8 @@ class Forecaster:
         Returns
         -------
         dict
-            ``{"mse": float, "mae": float, "rmse": float}``
+            ``{"mse": float, "mae": float, "rmse": float, "smape": float}``
+            SMAPE is the symmetric mean absolute percentage error (×100, in %).
         """
         self._check_fitted()
         X = _to_numpy(X)
@@ -425,14 +485,14 @@ class Forecaster:
 
         loss_fn = nn.MSELoss(reduction="sum")
         mae_fn = nn.L1Loss(reduction="sum")
-        total_mse = total_mae = 0.0
+        total_mse = total_mae = total_smape = 0.0
         n_elements = 0
 
         self._model.eval()
         with torch.no_grad():
             for x_b, y_b in loader:
                 x_b = x_b.to(self.device)
-                pred = self._model(x_b).cpu()    # normalised predictions
+                pred = self._model(x_b).cpu()
                 # Invert normalisation for a fair comparison
                 if self.normalize and self._scaler is not None:
                     pred_np = pred.numpy()
@@ -444,13 +504,90 @@ class Forecaster:
 
                 total_mse += loss_fn(pred, y_b).item()
                 total_mae += mae_fn(pred, y_b).item()
+                # SMAPE: 2|y-ŷ| / (|y| + |ŷ| + ε) * 100
+                denom = pred.abs() + y_b.abs() + 1e-8
+                total_smape += (2.0 * (pred - y_b).abs() / denom * 100.0).sum().item()
                 n_elements += pred.numel()
 
         mse = total_mse / n_elements
         mae = total_mae / n_elements
-        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse))}
+        smape = total_smape / n_elements
+        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
 
     # ── utilities ─────────────────────────────────────────────────────────────
+
+    # ── persistence ───────────────────────────────────────────────────────────
+
+    def save(self, path: str) -> None:
+        """Serialize the fitted forecaster to a file.
+
+        Saves model weights, scaler state, hyperparameters, and training history
+        so the forecaster can be fully restored with :meth:`load`.
+
+        Parameters
+        ----------
+        path:
+            Destination file path (e.g. ``"model.pt"``).
+        """
+        self._check_fitted()
+        payload = {
+            "model_spec": self.model_spec if isinstance(self.model_spec, str) else None,
+            "seq_len": self.seq_len,
+            "pred_len": self.pred_len,
+            "enc_in": self._enc_in,
+            "model_kwargs": self.model_kwargs,
+            "model_state": self._model.state_dict(),
+            "scaler_state": self._scaler.__dict__.copy() if self._scaler is not None else None,
+            "history": self.history_,
+            "normalize": self.normalize,
+            "scheduler": self.scheduler,
+        }
+        torch.save(payload, path)
+
+    @classmethod
+    def load(cls, path: str, *, device: str = "cpu") -> "Forecaster":
+        """Restore a :class:`Forecaster` saved with :meth:`save`.
+
+        Parameters
+        ----------
+        path:
+            Path to a file written by :meth:`save`.
+        device:
+            Target device for the loaded model.
+
+        Returns
+        -------
+        Forecaster
+            A ready-to-use (fitted) :class:`Forecaster`.
+        """
+        payload = torch.load(path, map_location=device, weights_only=False)
+        model_spec = payload.get("model_spec")
+        if model_spec is None:
+            raise ValueError(
+                "Cannot reload a Forecaster that was built from a raw nn.Module "
+                "(no model name was recorded at save time)."
+            )
+        fc = cls(
+            model_spec,
+            seq_len=payload["seq_len"],
+            pred_len=payload["pred_len"],
+            device=device,
+            normalize=payload.get("normalize", True),
+            scheduler=payload.get("scheduler"),
+            verbose=False,
+            **payload.get("model_kwargs", {}),
+        )
+        fc._enc_in = payload["enc_in"]
+        fc._model = fc._build_model(fc._enc_in)
+        fc._model.load_state_dict(payload["model_state"])
+        fc._model.eval()
+        if payload.get("scaler_state") is not None:
+            fc._scaler = StandardScaler()
+            fc._scaler.__dict__.update(payload["scaler_state"])
+        fc.history_ = payload.get("history", [])
+        return fc
+
+    # ── internal helpers ──────────────────────────────────────────────────────
 
     def _eval_loss(self, loader: DataLoader, loss_fn: nn.Module) -> float:
         self._model.eval()
@@ -495,6 +632,20 @@ class Forecaster:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def list_models() -> List[str]:
+    """Return a sorted list of all available forecasting model names.
+
+    Examples
+    --------
+    >>> from torch_timeseries import list_models
+    >>> names = list_models()
+    >>> print(names[:5])
+    ['CARD', 'CATS', 'CycleNet', ...]
+    """
+    import torch_timeseries.model as _m
+    return sorted(getattr(_m, "forecasting_models", []))
+
+
 def compare(
     models: List[Union[str, nn.Module]],
     X_train,
@@ -510,6 +661,7 @@ def compare(
     normalize: bool = True,
     verbose: bool = True,
     val_split: float = 0.1,
+    print_table: bool = True,
     **shared_model_kwargs,
 ) -> Dict[str, Dict[str, float]]:
     """Train and evaluate multiple models on the same dataset.
@@ -535,14 +687,16 @@ def compare(
     pred_len:
         Shared forecast horizon (ignored for :class:`Forecaster` instances).
     verbose:
-        Print per-model progress.
+        Print per-model epoch progress.
+    print_table:
+        Print a ranked summary table after all models finish (default True).
     **shared_model_kwargs:
         Extra kwargs forwarded to every model's constructor.
 
     Returns
     -------
     dict
-        ``{model_name: {"mse": float, "mae": float, "rmse": float}, ...}``
+        ``{model_name: {"mse": float, "mae": float, "rmse": float, "smape": float}, ...}``
         Sorted by ascending MSE.
 
     Examples
@@ -552,8 +706,11 @@ def compare(
     ...     X_train=X[:800], X_test=X[800:],
     ...     seq_len=96, pred_len=24, epochs=5,
     ... )
-    >>> for name, m in results.items():
-    ...     print(f"{name:30s}  MSE={m['mse']:.4f}  MAE={m['mae']:.4f}")
+    # ── Results ────────────────────────────────────────────────
+    # Rank  Model              MSE      MAE      RMSE     SMAPE%
+    #    1  DLinear           0.9234   0.7112   0.9609   12.34
+    #    2  NLinear           0.9901   0.7451   0.9950   13.02
+    #    3  PatchTST          1.0123   0.7678   1.0061   13.55
     """
     results: Dict[str, Dict[str, float]] = {}
 
@@ -590,10 +747,42 @@ def compare(
         except Exception as exc:
             if verbose:
                 print(f"  ERROR: {exc}")
-            metrics = {"mse": float("inf"), "mae": float("inf"), "rmse": float("inf"), "error": str(exc)}
+            metrics = {
+                "mse": float("inf"),
+                "mae": float("inf"),
+                "rmse": float("inf"),
+                "smape": float("inf"),
+                "error": str(exc),
+            }
 
         results[name] = metrics
 
     # Sort by ascending MSE
     results = dict(sorted(results.items(), key=lambda kv: kv[1].get("mse", float("inf"))))
+
+    if print_table:
+        _print_compare_table(results)
+
     return results
+
+
+def _print_compare_table(results: Dict[str, Dict[str, float]]) -> None:
+    """Print a ranked summary table for :func:`compare` results."""
+    if not results:
+        return
+    cols = ["MSE", "MAE", "RMSE", "SMAPE%"]
+    keys = ["mse", "mae", "rmse", "smape"]
+    name_w = max(len(n) for n in results) + 2
+    col_w = 10
+    sep = "─" * (6 + name_w + col_w * len(cols))
+    header = f"{'Rank':>5}  {'Model':<{name_w}}" + "".join(f"{c:>{col_w}}" for c in cols)
+    print("\n" + sep)
+    print(header)
+    print(sep)
+    for rank, (name, m) in enumerate(results.items(), 1):
+        row = f"{rank:>5}  {name:<{name_w}}"
+        for k in keys:
+            v = m.get(k, float("nan"))
+            row += f"{v:>{col_w}.4f}" if v != float("inf") else f"{'ERR':>{col_w}}"
+        print(row)
+    print(sep + "\n")

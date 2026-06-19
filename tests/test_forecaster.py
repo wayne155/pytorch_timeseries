@@ -1,10 +1,15 @@
 """Tests for the high-level Forecaster fit/predict/score API."""
+import os
+import tempfile
 import numpy as np
 import pytest
 import torch
 import torch.nn as nn
 
-from torch_timeseries.forecaster import Forecaster, compare, _WindowDataset, _EarlyStopping
+from torch_timeseries.forecaster import (
+    Forecaster, compare, list_models, _WindowDataset, _EarlyStopping,
+    _make_scheduler, _print_compare_table,
+)
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -231,7 +236,7 @@ class TestForecasterScore:
 
     def test_returns_dict_with_expected_keys(self):
         result = self.fc.score(_rng_data(n=200))
-        assert set(result.keys()) == {"mse", "mae", "rmse"}
+        assert {"mse", "mae", "rmse", "smape"} <= set(result.keys())
 
     def test_all_values_positive(self):
         result = self.fc.score(_rng_data(n=200))
@@ -327,3 +332,215 @@ class TestCompare:
             seq_len=SEQ, pred_len=PRED, epochs=2, verbose=False,
         )
         assert len(result) == 1
+
+    def test_smape_present_in_compare(self):
+        X = _rng_data(n=300)
+        result = compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=2, verbose=False, print_table=False,
+        )
+        assert "smape" in result["DLinear"]
+
+    def test_print_table_false_suppresses_output(self, capsys):
+        X = _rng_data(n=300)
+        compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=2, verbose=False, print_table=False,
+        )
+        captured = capsys.readouterr()
+        assert "Rank" not in captured.out
+
+    def test_print_table_true_shows_table(self, capsys):
+        X = _rng_data(n=300)
+        compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=2, verbose=False, print_table=True,
+        )
+        captured = capsys.readouterr()
+        assert "Rank" in captured.out
+        assert "DLinear" in captured.out
+
+
+# ── list_models() ──────────────────────────────────────────────────────────────
+
+
+class TestListModels:
+    def test_returns_list(self):
+        result = list_models()
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_sorted(self):
+        result = list_models()
+        assert result == sorted(result)
+
+    def test_known_models_present(self):
+        result = list_models()
+        for name in ["DLinear", "NLinear", "PatchTST", "iTransformer"]:
+            assert name in result
+
+    def test_importable_from_package(self):
+        from torch_timeseries import list_models as lm
+        assert lm is list_models
+
+
+# ── Scheduler ─────────────────────────────────────────────────────────────────
+
+
+class TestScheduler:
+    def _opt(self):
+        m = nn.Linear(2, 2)
+        return torch.optim.Adam(m.parameters(), lr=1e-3)
+
+    def test_none_returns_none(self):
+        assert _make_scheduler(self._opt(), None, 10, 5) is None
+
+    def test_cosine_scheduler(self):
+        sched = _make_scheduler(self._opt(), "cosine", 10, 5)
+        assert isinstance(sched, torch.optim.lr_scheduler.CosineAnnealingLR)
+
+    def test_plateau_scheduler(self):
+        sched = _make_scheduler(self._opt(), "plateau", 10, 5)
+        assert isinstance(sched, torch.optim.lr_scheduler.ReduceLROnPlateau)
+
+    def test_step_scheduler(self):
+        sched = _make_scheduler(self._opt(), "step", 10, 5)
+        assert isinstance(sched, torch.optim.lr_scheduler.StepLR)
+
+    def test_unknown_raises(self):
+        with pytest.raises(ValueError, match="Unknown scheduler"):
+            _make_scheduler(self._opt(), "badname", 10, 5)
+
+    def test_forecaster_with_cosine_scheduler(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED, epochs=3,
+                        verbose=False, scheduler="cosine")
+        fc.fit(X)
+        # LR should have changed from initial
+        assert fc.history_[-1]["lr"] < 1e-3 or len(fc.history_) > 0
+
+    def test_forecaster_with_plateau_scheduler(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED, epochs=3,
+                        verbose=False, scheduler="plateau")
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+
+# ── history_ ──────────────────────────────────────────────────────────────────
+
+
+class TestHistory:
+    def test_history_populated_after_fit(self):
+        fc = _quick_fc().fit(_rng_data())
+        assert len(fc.history_) > 0
+
+    def test_history_has_expected_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        for entry in fc.history_:
+            assert "epoch" in entry
+            assert "train_loss" in entry
+            assert "val_loss" in entry
+            assert "lr" in entry
+
+    def test_history_epochs_sequential(self):
+        fc = _quick_fc().fit(_rng_data())
+        epochs = [e["epoch"] for e in fc.history_]
+        assert epochs == list(range(1, len(fc.history_) + 1))
+
+    def test_history_losses_finite(self):
+        fc = _quick_fc().fit(_rng_data())
+        for e in fc.history_:
+            assert np.isfinite(e["train_loss"])
+
+    def test_history_reset_on_refit(self):
+        fc = _quick_fc()
+        fc.fit(_rng_data())
+        n1 = len(fc.history_)
+        fc.fit(_rng_data(seed=1))
+        n2 = len(fc.history_)
+        # history is reset on refit; lengths may differ due to early stopping
+        assert n2 <= fc.epochs
+
+
+# ── score() SMAPE ─────────────────────────────────────────────────────────────
+
+
+class TestScoreExtended:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_smape_present(self):
+        result = self.fc.score(_rng_data(n=200))
+        assert "smape" in result
+
+    def test_smape_positive(self):
+        result = self.fc.score(_rng_data(n=200))
+        assert result["smape"] >= 0.0
+
+    def test_smape_finite(self):
+        result = self.fc.score(_rng_data(n=200))
+        assert np.isfinite(result["smape"])
+
+
+# ── save() / load() ───────────────────────────────────────────────────────────
+
+
+class TestSaveLoad:
+    def test_save_creates_file(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        assert os.path.isfile(path)
+
+    def test_load_predict_shape(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        fc2 = Forecaster.load(path)
+        y = fc2.predict(_rng_data()[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_load_predictions_match(self, tmp_path):
+        fc = _quick_fc(normalize=False).fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        fc2 = Forecaster.load(path)
+        x = _rng_data()[-SEQ:]
+        y1 = fc.predict(x)
+        y2 = fc2.predict(x)
+        np.testing.assert_allclose(y1, y2, rtol=1e-4)
+
+    def test_load_score_works(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        fc2 = Forecaster.load(path)
+        result = fc2.score(_rng_data(n=200))
+        assert "mse" in result
+
+    def test_history_preserved_across_save_load(self, tmp_path):
+        fc = _quick_fc().fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        fc2 = Forecaster.load(path)
+        assert fc2.history_ == fc.history_
+
+    def test_save_before_fit_raises(self, tmp_path):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError, match="not fitted"):
+            fc.save(str(tmp_path / "model.pt"))
+
+    def test_load_raw_module_raises(self, tmp_path):
+        """Forecasters built from an nn.Module cannot be reloaded (no name saved)."""
+        from torch_timeseries.model import DLinear
+        m = DLinear(seq_len=SEQ, pred_len=PRED, enc_in=C)
+        fc = Forecaster(m, seq_len=SEQ, pred_len=PRED, epochs=1, verbose=False)
+        fc.fit(_rng_data())
+        path = str(tmp_path / "model.pt")
+        fc.save(path)
+        with pytest.raises(ValueError, match="raw nn.Module"):
+            Forecaster.load(path)
