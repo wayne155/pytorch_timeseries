@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 
 from torch_timeseries.forecaster import (
-    Forecaster, compare, list_models, _WindowDataset, _EarlyStopping,
-    _make_scheduler, _print_compare_table, _resolve_loss,
+    Forecaster, StackedForecaster, compare, list_models, _WindowDataset,
+    _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
 )
 
 
@@ -1042,3 +1042,88 @@ class TestTuneNIter:
         with mock.patch.object(Forecaster, "cross_validate", counting_cv):
             fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
         assert len(evaluated) == 2
+
+
+# ── residuals() ───────────────────────────────────────────────────────────────
+
+
+class TestResiduals:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_shape(self):
+        X = _rng_data(n=200)
+        res = self.fc.residuals(X)
+        n_windows = 200 - SEQ - PRED + 1
+        assert res.shape == (n_windows, PRED, C)
+
+    def test_is_numpy(self):
+        res = self.fc.residuals(_rng_data(n=100))
+        assert isinstance(res, np.ndarray)
+
+    def test_too_short_raises(self):
+        with pytest.raises(ValueError):
+            self.fc.residuals(np.zeros((5, C)))
+
+    def test_finite(self):
+        res = self.fc.residuals(_rng_data(n=100))
+        assert np.isfinite(res).all()
+
+
+# ── progress_bar ──────────────────────────────────────────────────────────────
+
+
+class TestProgressBar:
+    def test_progress_bar_false_default(self):
+        fc = _quick_fc()
+        assert fc.progress_bar is False
+
+    def test_progress_bar_in_get_params(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        verbose=False, progress_bar=True)
+        assert fc.get_params()["progress_bar"] is True
+
+    def test_progress_bar_trains_without_error(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, progress_bar=True)
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+
+# ── StackedForecaster ─────────────────────────────────────────────────────────
+
+
+class TestStackedForecaster:
+    def test_fit_and_predict_shape(self):
+        X = _rng_data(n=400)
+        base = _quick_fc("DLinear")
+        meta = _quick_fc("NLinear")
+        sf = StackedForecaster(base, meta)
+        sf.fit(X)
+        y = sf.predict(X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_default_meta_is_clone(self):
+        base = _quick_fc("DLinear")
+        sf = StackedForecaster(base)
+        assert sf.meta is not base
+        assert sf.meta.model_spec == base.model_spec
+
+    def test_score_returns_metrics(self):
+        X = _rng_data(n=400)
+        sf = StackedForecaster(_quick_fc("DLinear"), _quick_fc("NLinear"))
+        sf.fit(X[:300])
+        result = sf.score(X[300:])
+        for key in ("mse", "mae", "rmse", "smape"):
+            assert key in result
+
+    def test_score_mse_positive(self):
+        X = _rng_data(n=400)
+        sf = StackedForecaster(_quick_fc("DLinear"), _quick_fc("NLinear"))
+        sf.fit(X[:300])
+        assert sf.score(X[300:])["mse"] >= 0.0
+
+    def test_repr(self):
+        sf = StackedForecaster(_quick_fc(), _quick_fc("NLinear"))
+        assert "StackedForecaster" in repr(sf)

@@ -274,6 +274,7 @@ class Forecaster:
         grad_clip: Optional[float] = None,
         weight_decay: float = 0.0,
         callbacks: Optional[List] = None,
+        progress_bar: bool = False,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -292,6 +293,7 @@ class Forecaster:
         self.grad_clip = grad_clip
         self.weight_decay = weight_decay
         self.callbacks = callbacks or []
+        self.progress_bar = progress_bar
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
@@ -409,7 +411,17 @@ class Forecaster:
         loss_fn = _resolve_loss(self.loss)
         stopper = _EarlyStopping(self.patience)
 
-        for epoch in range(1, self.epochs + 1):
+        try:
+            from tqdm import tqdm as _tqdm
+            _has_tqdm = True
+        except ImportError:
+            _has_tqdm = False
+
+        epoch_iter = range(1, self.epochs + 1)
+        if self.progress_bar and _has_tqdm:
+            epoch_iter = _tqdm(epoch_iter, desc="Training", unit="epoch")
+
+        for epoch in epoch_iter:
             # ── train ────────────────────────────────────────────────────────
             self._model.train()
             train_losses: List[float] = []
@@ -797,6 +809,42 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def residuals(self, X) -> np.ndarray:
+        """Compute prediction residuals over sliding windows of X.
+
+        For every valid window ``x`` of length ``seq_len``, compute
+        ``y_true - y_pred`` where ``y_true`` is the following ``pred_len``
+        timesteps and ``y_pred`` is :meth:`predict`.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)``.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(n_windows, pred_len, C)`` — signed residuals in the
+            original scale.
+        """
+        self._check_fitted()
+        X = _to_numpy(X)
+        if X.ndim == 1:
+            X = X[:, None]
+        min_len = self.seq_len + self.pred_len
+        if len(X) < min_len:
+            raise ValueError(
+                f"X has only {len(X)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X) - self.seq_len - self.pred_len + 1
+        windows = np.stack([X[i : i + self.seq_len] for i in range(n_windows)])
+        truths = np.stack(
+            [X[i + self.seq_len : i + self.seq_len + self.pred_len] for i in range(n_windows)]
+        )
+        preds = self.predict(windows)  # (n_windows, pred_len, C)
+        return truths - preds
+
     def predict_rolling(
         self,
         X,
@@ -870,6 +918,7 @@ class Forecaster:
             "warm_start": self.warm_start,
             "grad_clip": self.grad_clip,
             "weight_decay": self.weight_decay,
+            "progress_bar": self.progress_bar,
         }
         params.update(self.model_kwargs)
         return params
@@ -882,7 +931,8 @@ class Forecaster:
         """
         _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
                    "patience", "normalize", "verbose", "scheduler", "loss",
-                   "warm_start", "grad_clip", "weight_decay", "callbacks"}
+                   "warm_start", "grad_clip", "weight_decay", "callbacks",
+                   "progress_bar"}
         for k, v in params.items():
             if k == "model":
                 self.model_spec = v
@@ -952,6 +1002,7 @@ class Forecaster:
             warm_start=self.warm_start,
             grad_clip=self.grad_clip,
             weight_decay=self.weight_decay,
+            progress_bar=self.progress_bar,
             **self.model_kwargs,
         )
 
@@ -1295,3 +1346,131 @@ def _print_compare_table(results: Dict[str, Dict[str, float]]) -> None:
                 row += f"{v:>{col_w}.4f}"
         print(row)
     print(sep + "\n")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# StackedForecaster
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class StackedForecaster:
+    """Two-stage residual stacking of :class:`Forecaster` instances.
+
+    The first stage trains on the raw series.  The second stage trains on
+    the *residuals* (true − predicted) from the first stage, learning what the
+    first stage missed.  At inference, the final prediction is the sum of both
+    stages' outputs.
+
+    This implements a simple two-level boosting scheme that can reduce
+    systematic bias of the base model.
+
+    Parameters
+    ----------
+    base:
+        A :class:`Forecaster` (or any object with ``fit``, ``predict``,
+        and ``residuals`` methods).  Used as the first stage.
+    meta:
+        A :class:`Forecaster` used as the second (residual) stage.  If
+        *None*, a clone of *base* is used.
+
+    Examples
+    --------
+    >>> base = Forecaster("DLinear", seq_len=96, pred_len=24, epochs=10)
+    >>> meta = Forecaster("NLinear", seq_len=96, pred_len=24, epochs=10)
+    >>> sf = StackedForecaster(base, meta)
+    >>> sf.fit(X_train)
+    >>> y_hat = sf.predict(X_train[-96:])
+    """
+
+    def __init__(self, base: Forecaster, meta: Optional[Forecaster] = None) -> None:
+        self.base = base
+        self.meta = meta if meta is not None else base.clone()
+
+    def fit(self, X, *, val_split: float = 0.1) -> "StackedForecaster":
+        """Fit both stages sequentially.
+
+        Parameters
+        ----------
+        X:
+            Training time series.
+        val_split:
+            Val fraction passed to each stage's :meth:`Forecaster.fit`.
+
+        Returns
+        -------
+        self
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+
+        self.base.fit(X_np, val_split=val_split)
+        residuals = self.base.residuals(X_np)  # (n_windows, pred_len, C)
+
+        # Build a pseudo-series from residuals by concatenating them:
+        # use the *last* residual per position, giving a (N', pred_len, C)
+        # array.  To train the meta model with the same window format, we
+        # treat each residual vector as the target and use the corresponding
+        # original input window as context.  The simplest approach: train
+        # the meta Forecaster on the residual time series directly (concat
+        # the first timestep of each residual block to form a 1-D-per-channel
+        # residual series).
+        n_windows = len(residuals)
+        seq_len = self.base.seq_len
+        pred_len = self.base.pred_len
+        min_len = seq_len + pred_len
+
+        # Residual series: take the mean across pred_len to get per-position
+        # residual signals, then form a series of length n_windows.
+        residual_series = residuals.mean(axis=1)  # (n_windows, C)
+        if len(residual_series) < min_len:
+            # Not enough data for meta; skip meta training
+            return self
+
+        self.meta.fit(residual_series, val_split=val_split)
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        """Predict = base prediction + meta residual correction.
+
+        Parameters
+        ----------
+        X:
+            Context window(s).  Same shapes accepted as :meth:`Forecaster.predict`.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(pred_len, C)`` or ``(B, pred_len, C)`` for batch input.
+        """
+        base_pred = self.base.predict(X)
+        meta_pred = self.meta.predict(X)
+        return base_pred + meta_pred
+
+    def score(self, X) -> Dict[str, float]:
+        """Score the stacked forecaster using :meth:`Forecaster.score` logic."""
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        min_len = self.base.seq_len + self.base.pred_len
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - self.base.seq_len - self.base.pred_len + 1
+        windows = np.stack([X_np[i : i + self.base.seq_len] for i in range(n_windows)])
+        truths = np.stack(
+            [X_np[i + self.base.seq_len : i + self.base.seq_len + self.base.pred_len]
+             for i in range(n_windows)]
+        )
+        preds = self.predict(windows)  # (n_windows, pred_len, C)
+        diff = preds - truths
+        mse = float((diff ** 2).mean())
+        mae = float(np.abs(diff).mean())
+        denom = np.abs(preds) + np.abs(truths) + 1e-8
+        smape = float((2.0 * np.abs(diff) / denom * 100.0).mean())
+        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+
+    def __repr__(self) -> str:
+        return f"StackedForecaster(base={self.base!r}, meta={self.meta!r})"
