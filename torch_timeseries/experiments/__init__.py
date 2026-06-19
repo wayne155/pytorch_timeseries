@@ -400,6 +400,12 @@ from .MultiscaleConvForecaster import (
     MultiscaleConvForecasterAnomalyDetection,
     MultiscaleConvForecasterImputation,
 )
+from .NeuralBasisForecaster import (
+    NeuralBasisForecasterForecast,
+    NeuralBasisForecasterUEAClassification,
+    NeuralBasisForecasterAnomalyDetection,
+    NeuralBasisForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

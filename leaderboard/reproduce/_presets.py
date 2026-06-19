@@ -540,6 +540,12 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "NeuralBasisForecaster": {
+        "n_basis": 32,
+        "d_hidden": 64,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
