@@ -153,6 +153,12 @@ from .Koopa import (
     KoopaAnomalyDetection,
     KoopaImputation,
 )
+from .LightTS import (
+    LightTSForecast,
+    LightTSUEAClassification,
+    LightTSAnomalyDetection,
+    LightTSImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

@@ -232,6 +232,12 @@ MODEL_PARAMS = {
         "revin": True,
         "dropout": 0.0,
     },
+    "LightTS": {
+        "chunk_size": 8,
+        "d_model": 64,
+        "revin": True,
+        "dropout": 0.0,
+    },
     "FreTS": {
         "channel_independence": True,
     },

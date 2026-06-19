@@ -27,6 +27,7 @@ FORECAST_FOUR_TASK_MODELS = [
     "SparseTSF",
     "SOFTS",
     "Koopa",
+    "LightTS",
 ]
 
 FORECAST_ONLY_MODELS = ["CATS"]
@@ -96,7 +97,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 111  # +4 Koopa tasks
+        assert len(list_experiments()) >= 115  # +4 LightTS tasks
 
 
 # ---------------------------------------------------------------------------

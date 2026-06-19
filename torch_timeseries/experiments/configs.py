@@ -309,6 +309,22 @@ class EnsembleConfig:
 
 
 @dataclass
+class LightTSConfig:
+    chunk_size: Optional[int] = None
+    d_model: int = 64
+    revin: bool = True
+    dropout: float = 0.0
+
+    def validate(self) -> None:
+        if self.chunk_size is not None and self.chunk_size < 1:
+            raise ValueError("chunk_size must be >= 1 or None")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class KoopaConfig:
     seg_len: int = 10
     d_model: int = 128
@@ -514,6 +530,10 @@ def split_experiment_config(
         ("Koopa", "AnomalyDetection"): KoopaConfig,
         ("Koopa", "Imputation"): KoopaConfig,
         ("Koopa", "UEAClassification"): KoopaConfig,
+        ("LightTS", "Forecast"): LightTSConfig,
+        ("LightTS", "AnomalyDetection"): LightTSConfig,
+        ("LightTS", "Imputation"): LightTSConfig,
+        ("LightTS", "UEAClassification"): LightTSConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:
