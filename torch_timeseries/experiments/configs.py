@@ -374,6 +374,25 @@ class RetForecasterConfig:
 
 
 @dataclass
+class HyperForecasterConfig:
+    d_ctx: int = 64
+    hidden: int = 32
+    d_ctx_hidden: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_ctx <= 0:
+            raise ValueError("d_ctx must be positive")
+        if self.hidden <= 0:
+            raise ValueError("hidden must be positive")
+        if self.d_ctx_hidden <= 0:
+            raise ValueError("d_ctx_hidden must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class DualDecompForecasterConfig:
     kernel_size: int = 25
     d_model: int = 64
@@ -1258,6 +1277,10 @@ def split_experiment_config(
         ("DualDecompForecaster", "AnomalyDetection"): DualDecompForecasterConfig,
         ("DualDecompForecaster", "Imputation"): DualDecompForecasterConfig,
         ("DualDecompForecaster", "UEAClassification"): DualDecompForecasterConfig,
+        ("HyperForecaster", "Forecast"): HyperForecasterConfig,
+        ("HyperForecaster", "AnomalyDetection"): HyperForecasterConfig,
+        ("HyperForecaster", "Imputation"): HyperForecasterConfig,
+        ("HyperForecaster", "UEAClassification"): HyperForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

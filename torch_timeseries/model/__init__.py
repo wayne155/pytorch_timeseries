@@ -64,6 +64,7 @@ from .TSReservoir import TSReservoir
 from .WaveletForecaster import WaveletForecaster
 from .LinearAttentionForecaster import LinearAttentionForecaster
 from .DualDecompForecaster import DualDecompForecaster
+from .HyperForecaster import HyperForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -106,6 +107,7 @@ forecasting_models = [
     "WaveletForecaster",
     "LinearAttentionForecaster",
     "DualDecompForecaster",
+    "HyperForecaster",
 ]
 
 prob_forecasting_models = [

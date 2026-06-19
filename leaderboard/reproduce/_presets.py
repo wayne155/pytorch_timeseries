@@ -447,6 +447,13 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "HyperForecaster": {
+        "d_ctx": 64,
+        "hidden": 32,
+        "d_ctx_hidden": 128,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

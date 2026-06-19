@@ -322,6 +322,12 @@ from .DualDecompForecaster import (
     DualDecompForecasterAnomalyDetection,
     DualDecompForecasterImputation,
 )
+from .HyperForecaster import (
+    HyperForecasterForecast,
+    HyperForecasterUEAClassification,
+    HyperForecasterAnomalyDetection,
+    HyperForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
