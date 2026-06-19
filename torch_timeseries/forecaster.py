@@ -1306,6 +1306,58 @@ class Forecaster:
         windows = np.stack([X[i : i + self.seq_len] for i in positions])  # (P, S, C)
         return self.predict(windows)  # (P, pred_len, C)
 
+    def reset(self) -> "Forecaster":
+        """Un-fit the forecaster in-place.
+
+        Clears the fitted model, scaler, encoder input size, and training
+        history.  The hyperparameters are unchanged, so the forecaster can be
+        immediately re-fitted with :meth:`fit`.
+
+        Returns
+        -------
+        self
+
+        Examples
+        --------
+        >>> fc.fit(X)
+        >>> fc.reset()  # back to unfitted state
+        >>> "not fitted" in repr(fc)
+        True
+        """
+        self._model = None
+        self._scaler = None
+        self._enc_in = None
+        self.history_ = []
+        return self
+
+    def inspect_layers(self) -> str:
+        """Return a formatted string describing the model's layer structure.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            Multi-line string with layer names, types, and parameter counts.
+            Each line is: ``<layer_name>  <type>  <n_params> params``
+
+        Raises
+        ------
+        RuntimeError
+            If the model has not been fitted yet.
+        """
+        self._check_fitted()
+        lines = [f"Model: {type(self._model).__name__}  ({self.n_parameters:,} total params)"]
+        lines.append("─" * 60)
+        for name, module in self._model.named_modules():
+            if name == "":
+                continue
+            n_params = sum(p.numel() for p in module.parameters(recurse=False))
+            lines.append(f"  {name:<40}  {type(module).__name__:<20}  {n_params:>8,}")
+        return "\n".join(lines)
+
     # ── sklearn-compatible params ─────────────────────────────────────────────
 
     def get_params(self, deep: bool = True) -> dict:

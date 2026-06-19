@@ -1759,3 +1759,68 @@ class TestMakeForecaster:
     def test_importable_from_package(self):
         from torch_timeseries import make_forecaster as mf
         assert mf is make_forecaster
+
+
+# ── reset() ───────────────────────────────────────────────────────────────────
+
+
+class TestReset:
+    def test_reset_unfits_model(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.reset()
+        assert fc._model is None
+
+    def test_reset_clears_history(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.reset()
+        assert fc.history_ == []
+
+    def test_reset_returns_self(self):
+        fc = _quick_fc().fit(_rng_data())
+        ret = fc.reset()
+        assert ret is fc
+
+    def test_reset_repr_not_fitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.reset()
+        assert "not fitted" in repr(fc)
+
+    def test_can_refit_after_reset(self):
+        fc = _quick_fc()
+        fc.fit(_rng_data())
+        fc.reset()
+        fc.fit(_rng_data(seed=1))
+        assert fc._model is not None
+
+    def test_hyperparams_preserved_after_reset(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=7, verbose=False)
+        fc.fit(_rng_data())
+        fc.reset()
+        assert fc.epochs == 7
+        assert fc.seq_len == SEQ
+
+
+# ── inspect_layers() ──────────────────────────────────────────────────────────
+
+
+class TestInspectLayers:
+    def test_returns_string(self):
+        fc = _quick_fc().fit(_rng_data())
+        s = fc.inspect_layers()
+        assert isinstance(s, str)
+
+    def test_contains_model_name(self):
+        fc = _quick_fc("DLinear").fit(_rng_data())
+        s = fc.inspect_layers()
+        assert "DLinear" in s
+
+    def test_contains_total_params(self):
+        fc = _quick_fc().fit(_rng_data())
+        s = fc.inspect_layers()
+        assert "total params" in s
+
+    def test_raises_before_fit(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError, match="not fitted"):
+            fc.inspect_layers()
