@@ -336,6 +336,34 @@ class ETSformerConfig:
 
 
 @dataclass
+class ModernTCNConfig:
+    patch_size: int = 8
+    patch_stride: int = 4
+    d_model: int = 128
+    kernel_size: int = 51
+    e_layers: int = 3
+    d_ff_ratio: int = 4
+    dropout: float = 0.05
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.patch_size < 1:
+            raise ValueError("patch_size must be >= 1")
+        if self.patch_stride < 1:
+            raise ValueError("patch_stride must be >= 1")
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.kernel_size < 1 or self.kernel_size % 2 == 0:
+            raise ValueError("kernel_size must be a positive odd number")
+        if self.e_layers < 1:
+            raise ValueError("e_layers must be >= 1")
+        if self.d_ff_ratio < 1:
+            raise ValueError("d_ff_ratio must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class MambaForecasterConfig:
     d_model: int = 64
     d_state: int = 16
@@ -804,6 +832,10 @@ def split_experiment_config(
         ("MambaForecaster", "AnomalyDetection"): MambaForecasterConfig,
         ("MambaForecaster", "Imputation"): MambaForecasterConfig,
         ("MambaForecaster", "UEAClassification"): MambaForecasterConfig,
+        ("ModernTCN", "Forecast"): ModernTCNConfig,
+        ("ModernTCN", "AnomalyDetection"): ModernTCNConfig,
+        ("ModernTCN", "Imputation"): ModernTCNConfig,
+        ("ModernTCN", "UEAClassification"): ModernTCNConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

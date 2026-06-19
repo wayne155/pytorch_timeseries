@@ -304,6 +304,16 @@ MODEL_PARAMS = {
         "dropout": 0.05,
         "revin": True,
     },
+    "ModernTCN": {
+        "patch_size": 8,
+        "patch_stride": 4,
+        "d_model": 128,
+        "kernel_size": 51,
+        "e_layers": 3,
+        "d_ff_ratio": 4,
+        "dropout": 0.05,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

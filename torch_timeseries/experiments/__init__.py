@@ -214,6 +214,12 @@ from .MambaForecaster import (
     MambaForecasterAnomalyDetection,
     MambaForecasterImputation,
 )
+from .ModernTCN import (
+    ModernTCNForecast,
+    ModernTCNUEAClassification,
+    ModernTCNAnomalyDetection,
+    ModernTCNImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
