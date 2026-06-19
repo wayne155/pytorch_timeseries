@@ -2947,6 +2947,160 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestDashboard:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_figure(self):
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        fig = self.fc.dashboard(self.X)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_six_axes(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.dashboard(self.X)
+        assert len(fig.get_axes()) >= 6
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.dashboard(self.X, title="My Dashboard")
+        assert "My Dashboard" in fig.texts[0].get_text()
+        plt.close("all")
+
+    def test_custom_channel(self):
+        import matplotlib.pyplot as plt
+        fig = self.fc.dashboard(self.X, channel=1)
+        assert fig is not None
+        plt.close("all")
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.dashboard(self.X)
+
+
+class TestPredictQuantiles:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=SEQ)
+
+    def test_returns_dict(self):
+        result = self.fc.predict_quantiles(self.X, n_samples=10)
+        assert isinstance(result, dict)
+
+    def test_mean_and_std_present(self):
+        result = self.fc.predict_quantiles(self.X, n_samples=10)
+        assert "mean" in result
+        assert "std"  in result
+
+    def test_quantile_keys(self):
+        result = self.fc.predict_quantiles(
+            self.X, quantiles=[0.1, 0.5, 0.9], n_samples=10
+        )
+        assert "q10" in result
+        assert "q50" in result
+        assert "q90" in result
+
+    def test_shapes(self):
+        result = self.fc.predict_quantiles(
+            self.X, quantiles=[0.1, 0.9], n_samples=10
+        )
+        assert result["q10"].shape == (PRED, C)
+        assert result["q90"].shape == (PRED, C)
+
+    def test_monotonicity(self):
+        result = self.fc.predict_quantiles(
+            self.X, quantiles=[0.1, 0.5, 0.9], n_samples=20
+        )
+        # q10 ≤ q50 ≤ q90 element-wise (within tolerance)
+        assert (result["q10"] <= result["q90"] + 1e-6).all()
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.predict_quantiles(self.X, n_samples=5)
+
+
+class TestStationarityTest:
+    def test_returns_dict(self):
+        X = _rng_data(n=200)
+        result = Forecaster.stationarity_test(X)
+        assert isinstance(result, dict)
+
+    def test_expected_keys(self):
+        X = _rng_data(n=200)
+        result = Forecaster.stationarity_test(X)
+        for k in ("adf_stat", "p_value", "n_obs", "critical_1",
+                  "critical_5", "critical_10"):
+            assert k in result
+
+    def test_p_value_in_range(self):
+        X = _rng_data(n=200)
+        result = Forecaster.stationarity_test(X)
+        assert 0.0 <= result["p_value"] <= 1.0
+
+    def test_stationary_series_low_p(self):
+        # White noise is stationary → ADF stat should be very negative
+        rng = np.random.default_rng(42)
+        X = rng.standard_normal((500, 1)).astype(np.float32)
+        result = Forecaster.stationarity_test(X)
+        assert result["adf_stat"] < result["critical_5"]   # reject unit root
+
+    def test_random_walk_high_p(self):
+        # Random walk has a unit root → p_value should be high
+        rng = np.random.default_rng(7)
+        X = np.cumsum(rng.standard_normal(500)).astype(np.float32)[:, None]
+        result = Forecaster.stationarity_test(X)
+        assert result["p_value"] > 0.3    # fail to reject
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        result = Forecaster.stationarity_test(X)
+        assert "adf_stat" in result
+
+    def test_custom_max_lags(self):
+        X = _rng_data(n=200)
+        r1 = Forecaster.stationarity_test(X, max_lags=2)
+        r4 = Forecaster.stationarity_test(X, max_lags=4)
+        assert r1["n_obs"] != r4["n_obs"]
+
+
+class TestCrossValScore:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_array(self):
+        scores = self.fc.cross_val_score(self.X, n_splits=3, refit=False)
+        assert isinstance(scores, np.ndarray)
+
+    def test_length_le_n_splits(self):
+        scores = self.fc.cross_val_score(self.X, n_splits=3, refit=False)
+        assert len(scores) <= 3
+
+    def test_scores_nonnegative(self):
+        scores = self.fc.cross_val_score(self.X, n_splits=3, refit=False)
+        assert (scores >= 0).all()
+
+    def test_mse_metric(self):
+        scores = self.fc.cross_val_score(self.X, n_splits=2, metric="MSE", refit=False)
+        assert (scores >= 0).all()
+
+    def test_invalid_metric_raises(self):
+        with pytest.raises(ValueError, match="metric"):
+            self.fc.cross_val_score(self.X, n_splits=2, metric="SMAPE", refit=False)
+
+    def test_refit_leaves_model_fitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        fc.cross_val_score(self.X, n_splits=2, refit=True)
+        assert fc._model is not None
+
+
 class TestDetectChangePoints:
     def test_returns_array(self):
         X = _rng_data(n=200)

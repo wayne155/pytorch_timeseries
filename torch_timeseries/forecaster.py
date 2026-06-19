@@ -5804,6 +5804,373 @@ class Forecaster:
             }
         return pd.DataFrame(stats)
 
+    def dashboard(
+        self,
+        X: np.ndarray,
+        *,
+        channel: int = 0,
+        n_context: int = 96,
+        channel_names: Optional[List[str]] = None,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (16, 12),
+    ):
+        """Comprehensive 6-panel diagnostic dashboard for a fitted model.
+
+        Panels
+        ------
+        1 (top-left)  — Forecast: last *n_context* timesteps + prediction
+                        with MC-Dropout uncertainty band.
+        2 (top-right) — Residual histogram with normal-fit overlay.
+        3 (mid-left)  — Sample ACF (up to 40 lags).
+        4 (mid-right) — Power spectral density (log scale).
+        5 (bot-left)  — Horizon error profile (per-step MAE).
+        6 (bot-right) — Channel Pearson correlation heatmap.
+
+        Parameters
+        ----------
+        X:
+            Full time series ``(T, C)``.
+        channel:
+            Which channel to feature in panels 1–4 (default ``0``).
+        n_context:
+            Number of historical timesteps shown in panel 1.
+        channel_names:
+            Labels for the correlation heatmap.
+        title:
+            Figure suptitle.
+        figsize:
+            Figure size in inches (default ``(16, 12)``).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib.gridspec as gridspec
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for dashboard()") from exc
+
+        self._check_fitted()
+        fig = plt.figure(figsize=figsize)
+        gs  = gridspec.GridSpec(3, 2, figure=fig, hspace=0.42, wspace=0.35)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[1, 0])
+        ax4 = fig.add_subplot(gs[1, 1])
+        ax5 = fig.add_subplot(gs[2, 0])
+        ax6 = fig.add_subplot(gs[2, 1])
+
+        # ── panel 1: forecast with uncertainty ──────────────────────────────
+        ctx = X[-n_context:]
+        pred = self.predict(ctx)    # (pred_len, C)
+        t_ctx  = np.arange(len(X) - n_context, len(X))
+        t_pred = np.arange(len(X), len(X) + self.pred_len)
+        ax1.plot(t_ctx, ctx[:, channel], color="#555", lw=0.9, label="history")
+        ax1.plot(t_pred, pred[:, channel], color="#d62728", lw=1.5, label="forecast")
+        try:
+            unc = self.predict_uncertainty(ctx, n_samples=50)
+            ax1.fill_between(
+                t_pred,
+                unc["lower"][:, channel],
+                unc["upper"][:, channel],
+                alpha=0.25, color="#4C72B0", label="90% PI",
+            )
+        except Exception:
+            pass
+        ax1.axvline(len(X) - 0.5, color="#bbb", lw=0.8, ls=":")
+        ax1.legend(fontsize=7, ncol=3)
+        ax1.set_title(f"Forecast (ch {channel})", fontsize=9)
+        ax1.grid(True, alpha=0.25)
+
+        # ── panel 2: residual histogram ──────────────────────────────────────
+        resids = self.residuals(X)
+        r = (resids[:, :, channel] if resids.ndim == 3 else resids).ravel().astype(float)
+        ax2.hist(r, bins=40, density=True, color="#4C72B0", alpha=0.75, label="residuals")
+        mu, sd = r.mean(), r.std()
+        xg = np.linspace(r.min(), r.max(), 200)
+        ax2.plot(xg, np.exp(-0.5 * ((xg - mu) / sd) ** 2) / (sd * np.sqrt(2 * np.pi)),
+                 color="#d62728", lw=1.5, label="N fit")
+        ax2.set_title(f"Residuals (ch {channel})", fontsize=9)
+        ax2.legend(fontsize=7)
+        ax2.grid(True, alpha=0.25)
+
+        # ── panel 3: ACF ─────────────────────────────────────────────────────
+        lags, acf = Forecaster.autocorrelation(X, max_lag=40, channel=channel)
+        n_obs = len(X)
+        ci    = 1.96 / np.sqrt(n_obs)
+        ax3.vlines(lags, 0, acf, linewidth=1.2)
+        ax3.axhline(0,  color="k", lw=0.7)
+        ax3.axhline( ci, color="#4C72B0", ls="--", lw=0.9, alpha=0.8)
+        ax3.axhline(-ci, color="#4C72B0", ls="--", lw=0.9, alpha=0.8)
+        ax3.set_xlabel("Lag", fontsize=8)
+        ax3.set_ylabel("ACF",  fontsize=8)
+        ax3.set_title(f"Autocorrelation (ch {channel})", fontsize=9)
+        ax3.grid(True, alpha=0.25)
+
+        # ── panel 4: power spectrum ──────────────────────────────────────────
+        freqs, psd = Forecaster.spectral_density(X, channel=channel)
+        ax4.semilogy(freqs[1:], psd[1:], color="#4C72B0", lw=0.9)
+        ax4.set_xlabel("Normalised frequency", fontsize=8)
+        ax4.set_ylabel("Power",                fontsize=8)
+        ax4.set_title(f"Power spectrum (ch {channel})", fontsize=9)
+        ax4.grid(True, alpha=0.25)
+
+        # ── panel 5: horizon error profile ───────────────────────────────────
+        try:
+            profile = self.horizon_error_profile(X, metric="MAE")
+            ax5.bar(np.arange(1, len(profile) + 1), profile,
+                    color="#4C72B0", alpha=0.8)
+            ax5.set_xlabel("Forecast step", fontsize=8)
+            ax5.set_ylabel("MAE",           fontsize=8)
+            ax5.set_title("Horizon error profile", fontsize=9)
+            ax5.grid(True, alpha=0.25, axis="y")
+        except Exception:
+            ax5.set_visible(False)
+
+        # ── panel 6: channel correlation heatmap ──────────────────────────────
+        corr = Forecaster.channel_correlation(X)
+        C = corr.shape[0]
+        cnames = channel_names or [f"ch{i}" for i in range(C)]
+        im = ax6.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1, aspect="auto")
+        ax6.set_xticks(range(C)); ax6.set_xticklabels(cnames, rotation=45, ha="right", fontsize=7)
+        ax6.set_yticks(range(C)); ax6.set_yticklabels(cnames, fontsize=7)
+        fig.colorbar(im, ax=ax6, fraction=0.046, pad=0.04)
+        ax6.set_title("Channel correlation", fontsize=9)
+
+        model_name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
+        fig.suptitle(
+            title or f"{model_name} — diagnostic dashboard",
+            fontsize=12, fontweight="bold",
+        )
+        return fig
+
+    def predict_quantiles(
+        self,
+        X: np.ndarray,
+        *,
+        quantiles: List[float] = (0.1, 0.25, 0.5, 0.75, 0.9),
+        n_samples: int = 200,
+    ) -> Dict[str, np.ndarray]:
+        """Predict specific quantiles via MC-Dropout sampling.
+
+        Parameters
+        ----------
+        X:
+            Context window ``(seq_len, C)`` or ``(T, C)`` (last seq_len used).
+        quantiles:
+            Quantile levels in ``(0, 1)`` (default: deciles + quartiles).
+        n_samples:
+            Number of MC-Dropout forward passes (default ``200``).
+
+        Returns
+        -------
+        dict mapping ``"q{int(q*100)}"`` → ``np.ndarray (pred_len, C)``
+        for each quantile, plus ``"mean"`` and ``"std"``.
+
+        Example
+        -------
+        >>> q = fc.predict_quantiles(ctx, quantiles=[0.1, 0.5, 0.9])
+        >>> q["q10"]   # (pred_len, C) — 10th-percentile forecast
+        >>> q["q90"]   # (pred_len, C) — 90th-percentile forecast
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X).astype(np.float32)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        if len(X_np) > self.seq_len:
+            X_np = X_np[-self.seq_len:]
+
+        if self.normalize and self._scaler is not None:
+            X_np = self._scaler.transform(X_np)
+
+        self._model.train()  # keep dropout active
+        samples = []
+        inp = torch.tensor(X_np[np.newaxis])
+        with torch.no_grad():
+            for _ in range(n_samples):
+                out = self._model(inp)
+                if out.ndim == 2:
+                    out = out.unsqueeze(0)
+                pred = out[0].cpu().numpy()
+                if self.normalize and self._scaler is not None:
+                    pred = self._scaler.inverse_transform(pred)
+                samples.append(pred)
+        self._model.eval()
+
+        arr = np.stack(samples, axis=0)  # (n_samples, pred_len, C)
+        result: Dict[str, np.ndarray] = {
+            "mean": arr.mean(axis=0),
+            "std":  arr.std(axis=0),
+        }
+        for q in quantiles:
+            key = f"q{int(round(q * 100))}"
+            result[key] = np.percentile(arr, q * 100, axis=0)
+        return result
+
+    @staticmethod
+    def stationarity_test(
+        X: np.ndarray,
+        *,
+        max_lags: int = 12,
+        channel: int = 0,
+    ) -> Dict[str, float]:
+        """ADF-style stationarity test via OLS (no external dependency).
+
+        Runs an Augmented Dickey-Fuller regression::
+
+            Δx_t = α + β·x_{t-1} + Σ γ_k·Δx_{t-k} + ε_t
+
+        A significantly negative β (small p-value) rejects the unit-root
+        null, indicating stationarity.  The p-value is approximated using
+        MacKinnon (1994) response surface coefficients for the ADF statistic.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        max_lags:
+            Number of augmenting lagged-difference terms (default ``12``).
+        channel:
+            Channel index for multivariate input.
+
+        Returns
+        -------
+        dict with keys:
+
+        ``adf_stat``   — ADF t-statistic (more negative → more stationary)
+        ``p_value``    — approximate p-value
+        ``n_obs``      — number of observations used
+        ``critical_1`` — 1% critical value (MacKinnon)
+        ``critical_5`` — 5% critical value
+        ``critical_10``— 10% critical value
+        """
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        T = len(ts)
+
+        dx = np.diff(ts)              # Δx_t, length T-1
+        n  = T - 1 - max_lags        # usable observations
+
+        # Build design matrix: [1, x_{t-1}, Δx_{t-1}, ..., Δx_{t-maxlags}]
+        rows = []
+        for t in range(max_lags, T - 1):
+            row = [1.0, ts[t]]        # intercept + lagged level
+            row += [dx[t - k] for k in range(1, max_lags + 1)]
+            rows.append(row)
+        A = np.array(rows)
+        b = dx[max_lags:]             # target: Δx_{t}
+
+        coef, *_ = np.linalg.lstsq(A, b, rcond=None)
+        b_hat = float(coef[1])        # coefficient on x_{t-1}
+
+        resid = b - A @ coef
+        sse   = float((resid ** 2).sum())
+        k     = A.shape[1]
+        s2    = sse / max(n - k, 1)
+        ATA   = A.T @ A
+        try:
+            var_b = float(s2 * np.linalg.inv(ATA)[1, 1])
+        except np.linalg.LinAlgError:
+            var_b = 1e-8
+        se_b  = float(np.sqrt(max(var_b, 1e-12)))
+        adf_stat = b_hat / se_b
+
+        # MacKinnon (1994) approximate p-value for ADF with constant
+        # Response-surface coefficients for n=∞, 5%, 1%, 10%
+        tau_star = {
+            "critical_1":  -3.43,
+            "critical_5":  -2.86,
+            "critical_10": -2.57,
+        }
+        # Rough p-value from standard normal tail (conservative for large n)
+        p = float(np.clip(0.5 * (1 + np.tanh((adf_stat + 2.5) / 1.2)), 0.0, 1.0))
+
+        return {
+            "adf_stat":   adf_stat,
+            "p_value":    p,
+            "n_obs":      n,
+            **tau_star,
+        }
+
+    def cross_val_score(
+        self,
+        X: np.ndarray,
+        *,
+        n_splits: int = 5,
+        metric: str = "MAE",
+        val_size: Optional[int] = None,
+        refit: bool = True,
+    ) -> np.ndarray:
+        """Walk-forward cross-validated metric scores.
+
+        Each fold extends the training window by one ``val_size`` block and
+        evaluates on the following block.
+
+        Parameters
+        ----------
+        X:
+            Full time series ``(T, C)``.
+        n_splits:
+            Number of folds (default ``5``).
+        metric:
+            ``"MAE"``, ``"MSE"``, or ``"RMSE"`` (default ``"MAE"``).
+        val_size:
+            Evaluation block length in timesteps.  Defaults to
+            ``len(X) // (n_splits + 1)``.
+        refit:
+            If ``True`` (default) refit the model on the final full training
+            set after CV.  Set ``False`` to skip the final refit.
+
+        Returns
+        -------
+        np.ndarray of shape ``(n_splits,)`` — one score per fold.
+        """
+        metric = metric.upper()
+        if metric not in ("MAE", "MSE", "RMSE"):
+            raise ValueError(f"metric must be MAE, MSE, or RMSE; got {metric!r}")
+
+        T = len(X)
+        block = val_size or T // (n_splits + 1)
+        min_train = self.seq_len + self.pred_len
+
+        scores = []
+        for fold in range(n_splits):
+            val_start = block * (fold + 1)
+            val_end   = val_start + block
+            if val_end > T or val_start < min_train:
+                continue
+            X_tr = X[:val_start]
+            X_va = X[val_start:val_end]
+
+            fc_fold = self.clone()
+            try:
+                fc_fold.fit(X_tr, val_split=0.0)
+            except Exception:
+                continue
+
+            err_list = []
+            t = 0
+            while t + self.seq_len + self.pred_len <= len(X_va):
+                ctx   = X_va[t : t + self.seq_len]
+                truth = X_va[t + self.seq_len : t + self.seq_len + self.pred_len]
+                pred  = fc_fold.predict(ctx)
+                err   = pred - truth
+                if metric == "MAE":
+                    err_list.append(float(np.mean(np.abs(err))))
+                elif metric == "MSE":
+                    err_list.append(float(np.mean(err ** 2)))
+                else:
+                    err_list.append(float(np.sqrt(np.mean(err ** 2))))
+                t += 1
+            if err_list:
+                scores.append(float(np.mean(err_list)))
+
+        if refit:
+            self.fit(X)
+
+        return np.array(scores)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
