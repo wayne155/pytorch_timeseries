@@ -256,6 +256,12 @@ from .iMamba import (
     iMambaAnomalyDetection,
     iMambaImputation,
 )
+from .Basisformer import (
+    BasisformerForecast,
+    BasisformerUEAClassification,
+    BasisformerAnomalyDetection,
+    BasisformerImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

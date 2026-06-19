@@ -53,6 +53,7 @@ from .CARD import CARD
 from .Pathformer import Pathformer
 from .SMamba import SMamba
 from .iMamba import iMamba
+from .Basisformer import Basisformer
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -84,6 +85,7 @@ forecasting_models = [
     "Pathformer",
     "SMamba",
     "iMamba",
+    "Basisformer",
 ]
 
 prob_forecasting_models = [
