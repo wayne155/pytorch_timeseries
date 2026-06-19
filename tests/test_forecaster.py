@@ -776,3 +776,105 @@ class TestSummary:
     def test_contains_last_epoch_when_fitted(self):
         fc = _quick_fc().fit(_rng_data())
         assert "last epoch" in fc.summary()
+
+
+# ── grad_clip ─────────────────────────────────────────────────────────────────
+
+
+class TestGradClip:
+    def test_grad_clip_trains_without_error(self):
+        X = _rng_data()
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        epochs=2, verbose=False, grad_clip=1.0)
+        fc.fit(X)
+        assert len(fc.history_) > 0
+
+    def test_grad_clip_in_get_params(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        verbose=False, grad_clip=0.5)
+        assert fc.get_params()["grad_clip"] == 0.5
+
+    def test_none_grad_clip_is_default(self):
+        fc = _quick_fc()
+        assert fc.grad_clip is None
+
+
+# ── clone() ───────────────────────────────────────────────────────────────────
+
+
+class TestClone:
+    def test_clone_is_not_fitted(self):
+        fc = _quick_fc().fit(_rng_data())
+        clone = fc.clone()
+        assert clone._model is None
+
+    def test_clone_has_same_params(self):
+        fc = Forecaster("DLinear", seq_len=48, pred_len=12, lr=5e-4,
+                        verbose=False, epochs=3)
+        clone = fc.clone()
+        assert clone.seq_len == 48
+        assert clone.pred_len == 12
+        assert clone.lr == 5e-4
+        assert clone.epochs == 3
+
+    def test_clone_is_independent(self):
+        fc = _quick_fc()
+        clone = fc.clone()
+        clone.epochs = 999
+        assert fc.epochs != 999
+
+
+# ── from_config() ─────────────────────────────────────────────────────────────
+
+
+class TestFromConfig:
+    def test_roundtrip_get_params(self):
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        lr=5e-4, epochs=7, verbose=False)
+        params = fc.get_params()
+        fc2 = Forecaster.from_config(params)
+        assert fc2.seq_len == SEQ
+        assert fc2.pred_len == PRED
+        assert fc2.lr == 5e-4
+        assert fc2.epochs == 7
+
+    def test_returns_unfitted(self):
+        fc = Forecaster.from_config({"model": "DLinear", "seq_len": SEQ,
+                                     "pred_len": PRED})
+        assert fc._model is None
+
+    def test_model_kwargs_passed_through(self):
+        fc = Forecaster.from_config({"model": "DLinear", "seq_len": SEQ,
+                                     "pred_len": PRED, "d_ff": 128})
+        assert fc.model_kwargs.get("d_ff") == 128
+
+
+# ── tune() ────────────────────────────────────────────────────────────────────
+
+
+class TestTune:
+    def test_returns_forecaster(self):
+        X = _rng_data(n=700)
+        fc = _quick_fc()
+        best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
+        assert isinstance(best, Forecaster)
+
+    def test_returned_forecaster_not_fitted(self):
+        X = _rng_data(n=700)
+        fc = _quick_fc()
+        best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
+        assert best._model is None
+
+    def test_best_param_is_in_grid(self):
+        X = _rng_data(n=700)
+        fc = _quick_fc()
+        candidates = [1e-3, 1e-4]
+        best = fc.tune(X, param_grid={"lr": candidates}, n_splits=2, verbose=False)
+        assert best.lr in candidates
+
+    def test_best_can_be_fitted(self):
+        X = _rng_data(n=700)
+        fc = _quick_fc()
+        best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4]}, n_splits=2, verbose=False)
+        best.fit(X)
+        assert best._model is not None

@@ -256,6 +256,7 @@ class Forecaster:
         scheduler: Optional[str] = None,
         loss: Optional[Union[str, nn.Module]] = None,
         warm_start: bool = False,
+        grad_clip: Optional[float] = None,
         **model_kwargs,
     ) -> None:
         self.model_spec = model
@@ -271,6 +272,7 @@ class Forecaster:
         self.scheduler = scheduler
         self.loss = loss
         self.warm_start = warm_start
+        self.grad_clip = grad_clip
         self.model_kwargs = model_kwargs
 
         self._model: Optional[nn.Module] = None
@@ -397,6 +399,8 @@ class Forecaster:
                 pred = self._model(x_b)
                 loss = loss_fn(pred, y_b)
                 loss.backward()
+                if self.grad_clip is not None:
+                    nn.utils.clip_grad_norm_(self._model.parameters(), self.grad_clip)
                 optimiser.step()
                 train_losses.append(loss.item())
 
@@ -792,6 +796,7 @@ class Forecaster:
             "scheduler": self.scheduler,
             "loss": self.loss,
             "warm_start": self.warm_start,
+            "grad_clip": self.grad_clip,
         }
         params.update(self.model_kwargs)
         return params
@@ -803,7 +808,8 @@ class Forecaster:
         to ``model_kwargs``.  Returns ``self`` so calls can be chained.
         """
         _direct = {"seq_len", "pred_len", "epochs", "batch_size", "lr",
-                   "patience", "normalize", "verbose", "scheduler", "loss", "warm_start"}
+                   "patience", "normalize", "verbose", "scheduler", "loss",
+                   "warm_start", "grad_clip"}
         for k, v in params.items():
             if k == "model":
                 self.model_spec = v
@@ -846,6 +852,147 @@ class Forecaster:
         self._check_fitted()
         return sum(p.numel() for p in self._model.parameters() if p.requires_grad)
 
+    def clone(self) -> "Forecaster":
+        """Return an unfitted copy with the same hyperparameters.
+
+        Useful for hyperparameter search: keep the original forecaster and work
+        with independent copies for each candidate configuration.
+
+        Returns
+        -------
+        Forecaster
+            A fresh (not fitted) :class:`Forecaster` with identical settings.
+        """
+        return Forecaster(
+            self.model_spec,
+            seq_len=self.seq_len,
+            pred_len=self.pred_len,
+            device=str(self.device),
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            lr=self.lr,
+            patience=self.patience,
+            normalize=self.normalize,
+            verbose=self.verbose,
+            scheduler=self.scheduler,
+            loss=self.loss,
+            warm_start=self.warm_start,
+            grad_clip=self.grad_clip,
+            **self.model_kwargs,
+        )
+
+    @classmethod
+    def from_config(cls, config: dict) -> "Forecaster":
+        """Construct a :class:`Forecaster` from a flat config dict.
+
+        This is the inverse of :meth:`get_params`: any key that maps to a
+        constructor parameter is applied; the rest are passed as
+        ``model_kwargs``.
+
+        Parameters
+        ----------
+        config:
+            A dict such as the one returned by :meth:`get_params`.
+
+        Returns
+        -------
+        Forecaster
+        """
+        _known = {"model", "seq_len", "pred_len", "device", "epochs", "batch_size",
+                  "lr", "patience", "normalize", "verbose", "scheduler",
+                  "loss", "warm_start", "grad_clip"}
+        cfg = dict(config)
+        model = cfg.pop("model", "DLinear")
+        seq_len = cfg.pop("seq_len", 96)
+        pred_len = cfg.pop("pred_len", 24)
+        kwargs = {k: cfg.pop(k) for k in list(cfg) if k in _known}
+        return cls(model, seq_len=seq_len, pred_len=pred_len,
+                   **kwargs, **cfg)
+
+    def tune(
+        self,
+        X,
+        *,
+        param_grid: dict,
+        n_splits: int = 3,
+        val_split: float = 0.1,
+        metric: str = "mean_mse",
+        verbose: bool = True,
+    ) -> "Forecaster":
+        """Grid-search hyperparameters using walk-forward cross-validation.
+
+        Iterates over all combinations in *param_grid*, evaluates each with
+        :meth:`cross_validate`, and returns the best-scoring unfitted
+        :class:`Forecaster` ready to be retrained on the full dataset.
+
+        Parameters
+        ----------
+        X:
+            Full time series for cross-validation, shape ``(N, C)``.
+        param_grid:
+            Dict mapping parameter names to lists of candidate values.
+            Example::
+
+                {"lr": [1e-3, 1e-4], "batch_size": [16, 32]}
+
+        n_splits:
+            Number of CV folds passed to :meth:`cross_validate`.
+        val_split:
+            Val fraction within each training window.
+        metric:
+            CV result key to minimise (default ``"mean_mse"``).
+        verbose:
+            Print per-combination progress.
+
+        Returns
+        -------
+        Forecaster
+            An unfitted :class:`Forecaster` configured with the best params
+            found.  Call ``.fit(X)`` on the returned forecaster to train it.
+
+        Examples
+        --------
+        >>> best = fc.tune(X, param_grid={"lr": [1e-3, 1e-4], "batch_size": [16, 64]})
+        >>> best.fit(X)
+        """
+        import itertools
+
+        keys = list(param_grid)
+        combos = list(itertools.product(*[param_grid[k] for k in keys]))
+        best_score = float("inf")
+        best_params: Optional[dict] = None
+
+        for i, vals in enumerate(combos):
+            candidate = dict(zip(keys, vals))
+            fc = self.clone()
+            fc.set_params(**candidate)
+            try:
+                cv_result = fc.cross_validate(X, n_splits=n_splits, val_split=val_split)
+                score = cv_result.get(metric, float("inf"))
+            except Exception as exc:
+                score = float("inf")
+                cv_result = {metric: float("inf"), "_error": str(exc)}
+
+            if verbose:
+                print(
+                    f"  [{i + 1}/{len(combos)}] {candidate}  "
+                    f"{metric}={score:.6f}"
+                )
+
+            if score < best_score:
+                best_score = score
+                best_params = candidate
+
+        if best_params is None:
+            raise RuntimeError("All hyperparameter combinations failed.")
+
+        if verbose:
+            print(f"\nBest params ({metric}={best_score:.6f}): {best_params}")
+
+        best_fc = self.clone()
+        best_fc.set_params(**best_params)
+        return best_fc
+
     def summary(self) -> str:
         """Return a human-readable summary string of the forecaster.
 
@@ -868,6 +1015,7 @@ class Forecaster:
             f"  scheduler   : {self.scheduler}",
             f"  loss        : {self.loss!r}",
             f"  warm_start  : {self.warm_start}",
+            f"  grad_clip   : {self.grad_clip}",
             f"  device      : {self.device}",
         ]
         if self._model is not None:
