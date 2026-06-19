@@ -506,6 +506,26 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class LRUForecasterConfig:
+    d_model: int = 64
+    d_state: int = 64
+    n_layers: int = 3
+    mlp_mult: int = 2
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.d_state <= 0:
+            raise ValueError("d_state must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class HyperForecasterConfig:
     d_ctx: int = 64
     hidden: int = 32
@@ -1441,6 +1461,10 @@ def split_experiment_config(
         ("AdaptiveSpectralForecaster", "AnomalyDetection"): AdaptiveSpectralForecasterConfig,
         ("AdaptiveSpectralForecaster", "Imputation"): AdaptiveSpectralForecasterConfig,
         ("AdaptiveSpectralForecaster", "UEAClassification"): AdaptiveSpectralForecasterConfig,
+        ("LRUForecaster", "Forecast"): LRUForecasterConfig,
+        ("LRUForecaster", "AnomalyDetection"): LRUForecasterConfig,
+        ("LRUForecaster", "Imputation"): LRUForecasterConfig,
+        ("LRUForecaster", "UEAClassification"): LRUForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

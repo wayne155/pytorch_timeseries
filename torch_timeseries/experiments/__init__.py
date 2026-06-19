@@ -370,6 +370,12 @@ from .AdaptiveSpectralForecaster import (
     AdaptiveSpectralForecasterAnomalyDetection,
     AdaptiveSpectralForecasterImputation,
 )
+from .LRUForecaster import (
+    LRUForecasterForecast,
+    LRUForecasterUEAClassification,
+    LRUForecasterAnomalyDetection,
+    LRUForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
