@@ -8818,6 +8818,188 @@ class Forecaster:
             pos = np.clip(lam * arr + 1, 0, None) ** (1.0 / lam)
         return (pos - offset).astype(np.float32)
 
+    # ------------------------------------------------------------------
+    # forecast_diagnostic — comprehensive residual/accuracy diagnostic
+    # ------------------------------------------------------------------
+
+    def forecast_diagnostic(self, X, *, max_lag: int = 20):
+        """Run a comprehensive model diagnostic and return a summary dict.
+
+        Combines:
+        - Ljung-Box residual whiteness test
+        - Stationarity test (ADF) on residuals
+        - Per-step bias (mean signed error)
+        - Residual kurtosis & skewness
+        - Mean absolute error and RMSE
+
+        Returns a nested dict::
+
+            diag = fc.forecast_diagnostic(X_test)
+            print(diag["ljung_box"]["p_value"])   # residual whiteness
+            print(diag["bias"]["mean"])            # overall bias
+        """
+        self._check_fitted()
+        lb      = self.ljung_box(X, max_lag=max_lag)
+        rd      = self.residual_distribution(X)
+        scores  = self.evaluate(X)
+        bias    = self.forecast_bias(X)
+        adf = {}
+        try:
+            adf = self.stationarity_test(self.residuals(X).ravel()[:, None])
+        except Exception:
+            pass
+        return {
+            "ljung_box":   lb,
+            "stationarity": adf,
+            "residuals": {
+                "mean":     rd["mean"],
+                "std":      rd["std"],
+                "skewness": rd["skewness"],
+                "kurtosis": rd["kurtosis"],
+            },
+            "bias": {
+                "mean":   float(bias.mean()),
+                "max":    float(np.abs(bias).max()),
+                "per_step": bias.tolist(),
+            },
+            "metrics": scores,
+        }
+
+    # ------------------------------------------------------------------
+    # feature_importance_ranking — permutation importance with rankings
+    # ------------------------------------------------------------------
+
+    def feature_importance_ranking(self, X, *, n_permutations: int = 10,
+                                   metric: str = "mse"):
+        """Rank input channels by permutation importance.
+
+        For each channel, shuffles the channel across all context windows and
+        measures the increase in *metric*.  Larger increase = more important.
+        Returns a list of ``(channel_idx, importance)`` tuples sorted by
+        descending importance::
+
+            ranking = fc.feature_importance_ranking(X_test, n_permutations=5)
+            for ch, imp in ranking:
+                print(f"ch{ch}: {imp:.4f}")
+        """
+        self._check_fitted()
+        arr = np.asarray(X, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr[:, None]
+        C = arr.shape[1]
+        baseline = self.evaluate(arr).get(metric, 0.0)
+        rng      = np.random.default_rng(42)
+        importances = {}
+        for c in range(C):
+            deltas = []
+            for _ in range(n_permutations):
+                X_perm = arr.copy()
+                X_perm[:, c] = rng.permutation(X_perm[:, c])
+                score = self.evaluate(X_perm).get(metric, 0.0)
+                deltas.append(score - baseline)
+            importances[c] = float(np.mean(deltas))
+        ranked = sorted(importances.items(), key=lambda kv: kv[1], reverse=True)
+        return ranked
+
+    # ------------------------------------------------------------------
+    # memory_usage — model size in MB and parameter count
+    # ------------------------------------------------------------------
+
+    def memory_usage(self):
+        """Return model memory footprint as a dict.
+
+        Reports parameter counts and estimated storage in MB (assuming
+        float32)::
+
+            info = fc.memory_usage()
+            print(f"{info['total_params']:,} params = {info['size_mb']:.2f} MB")
+        """
+        self._check_fitted()
+        total = sum(p.numel() for p in self._model.parameters())
+        trainable = sum(p.numel() for p in self._model.parameters() if p.requires_grad)
+        size_mb = total * 4 / (1024 ** 2)   # float32 = 4 bytes
+        buffers_mb = sum(b.numel() * b.element_size() for b in self._model.buffers()) / (1024 ** 2)
+        return {
+            "total_params":     total,
+            "trainable_params": trainable,
+            "frozen_params":    total - trainable,
+            "size_mb":          size_mb,
+            "buffers_mb":       buffers_mb,
+        }
+
+    # ------------------------------------------------------------------
+    # prediction_stability — variance of predictions across random seeds
+    # ------------------------------------------------------------------
+
+    def prediction_stability(self, X_train, X_test, *, n_seeds: int = 5):
+        """Measure prediction variance across *n_seeds* independent re-fits.
+
+        For each seed, trains a fresh clone and predicts on *X_test*.
+        Returns a dict::
+
+            {
+                "mean_pred"  : (pred_len, C) — mean prediction,
+                "std_pred"   : (pred_len, C) — std across seeds,
+                "cv"         : float          — coefficient of variation
+                                               (std / |mean|, averaged),
+            }
+
+        Low CV indicates a stable, seed-insensitive model::
+
+            stab = fc.prediction_stability(X_train, X_test, n_seeds=5)
+            print(f"CV: {stab['cv']:.4f}")
+        """
+        ctx  = X_test[-self.seq_len:]
+        preds = []
+        for seed in range(n_seeds):
+            # use Python random state via numpy seed via model weight init
+            import copy
+            fc = Forecaster(copy.deepcopy(self.model_spec),
+                            seq_len=self.seq_len, pred_len=self.pred_len,
+                            epochs=self.epochs, batch_size=self.batch_size,
+                            lr=self.lr, patience=self.patience, verbose=False,
+                            device=str(self.device), loss=self.loss,
+                            scheduler=self.scheduler, grad_clip=self.grad_clip,
+                            weight_decay=self.weight_decay)
+            torch.manual_seed(seed)
+            fc.fit(X_train)
+            preds.append(fc.predict(ctx))
+        preds     = np.stack(preds, axis=0)   # (n_seeds, pred_len, C)
+        mean_pred = preds.mean(axis=0)
+        std_pred  = preds.std(axis=0)
+        cv = float((std_pred / (np.abs(mean_pred) + 1e-8)).mean())
+        return {"mean_pred": mean_pred, "std_pred": std_pred, "cv": cv}
+
+    # ------------------------------------------------------------------
+    # trend_strength — fraction of variance explained by local trend
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def trend_strength(X, *, window: int = 30, channel: int = 0):
+        """Estimate trend strength as the fraction of variance in the rolling mean.
+
+        Computes::
+
+            trend_strength = Var(rolling_mean) / (Var(rolling_mean) + Var(residual))
+
+        where *residual* = signal − rolling_mean.  Returns a float in ``[0, 1]``
+        (1 = pure trend, 0 = no systematic trend)::
+
+            ts = Forecaster.trend_strength(X_train, window=30, channel=0)
+            print(f"Trend strength: {ts:.3f}")
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        if arr.ndim == 2:
+            arr = arr[:, channel]
+        T = len(arr)
+        trend = np.array([
+            arr[max(0, t - window + 1): t + 1].mean() for t in range(T)
+        ])
+        resid = arr - trend
+        var_trend = np.var(trend) + 1e-15
+        var_resid = np.var(resid) + 1e-15
+        return float(var_trend / (var_trend + var_resid))
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

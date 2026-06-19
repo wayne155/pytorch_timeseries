@@ -4181,6 +4181,117 @@ class TestBoxCoxTransform:
         np.testing.assert_allclose(x_tr, np.log(arr).astype(np.float32), atol=1e-5)
 
 
+class TestForecastDiagnostic:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_dict(self):
+        diag = self.fc.forecast_diagnostic(self.X)
+        assert isinstance(diag, dict)
+
+    def test_required_keys(self):
+        diag = self.fc.forecast_diagnostic(self.X)
+        assert set(diag.keys()) >= {"ljung_box", "residuals", "bias", "metrics"}
+
+    def test_ljung_box_sub_dict(self):
+        diag = self.fc.forecast_diagnostic(self.X)
+        assert "p_value" in diag["ljung_box"]
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().forecast_diagnostic(self.X)
+
+
+class TestFeatureImportanceRanking:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X  = _rng_data(n=200)
+
+    def test_returns_list(self):
+        ranking = self.fc.feature_importance_ranking(self.X, n_permutations=2)
+        assert isinstance(ranking, list)
+
+    def test_length_equals_channels(self):
+        ranking = self.fc.feature_importance_ranking(self.X, n_permutations=2)
+        assert len(ranking) == C
+
+    def test_sorted_descending(self):
+        ranking = self.fc.feature_importance_ranking(self.X, n_permutations=2)
+        importances = [imp for _, imp in ranking]
+        assert importances == sorted(importances, reverse=True)
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().feature_importance_ranking(self.X)
+
+
+class TestMemoryUsage:
+    def test_returns_dict(self):
+        fc = _quick_fc().fit(_rng_data())
+        info = fc.memory_usage()
+        assert isinstance(info, dict)
+
+    def test_required_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        info = fc.memory_usage()
+        assert set(info.keys()) >= {"total_params", "trainable_params", "size_mb"}
+
+    def test_positive_values(self):
+        fc = _quick_fc().fit(_rng_data())
+        info = fc.memory_usage()
+        assert info["total_params"] > 0
+        assert info["size_mb"] > 0
+
+    def test_unfitted_raises(self):
+        with pytest.raises(RuntimeError):
+            _quick_fc().memory_usage()
+
+
+class TestPredictionStability:
+    def test_returns_dict(self):
+        X = _rng_data(n=200)
+        fc = _quick_fc()
+        result = fc.prediction_stability(X[:140], X[140:], n_seeds=2)
+        assert set(result.keys()) == {"mean_pred", "std_pred", "cv"}
+
+    def test_shapes(self):
+        X = _rng_data(n=200)
+        fc = _quick_fc()
+        result = fc.prediction_stability(X[:140], X[140:], n_seeds=2)
+        assert result["mean_pred"].shape == (PRED, C)
+        assert result["std_pred"].shape  == (PRED, C)
+
+    def test_cv_non_negative(self):
+        X = _rng_data(n=200)
+        fc = _quick_fc()
+        result = fc.prediction_stability(X[:140], X[140:], n_seeds=2)
+        assert result["cv"] >= 0
+
+
+class TestTrendStrength:
+    def test_returns_float(self):
+        X = _rng_data(n=200)
+        ts = Forecaster.trend_strength(X, window=30, channel=0)
+        assert isinstance(ts, float)
+
+    def test_in_unit_interval(self):
+        X = _rng_data(n=200)
+        ts = Forecaster.trend_strength(X, window=30, channel=0)
+        assert 0.0 <= ts <= 1.0
+
+    def test_pure_trend_near_one(self):
+        t = np.linspace(0, 1, 200)
+        X = t[:, None].astype(np.float32)
+        ts = Forecaster.trend_strength(X, window=10, channel=0)
+        assert ts > 0.8   # strongly trending
+
+    def test_1d_input(self):
+        X = _rng_data(n=200)[:, 0]
+        ts = Forecaster.trend_strength(X, window=20)
+        assert isinstance(ts, float)
+
+
 class TestMutualInformation:
     def test_shape(self):
         X = _rng_data(n=200)
