@@ -1127,3 +1127,90 @@ class TestStackedForecaster:
     def test_repr(self):
         sf = StackedForecaster(_quick_fc(), _quick_fc("NLinear"))
         assert "StackedForecaster" in repr(sf)
+
+
+# ── feature_importance() ──────────────────────────────────────────────────────
+
+
+class TestFeatureImportance:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dict_with_expected_keys(self):
+        result = self.fc.feature_importance(_rng_data(n=200), n_repeats=2)
+        assert "importances_mean" in result
+        assert "importances_std" in result
+        assert "baseline_score" in result
+
+    def test_importances_shape(self):
+        result = self.fc.feature_importance(_rng_data(n=200), n_repeats=2)
+        assert result["importances_mean"].shape == (C,)
+        assert result["importances_std"].shape == (C,)
+
+    def test_baseline_score_positive(self):
+        result = self.fc.feature_importance(_rng_data(n=200), n_repeats=2)
+        assert result["baseline_score"] >= 0.0
+
+    def test_std_non_negative(self):
+        result = self.fc.feature_importance(_rng_data(n=200), n_repeats=3)
+        assert (result["importances_std"] >= 0.0).all()
+
+    def test_mae_metric(self):
+        result = self.fc.feature_importance(_rng_data(n=200), n_repeats=2, metric="mae")
+        assert "importances_mean" in result
+
+    def test_reproducible_with_seed(self):
+        X = _rng_data(n=200)
+        r1 = self.fc.feature_importance(X, n_repeats=2, random_state=42)
+        r2 = self.fc.feature_importance(X, n_repeats=2, random_state=42)
+        np.testing.assert_array_equal(r1["importances_mean"], r2["importances_mean"])
+
+
+# ── predict_uncertainty() ─────────────────────────────────────────────────────
+
+
+class TestPredictUncertainty:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_returns_dict_with_expected_keys(self):
+        result = self.fc.predict_uncertainty(_rng_data()[-SEQ:], n_samples=5)
+        for key in ("mean", "std", "lower", "upper"):
+            assert key in result
+
+    def test_mean_shape(self):
+        result = self.fc.predict_uncertainty(_rng_data()[-SEQ:], n_samples=5)
+        assert result["mean"].shape == (PRED, C)
+
+    def test_std_non_negative(self):
+        result = self.fc.predict_uncertainty(_rng_data()[-SEQ:], n_samples=5)
+        assert (result["std"] >= 0.0).all()
+
+    def test_lower_le_upper(self):
+        result = self.fc.predict_uncertainty(_rng_data()[-SEQ:], n_samples=10)
+        assert (result["lower"] <= result["upper"]).all()
+
+
+# ── compare n_jobs ────────────────────────────────────────────────────────────
+
+
+class TestCompareNJobs:
+    def test_n_jobs_1_sequential(self):
+        X = _rng_data(n=300)
+        result = compare(
+            ["DLinear", "NLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=1, verbose=False,
+            print_table=False, n_jobs=1,
+        )
+        assert set(result.keys()) == {"DLinear", "NLinear"}
+
+    def test_elapsed_s_present_n_jobs_1(self):
+        X = _rng_data(n=300)
+        result = compare(
+            ["DLinear"],
+            X_train=X[:200], X_test=X[200:],
+            seq_len=SEQ, pred_len=PRED, epochs=1, verbose=False,
+            print_table=False, n_jobs=1,
+        )
+        assert "elapsed_s" in result["DLinear"]

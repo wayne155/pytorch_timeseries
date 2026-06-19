@@ -809,6 +809,121 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def feature_importance(
+        self,
+        X,
+        *,
+        metric: str = "mse",
+        n_repeats: int = 5,
+        random_state: Optional[int] = None,
+    ) -> Dict[str, np.ndarray]:
+        """Estimate channel importance via permutation.
+
+        For each channel *c*, the channel's values are randomly shuffled across
+        timesteps (repeated ``n_repeats`` times) and the resulting score is
+        compared to the baseline.  A large increase in the chosen metric after
+        shuffling indicates that the model relies on that channel.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)``.  Must have at least
+            ``seq_len + pred_len`` timesteps.
+        metric:
+            Metric to evaluate — ``"mse"``, ``"mae"``, or ``"smape"``.
+        n_repeats:
+            Number of shuffle repetitions per channel.
+        random_state:
+            NumPy random seed for reproducible shuffling.
+
+        Returns
+        -------
+        dict
+            ``{"importances_mean": np.ndarray shape (C,),
+               "importances_std": np.ndarray shape (C,),
+               "baseline_score": float}``
+            Higher ``importances_mean[c]`` means channel *c* matters more.
+        """
+        self._check_fitted()
+        X = _to_numpy(X)
+        if X.ndim == 1:
+            X = X[:, None]
+        baseline = self.score(X)[metric]
+        rng = np.random.default_rng(random_state)
+        C = X.shape[1]
+        importances = np.zeros((C, n_repeats))
+        for c in range(C):
+            for r in range(n_repeats):
+                X_perm = X.copy()
+                X_perm[:, c] = rng.permutation(X_perm[:, c])
+                importances[c, r] = self.score(X_perm)[metric] - baseline
+        return {
+            "importances_mean": importances.mean(axis=1),
+            "importances_std": importances.std(axis=1),
+            "baseline_score": baseline,
+        }
+
+    def predict_uncertainty(
+        self,
+        X,
+        *,
+        n_samples: int = 50,
+    ) -> Dict[str, np.ndarray]:
+        """Estimate predictive uncertainty via MC-Dropout.
+
+        Activates Dropout layers at inference time (``model.train()`` mode) and
+        runs ``n_samples`` stochastic forward passes to build a sample
+        distribution.  Works best with models that contain Dropout layers.
+
+        Parameters
+        ----------
+        X:
+            Context window(s).  Same shapes as :meth:`predict`.
+        n_samples:
+            Number of MC samples.
+
+        Returns
+        -------
+        dict
+            ``{"mean": np.ndarray, "std": np.ndarray,
+               "lower": np.ndarray, "upper": np.ndarray}``
+            All arrays have the same shape as a single :meth:`predict` output.
+            ``lower``/``upper`` are the 5th and 95th percentiles.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        batched = X_np.ndim == 3
+        if not batched:
+            if X_np.ndim == 1:
+                X_np = X_np[:, None]
+            if len(X_np) > self.seq_len:
+                X_np = X_np[-self.seq_len:]
+            X_np = X_np[None]
+
+        if self.normalize and self._scaler is not None:
+            X_np = np.stack([self._scaler.transform(w) for w in X_np])
+
+        x_t = torch.from_numpy(X_np.astype(np.float32)).to(self.device)
+
+        # Activate dropout at inference (MC-Dropout)
+        self._model.train()
+        samples = []
+        with torch.no_grad():
+            for _ in range(n_samples):
+                pred = self._model(x_t).cpu().numpy()
+                if self.normalize and self._scaler is not None:
+                    pred = np.stack([self._scaler.inverse_transform(p) for p in pred])
+                samples.append(pred[0] if not batched else pred)
+        self._model.eval()
+
+        samples_arr = np.stack(samples)  # (n_samples, ..., pred_len, C)
+        return {
+            "mean": samples_arr.mean(axis=0),
+            "std": samples_arr.std(axis=0),
+            "lower": np.percentile(samples_arr, 5, axis=0),
+            "upper": np.percentile(samples_arr, 95, axis=0),
+        }
+
     def residuals(self, X) -> np.ndarray:
         """Compute prediction residuals over sliding windows of X.
 
@@ -1213,6 +1328,7 @@ def compare(
     verbose: bool = True,
     val_split: float = 0.1,
     print_table: bool = True,
+    n_jobs: int = 1,
     **shared_model_kwargs,
 ) -> Dict[str, Dict[str, float]]:
     """Train and evaluate multiple models on the same dataset.
@@ -1241,6 +1357,11 @@ def compare(
         Print per-model epoch progress.
     print_table:
         Print a ranked summary table after all models finish (default True).
+    n_jobs:
+        Number of parallel workers.  ``1`` (default) runs sequentially.
+        ``-1`` uses all available CPU cores.  Parallel execution uses
+        ``concurrent.futures.ProcessPoolExecutor`` and requires models to be
+        specified by name (not ``nn.Module`` instances).
     **shared_model_kwargs:
         Extra kwargs forwarded to every model's constructor.
 
@@ -1263,9 +1384,10 @@ def compare(
     #    2  NLinear           0.9901   0.7451   0.9950   13.02
     #    3  PatchTST          1.0123   0.7678   1.0061   13.55
     """
-    results: Dict[str, Dict[str, float]] = {}
+    X_train_np = _to_numpy(X_train)
+    X_test_np = _to_numpy(X_test)
 
-    for i, spec in enumerate(models):
+    def _run_one(spec, idx):
         if isinstance(spec, Forecaster):
             fc = spec
             name = (
@@ -1288,18 +1410,16 @@ def compare(
                 verbose=verbose,
                 **shared_model_kwargs,
             )
-
-        if verbose:
-            print(f"\n[{i + 1}/{len(models)}] {name}")
-
+        if verbose and n_jobs == 1:
+            print(f"\n[{idx + 1}/{len(models)}] {name}")
         try:
             t0 = time.perf_counter()
-            fc.fit(X_train, val_split=val_split)
+            fc.fit(X_train_np, val_split=val_split)
             elapsed = time.perf_counter() - t0
-            metrics = fc.score(X_test)
+            metrics = fc.score(X_test_np)
             metrics["elapsed_s"] = elapsed
         except Exception as exc:
-            if verbose:
+            if verbose and n_jobs == 1:
                 print(f"  ERROR: {exc}")
             metrics = {
                 "mse": float("inf"),
@@ -1309,8 +1429,23 @@ def compare(
                 "elapsed_s": float("nan"),
                 "error": str(exc),
             }
+        return name, metrics
 
-        results[name] = metrics
+    results: Dict[str, Dict[str, float]] = {}
+
+    if n_jobs == 1:
+        for i, spec in enumerate(models):
+            name, metrics = _run_one(spec, i)
+            results[name] = metrics
+    else:
+        import concurrent.futures
+        import os
+        workers = os.cpu_count() if n_jobs == -1 else n_jobs
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_run_one, spec, i): i for i, spec in enumerate(models)}
+            for fut in concurrent.futures.as_completed(futures):
+                name, metrics = fut.result()
+                results[name] = metrics
 
     # Sort by ascending MSE
     results = dict(sorted(results.items(), key=lambda kv: kv[1].get("mse", float("inf"))))
