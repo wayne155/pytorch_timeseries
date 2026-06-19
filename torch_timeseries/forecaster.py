@@ -2437,6 +2437,108 @@ class Forecaster:
             )
         return "\n".join(lines)
 
+    def hyperparameter_sensitivity(
+        self,
+        X,
+        param_ranges: Dict[str, List],
+        *,
+        val_split: float = 0.1,
+        verbose: bool = False,
+    ) -> Dict[str, List[Dict]]:
+        """One-at-a-time sensitivity analysis over scalar hyperparameters.
+
+        For each parameter in *param_ranges*, trains clones at each candidate
+        value (holding all other hyperparameters fixed at their current
+        settings), and records the final validation loss.
+
+        Parameters
+        ----------
+        X:
+            Training data, shape ``(N, C)``.
+        param_ranges:
+            Dict mapping hyperparameter name → list of candidate values.
+            Example: ``{"lr": [1e-4, 1e-3, 1e-2], "batch_size": [16, 32, 64]}``.
+        val_split:
+            Val fraction for each clone's fit.
+        verbose:
+            If ``True``, print progress.
+
+        Returns
+        -------
+        dict
+            Maps each param name to a list of ``{"value": v, "val_loss": f}``
+            dicts sorted by value.
+        """
+        results: Dict[str, List[Dict]] = {}
+        for param, values in param_ranges.items():
+            param_results = []
+            for v in values:
+                fc = self.clone()
+                fc.set_params(**{param: v})
+                if not verbose:
+                    fc.verbose = False
+                fc.fit(X, val_split=val_split)
+                val_loss = fc.history_[-1]["val_loss"] if fc.history_ else float("nan")
+                param_results.append({"value": v, "val_loss": val_loss})
+                if verbose:
+                    print(f"  {param}={v!r}  val_loss={val_loss:.6f}")
+            results[param] = sorted(param_results, key=lambda d: d["value"]
+                                    if isinstance(d["value"], (int, float)) else 0)
+        return results
+
+    def plot_sensitivity(
+        self,
+        sensitivity_results: Dict[str, List[Dict]],
+        *,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot sensitivity curves from :meth:`hyperparameter_sensitivity`.
+
+        Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        sensitivity_results:
+            The dict returned by :meth:`hyperparameter_sensitivity`.
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_sensitivity(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(8, 4))
+
+        for param, records in sensitivity_results.items():
+            xs = [r["value"] for r in records]
+            ys = [r["val_loss"] for r in records]
+            ax.plot(range(len(xs)), ys, marker="o", label=param)
+            ax.set_xticks(range(len(xs)))
+            ax.set_xticklabels([str(x) for x in xs], rotation=30)
+
+        ax.set_xlabel("Hyperparameter value")
+        ax.set_ylabel("Val loss")
+        ax.set_title(title or "Hyperparameter sensitivity")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

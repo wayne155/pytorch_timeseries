@@ -935,6 +935,79 @@ class TestTune:
         assert best._model is not None
 
 
+class TestHyperparameterSensitivity:
+    def test_returns_dict_per_param(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.hyperparameter_sensitivity(
+            X, {"lr": [1e-3, 1e-4]}, val_split=0.1
+        )
+        assert "lr" in result
+
+    def test_each_entry_has_value_and_val_loss(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.hyperparameter_sensitivity(
+            X, {"lr": [1e-3, 1e-4]}, val_split=0.1
+        )
+        for record in result["lr"]:
+            assert "value" in record
+            assert "val_loss" in record
+
+    def test_num_records_matches_num_candidates(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        candidates = [1e-3, 5e-4, 1e-4]
+        result = fc.hyperparameter_sensitivity(X, {"lr": candidates})
+        assert len(result["lr"]) == len(candidates)
+
+    def test_original_forecaster_unchanged(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        orig_lr = fc.lr
+        fc.hyperparameter_sensitivity(X, {"lr": [1e-3, 1e-4]})
+        assert fc.lr == orig_lr
+        assert fc._model is None  # not fitted
+
+    def test_multiple_params(self):
+        X = _rng_data(n=400)
+        fc = _quick_fc()
+        result = fc.hyperparameter_sensitivity(
+            X, {"lr": [1e-3, 1e-4], "batch_size": [16, 32]}
+        )
+        assert set(result.keys()) == {"lr", "batch_size"}
+
+
+class TestPlotSensitivity:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        X = _rng_data(n=400)
+        self.fc = _quick_fc()
+        self.sens = self.fc.hyperparameter_sensitivity(
+            X, {"lr": [1e-3, 1e-4]}
+        )
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_sensitivity(self.sens)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_sensitivity(self.sens, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_sensitivity(self.sens, title="My Sens")
+        assert ax.get_title() == "My Sens"
+        plt.close("all")
+
+
 # ── weight_decay ──────────────────────────────────────────────────────────────
 
 
