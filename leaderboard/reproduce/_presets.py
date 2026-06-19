@@ -368,6 +368,15 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "GCNForecaster": {
+        "d_model": 64,
+        "e_layers": 3,
+        "d_emb": 10,
+        "k_hops": 2,
+        "kernel_size": 3,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

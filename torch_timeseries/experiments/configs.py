@@ -346,6 +346,31 @@ class FilterNetConfig:
 
 
 @dataclass
+class GCNForecasterConfig:
+    d_model: int = 64
+    e_layers: int = 3
+    d_emb: int = 10
+    k_hops: int = 2
+    kernel_size: int = 3
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_emb <= 0:
+            raise ValueError("d_emb must be positive")
+        if self.k_hops < 0:
+            raise ValueError("k_hops must be >= 0")
+        if self.kernel_size < 1:
+            raise ValueError("kernel_size must be >= 1")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class BasisformerConfig:
     n_basis: int = 32
     d_model: int = 64
@@ -1013,6 +1038,10 @@ def split_experiment_config(
         ("Basisformer", "AnomalyDetection"): BasisformerConfig,
         ("Basisformer", "Imputation"): BasisformerConfig,
         ("Basisformer", "UEAClassification"): BasisformerConfig,
+        ("GCNForecaster", "Forecast"): GCNForecasterConfig,
+        ("GCNForecaster", "AnomalyDetection"): GCNForecasterConfig,
+        ("GCNForecaster", "Imputation"): GCNForecasterConfig,
+        ("GCNForecaster", "UEAClassification"): GCNForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

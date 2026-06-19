@@ -262,6 +262,12 @@ from .Basisformer import (
     BasisformerAnomalyDetection,
     BasisformerImputation,
 )
+from .GCNForecaster import (
+    GCNForecasterForecast,
+    GCNForecasterUEAClassification,
+    GCNForecasterAnomalyDetection,
+    GCNForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
