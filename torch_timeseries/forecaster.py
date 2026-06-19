@@ -1059,6 +1059,41 @@ class Forecaster:
 
         return {**base, "mase": mase}
 
+    @staticmethod
+    def smooth(X, window: int = 5, method: str = "mean") -> np.ndarray:
+        """Apply a rolling smoothing filter along the time axis.
+
+        Parameters
+        ----------
+        X:
+            Time series of shape ``(N, C)`` or ``(N,)``.
+        window:
+            Rolling window size (default 5).
+        method:
+            ``"mean"`` (default) or ``"median"``.
+
+        Returns
+        -------
+        np.ndarray
+            Smoothed series, same shape as *X*.  The first ``window - 1``
+            positions are filled with the expanding window (no padding).
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        out = np.empty_like(X_np)
+        for t in range(N):
+            start = max(0, t - window + 1)
+            block = X_np[start : t + 1]
+            if method == "mean":
+                out[t] = block.mean(axis=0)
+            elif method == "median":
+                out[t] = np.median(block, axis=0)
+            else:
+                raise ValueError(f"Unknown method {method!r}. Choose 'mean' or 'median'.")
+        return out.squeeze() if X.ndim == 1 else out  # type: ignore[union-attr]
+
     def fit_score(
         self,
         X,
@@ -2516,6 +2551,123 @@ class Pipeline:
 
     def __repr__(self) -> str:
         return f"Pipeline(preprocessor={self.preprocessor!r}, forecaster={self.forecaster!r})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MultiChannelForecaster
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class MultiChannelForecaster:
+    """Train one independent :class:`Forecaster` per channel.
+
+    The entire time series is split into individual univariate channels and
+    each channel is modelled independently (channel-independent / CI mode
+    at the API level).  This gives each channel its own model weights,
+    potentially improving accuracy when channels have very different dynamics.
+
+    Parameters
+    ----------
+    base:
+        A (not-yet-fitted) :class:`Forecaster` used as the per-channel
+        template.  Its ``enc_in`` will be forced to 1 for each clone.
+
+    Examples
+    --------
+    >>> base = Forecaster("DLinear", seq_len=96, pred_len=24, epochs=5)
+    >>> mcf = MultiChannelForecaster(base)
+    >>> mcf.fit(X_train)         # X_train: (N, C)
+    >>> y = mcf.predict(X_train[-96:])   # y: (24, C)
+    """
+
+    def __init__(self, base: Forecaster) -> None:
+        self.base = base
+        self.channel_forecasters_: List[Forecaster] = []
+        self._n_channels: Optional[int] = None
+
+    def fit(self, X, *, val_split: float = 0.1) -> "MultiChannelForecaster":
+        """Fit one cloned Forecaster per channel.
+
+        Parameters
+        ----------
+        X:
+            Training time series, shape ``(N, C)``.
+        val_split:
+            Val fraction passed to each channel's :meth:`Forecaster.fit`.
+
+        Returns
+        -------
+        self
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        N, C = X_np.shape
+        self._n_channels = C
+        self.channel_forecasters_ = []
+        for c in range(C):
+            fc = self.base.clone()
+            fc.model_kwargs = {**fc.model_kwargs}  # shallow copy
+            fc.fit(X_np[:, c : c + 1], val_split=val_split)
+            self.channel_forecasters_.append(fc)
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        """Predict all channels from a context window.
+
+        Parameters
+        ----------
+        X:
+            Context, shape ``(seq_len, C)`` or ``(N, C)`` with N > seq_len.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(pred_len, C)``.
+        """
+        if not self.channel_forecasters_:
+            raise RuntimeError("MultiChannelForecaster not fitted.  Call fit() first.")
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        if len(X_np) > self.base.seq_len:
+            X_np = X_np[-self.base.seq_len:]
+        preds = []
+        for c, fc in enumerate(self.channel_forecasters_):
+            y_c = fc.predict(X_np[:, c : c + 1])  # (pred_len, 1)
+            preds.append(y_c)
+        return np.concatenate(preds, axis=1)  # (pred_len, C)
+
+    def score(self, X) -> Dict[str, float]:
+        """Evaluate the per-channel ensemble on *X*."""
+        if not self.channel_forecasters_:
+            raise RuntimeError("MultiChannelForecaster not fitted.  Call fit() first.")
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        seq = self.base.seq_len
+        pred = self.base.pred_len
+        min_len = seq + pred
+        if len(X_np) < min_len:
+            raise ValueError(
+                f"X has only {len(X_np)} timesteps; need at least "
+                f"seq_len + pred_len = {min_len}."
+            )
+        n_windows = len(X_np) - seq - pred + 1
+        windows = np.stack([X_np[i : i + seq] for i in range(n_windows)])
+        truths = np.stack([X_np[i + seq : i + seq + pred] for i in range(n_windows)])
+        preds = np.stack([self.predict(w) for w in windows])
+        diff = preds - truths
+        mse = float((diff ** 2).mean())
+        mae = float(np.abs(diff).mean())
+        denom = np.abs(preds) + np.abs(truths) + 1e-8
+        smape = float((2.0 * np.abs(diff) / denom * 100.0).mean())
+        return {"mse": mse, "mae": mae, "rmse": float(np.sqrt(mse)), "smape": smape}
+
+    def __repr__(self) -> str:
+        n = len(self.channel_forecasters_)
+        status = f"{n} channels fitted" if n > 0 else "not fitted"
+        return f"MultiChannelForecaster(base={self.base!r}, [{status}])"
 
 
 def compare_to_dataframe(results: Dict[str, Dict[str, float]]):

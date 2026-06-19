@@ -8,6 +8,7 @@ import torch.nn as nn
 
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
+    MultiChannelForecaster,
     compare, compare_to_dataframe, list_models, time_series_split,
     make_forecaster, _WindowDataset, _EarlyStopping, _make_scheduler,
     _print_compare_table, _resolve_loss,
@@ -1895,3 +1896,130 @@ class TestDetectAnomalies:
     def test_too_short_raises(self):
         with pytest.raises(ValueError):
             self.fc.detect_anomalies(np.zeros((5, C)))
+
+
+# ── MultiChannelForecaster ────────────────────────────────────────────────────
+
+
+class TestMultiChannelForecaster:
+    def _base(self):
+        return _quick_fc("DLinear")
+
+    def test_fit_returns_self(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        result = mcf.fit(X)
+        assert result is mcf
+
+    def test_creates_one_forecaster_per_channel(self):
+        X = _rng_data(n=300, c=4)
+        mcf = MultiChannelForecaster(_quick_fc("DLinear"))
+        mcf.fit(X)
+        assert len(mcf.channel_forecasters_) == 4
+
+    def test_predict_shape(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X)
+        y = mcf.predict(X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_predict_uses_last_seqlen_rows_when_longer(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X)
+        y_ctx = mcf.predict(X[-SEQ:])
+        y_full = mcf.predict(X)
+        # Both should produce same-shaped output
+        assert y_ctx.shape == y_full.shape
+
+    def test_score_returns_expected_keys(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X[:200])
+        result = mcf.score(X[200:])
+        for key in ("mse", "mae", "rmse", "smape"):
+            assert key in result
+
+    def test_score_mse_non_negative(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X[:200])
+        result = mcf.score(X[200:])
+        assert result["mse"] >= 0.0
+
+    def test_predict_before_fit_raises(self):
+        mcf = MultiChannelForecaster(self._base())
+        with pytest.raises(RuntimeError, match="not fitted"):
+            mcf.predict(np.zeros((SEQ, C)))
+
+    def test_score_before_fit_raises(self):
+        mcf = MultiChannelForecaster(self._base())
+        with pytest.raises(RuntimeError, match="not fitted"):
+            mcf.score(np.zeros((200, C)))
+
+    def test_score_too_short_raises(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X)
+        with pytest.raises(ValueError):
+            mcf.score(np.zeros((5, C)))
+
+    def test_univariate_input(self):
+        X = _rng_data(n=300, c=1)
+        mcf = MultiChannelForecaster(_quick_fc("DLinear"))
+        mcf.fit(X)
+        y = mcf.predict(X[-SEQ:])
+        assert y.shape == (PRED, 1)
+
+    def test_repr_unfitted(self):
+        mcf = MultiChannelForecaster(self._base())
+        assert "MultiChannelForecaster" in repr(mcf)
+        assert "not fitted" in repr(mcf)
+
+    def test_repr_fitted(self):
+        X = _rng_data(n=300)
+        mcf = MultiChannelForecaster(self._base())
+        mcf.fit(X)
+        assert "3 channels fitted" in repr(mcf)
+
+
+# ── Forecaster.smooth() ───────────────────────────────────────────────────────
+
+
+class TestSmooth:
+    def test_output_shape_2d(self):
+        X = _rng_data(n=100)
+        out = Forecaster.smooth(X, window=5)
+        assert out.shape == X.shape
+
+    def test_output_shape_1d(self):
+        X = np.random.default_rng(0).standard_normal(100)
+        out = Forecaster.smooth(X, window=5)
+        assert out.shape == X.shape
+
+    def test_mean_smoothing_reduces_variance(self):
+        rng = np.random.default_rng(7)
+        X = rng.standard_normal((200, 2))
+        out = Forecaster.smooth(X, window=10, method="mean")
+        assert out.std() < X.std()
+
+    def test_median_smoothing_reduces_variance(self):
+        rng = np.random.default_rng(7)
+        X = rng.standard_normal((200, 2))
+        out = Forecaster.smooth(X, window=10, method="median")
+        assert out.std() < X.std()
+
+    def test_window_1_identity(self):
+        X = _rng_data(n=50)
+        out = Forecaster.smooth(X, window=1)
+        np.testing.assert_allclose(out, X)
+
+    def test_unknown_method_raises(self):
+        with pytest.raises(ValueError, match="Unknown method"):
+            Forecaster.smooth(_rng_data(), method="bogus")
+
+    def test_static_callable_without_instance(self):
+        X = _rng_data(n=50)
+        out = Forecaster.smooth(X)
+        assert out.shape == X.shape
