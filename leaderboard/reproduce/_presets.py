@@ -560,6 +560,15 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "ImplicitNeuralForecaster": {
+        "d_latent": 64,
+        "d_time": 33,
+        "enc_layers": 2,
+        "dec_layers": 3,
+        "d_hidden": 128,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

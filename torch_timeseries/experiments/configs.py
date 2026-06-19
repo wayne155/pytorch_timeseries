@@ -506,6 +506,29 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class ImplicitNeuralForecasterConfig:
+    d_latent: int = 64
+    d_time: int = 33
+    enc_layers: int = 2
+    dec_layers: int = 3
+    d_hidden: int = 128
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_latent <= 0:
+            raise ValueError("d_latent must be positive")
+        if self.d_time <= 0:
+            raise ValueError("d_time must be positive")
+        if self.enc_layers <= 0:
+            raise ValueError("enc_layers must be positive")
+        if self.dec_layers <= 0:
+            raise ValueError("dec_layers must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class GatedMLPForecasterConfig:
     d_model: int = 64
     d_ffn: int = 128
@@ -1623,6 +1646,10 @@ def split_experiment_config(
         ("GatedMLPForecaster", "AnomalyDetection"): GatedMLPForecasterConfig,
         ("GatedMLPForecaster", "Imputation"): GatedMLPForecasterConfig,
         ("GatedMLPForecaster", "UEAClassification"): GatedMLPForecasterConfig,
+        ("ImplicitNeuralForecaster", "Forecast"): ImplicitNeuralForecasterConfig,
+        ("ImplicitNeuralForecaster", "AnomalyDetection"): ImplicitNeuralForecasterConfig,
+        ("ImplicitNeuralForecaster", "Imputation"): ImplicitNeuralForecasterConfig,
+        ("ImplicitNeuralForecaster", "UEAClassification"): ImplicitNeuralForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

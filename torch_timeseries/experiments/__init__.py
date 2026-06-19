@@ -418,6 +418,12 @@ from .GatedMLPForecaster import (
     GatedMLPForecasterAnomalyDetection,
     GatedMLPForecasterImputation,
 )
+from .ImplicitNeuralForecaster import (
+    ImplicitNeuralForecasterForecast,
+    ImplicitNeuralForecasterUEAClassification,
+    ImplicitNeuralForecasterAnomalyDetection,
+    ImplicitNeuralForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
