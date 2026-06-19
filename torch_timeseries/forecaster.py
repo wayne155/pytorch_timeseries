@@ -1210,6 +1210,55 @@ class Forecaster:
         preds = self.predict(windows)  # (n_windows, pred_len, C)
         return truths - preds
 
+    def forecast(self, X, steps: int) -> np.ndarray:
+        """Auto-regressive forecast for *steps* steps, any horizon length.
+
+        When ``steps <= pred_len``, this is equivalent to :meth:`predict`
+        trimmed to the first *steps* values.  When ``steps > pred_len``, the
+        method chains multiple calls: each predicted window is appended to the
+        context and used as input for the next call.
+
+        Parameters
+        ----------
+        X:
+            Context window(s) of shape ``(seq_len, C)`` or ``(N, C)`` where
+            N > seq_len (last seq_len rows are used).
+        steps:
+            Total number of future timesteps to produce.
+
+        Returns
+        -------
+        np.ndarray
+            Shape ``(steps, C)`` — concatenated forecast.
+
+        Notes
+        -----
+        Chaining introduces **compounding errors** for long horizons: the
+        predicted values (potentially noisy) are fed back as inputs.  For
+        horizons much larger than ``pred_len`` this degrades accuracy.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        if len(X_np) > self.seq_len:
+            X_np = X_np[-self.seq_len:]
+
+        accumulated: List[np.ndarray] = []
+        context = X_np.copy()
+        remaining = steps
+
+        while remaining > 0:
+            pred = self.predict(context)  # (pred_len, C)
+            take = min(remaining, self.pred_len)
+            accumulated.append(pred[:take])
+            remaining -= take
+            if remaining > 0:
+                # Extend context with the newly predicted block
+                context = np.concatenate([context, pred], axis=0)[-self.seq_len:]
+
+        return np.concatenate(accumulated, axis=0)
+
     def predict_rolling(
         self,
         X,
@@ -1432,6 +1481,49 @@ class Forecaster:
         fc._X_test = X[n_train:]
         return fc
 
+    def to_dict(self) -> dict:
+        """Return a JSON-serializable dict of hyperparameters.
+
+        Only includes parameters that are JSON-serializable (strings, numbers,
+        booleans, and None).  Non-serializable params (``callbacks``,
+        ``augmentation``, ``loss`` as nn.Module) are omitted.
+
+        Returns
+        -------
+        dict
+            Flat dict suitable for ``json.dumps()``.
+
+        Examples
+        --------
+        >>> import json
+        >>> cfg = fc.to_dict()
+        >>> json.dumps(cfg)  # round-trip friendly
+        >>> fc2 = Forecaster.from_dict(cfg)
+        """
+        _json_safe_types = (str, int, float, bool, type(None))
+        result: dict = {}
+        for k, v in self.get_params().items():
+            if isinstance(v, _json_safe_types):
+                result[k] = v
+        return result
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Forecaster":
+        """Construct a :class:`Forecaster` from a dict (inverse of :meth:`to_dict`).
+
+        Equivalent to :meth:`from_config` but named to pair with :meth:`to_dict`.
+
+        Parameters
+        ----------
+        d:
+            A dict as returned by :meth:`to_dict` or any flat config dict.
+
+        Returns
+        -------
+        Forecaster
+        """
+        return cls.from_config(d)
+
     @classmethod
     def from_config(cls, config: dict) -> "Forecaster":
         """Construct a :class:`Forecaster` from a flat config dict.
@@ -1607,6 +1699,32 @@ class Forecaster:
 # ──────────────────────────────────────────────────────────────────────────────
 # compare()
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+def make_forecaster(name: str, **kwargs) -> "Forecaster":
+    """Convenience factory: create a :class:`Forecaster` by model name.
+
+    Equivalent to ``Forecaster(name, **kwargs)`` but slightly more readable
+    in scripts and notebooks.
+
+    Parameters
+    ----------
+    name:
+        A model name from ``torch_timeseries.model.forecasting_models``.
+    **kwargs:
+        Forwarded to :class:`Forecaster`.
+
+    Returns
+    -------
+    Forecaster
+
+    Examples
+    --------
+    >>> from torch_timeseries import make_forecaster
+    >>> fc = make_forecaster("DLinear", seq_len=96, pred_len=24, epochs=10)
+    >>> fc.fit(X)
+    """
+    return Forecaster(name, **kwargs)
 
 
 def time_series_split(

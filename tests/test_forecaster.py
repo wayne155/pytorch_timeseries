@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch_timeseries.forecaster import (
     Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
     compare, compare_to_dataframe, list_models, time_series_split,
-    _WindowDataset, _EarlyStopping, _make_scheduler,
+    make_forecaster, _WindowDataset, _EarlyStopping, _make_scheduler,
     _print_compare_table, _resolve_loss,
 )
 from torch_timeseries.dataset import list_datasets, load_dataset
@@ -1667,3 +1667,95 @@ class TestTimeSeriesSplit:
             fc.fit(X[train_idx])
             result = fc.score(X[test_idx])
             assert "mse" in result
+
+
+# ── forecast() ────────────────────────────────────────────────────────────────
+
+
+class TestForecast:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+
+    def test_steps_less_than_pred_len(self):
+        X = _rng_data()[-SEQ:]
+        y = self.fc.forecast(X, steps=4)
+        assert y.shape == (4, C)
+
+    def test_steps_equal_pred_len(self):
+        X = _rng_data()[-SEQ:]
+        y = self.fc.forecast(X, steps=PRED)
+        assert y.shape == (PRED, C)
+
+    def test_steps_greater_than_pred_len(self):
+        X = _rng_data()[-SEQ:]
+        y = self.fc.forecast(X, steps=PRED * 2)
+        assert y.shape == (PRED * 2, C)
+
+    def test_output_is_numpy(self):
+        X = _rng_data()[-SEQ:]
+        y = self.fc.forecast(X, steps=6)
+        assert isinstance(y, np.ndarray)
+
+    def test_output_finite(self):
+        X = _rng_data()[-SEQ:]
+        y = self.fc.forecast(X, steps=PRED * 3)
+        assert np.isfinite(y).all()
+
+    def test_raises_before_fit(self):
+        with pytest.raises(RuntimeError, match="not fitted"):
+            _quick_fc().forecast(_rng_data()[-SEQ:], steps=5)
+
+
+# ── to_dict() / from_dict() ───────────────────────────────────────────────────
+
+
+class TestToFromDict:
+    def test_to_dict_is_json_serializable(self):
+        import json
+        fc = Forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                        lr=5e-4, epochs=10, verbose=False)
+        d = fc.to_dict()
+        json.dumps(d)  # must not raise
+
+    def test_to_dict_has_model_key(self):
+        fc = _quick_fc()
+        d = fc.to_dict()
+        assert "model" in d
+
+    def test_to_dict_roundtrip(self):
+        fc = Forecaster("DLinear", seq_len=48, pred_len=12,
+                        lr=5e-4, verbose=False)
+        d = fc.to_dict()
+        fc2 = Forecaster.from_dict(d)
+        assert fc2.seq_len == 48
+        assert fc2.pred_len == 12
+        assert fc2.lr == 5e-4
+
+    def test_from_dict_returns_unfitted(self):
+        fc = _quick_fc()
+        fc2 = Forecaster.from_dict(fc.to_dict())
+        assert fc2._model is None
+
+
+# ── make_forecaster() ─────────────────────────────────────────────────────────
+
+
+class TestMakeForecaster:
+    def test_returns_forecaster(self):
+        fc = make_forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                             verbose=False)
+        assert isinstance(fc, Forecaster)
+
+    def test_model_spec_set(self):
+        fc = make_forecaster("NLinear", seq_len=SEQ, pred_len=PRED,
+                             verbose=False)
+        assert fc.model_spec == "NLinear"
+
+    def test_kwargs_passed(self):
+        fc = make_forecaster("DLinear", seq_len=SEQ, pred_len=PRED,
+                             epochs=7, verbose=False)
+        assert fc.epochs == 7
+
+    def test_importable_from_package(self):
+        from torch_timeseries import make_forecaster as mf
+        assert mf is make_forecaster
