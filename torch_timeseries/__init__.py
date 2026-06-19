@@ -27,7 +27,7 @@ from .cli.exp import exp
 from .results import RunResult, LocalBackend, WandbBackend
 from .experiment import Experiment, register_model
 from .forecaster import (
-    Forecaster, StackedForecaster, BaggingForecaster,
+    Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
     compare, compare_to_dataframe, list_models,
 )
 from .dataset import list_datasets, load_dataset

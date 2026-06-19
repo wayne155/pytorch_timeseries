@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from torch_timeseries.forecaster import (
-    Forecaster, StackedForecaster, BaggingForecaster,
+    Forecaster, StackedForecaster, BaggingForecaster, Pipeline,
     compare, compare_to_dataframe, list_models, _WindowDataset,
     _EarlyStopping, _make_scheduler, _print_compare_table, _resolve_loss,
 )
@@ -1528,3 +1528,94 @@ class TestCompareHorizons:
         fc = _quick_fc()
         results = fc.compare_horizons(X, horizons=[4], verbose=False)
         assert "elapsed_s" in results[4]
+
+
+# ── partial_fit() ─────────────────────────────────────────────────────────────
+
+
+class TestPartialFit:
+    def test_partial_fit_after_fit_keeps_model(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        fc.fit(X)
+        m1 = fc._model
+        fc.partial_fit(X)
+        assert fc._model is m1  # same object
+
+    def test_partial_fit_works_without_prior_fit(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        fc.partial_fit(X)
+        assert fc._model is not None
+
+    def test_partial_fit_returns_self(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        ret = fc.partial_fit(X)
+        assert ret is fc
+
+    def test_warm_start_restored_after_partial_fit(self):
+        X = _rng_data()
+        fc = _quick_fc()
+        fc.warm_start = False
+        fc.fit(X)
+        fc.partial_fit(X)
+        assert fc.warm_start is False  # should be restored
+
+
+# ── Pipeline ──────────────────────────────────────────────────────────────────
+
+
+class TestPipeline:
+    def test_fit_predict_shape(self):
+        X = _rng_data(n=300)
+        pipe = Pipeline(lambda x: x, _quick_fc())
+        pipe.fit(X)
+        y = pipe.predict(X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_preprocessor_applied(self):
+        X = _rng_data(n=300)
+        # Scale by 2 — model should train on scaled data
+        pipe = Pipeline(lambda x: x * 2.0, _quick_fc(normalize=False))
+        pipe.fit(X)
+        y = pipe.predict(X[-SEQ:])
+        assert y.shape == (PRED, C)
+
+    def test_score_returns_metrics(self):
+        X = _rng_data(n=300)
+        pipe = Pipeline(lambda x: x, _quick_fc())
+        pipe.fit(X[:200])
+        result = pipe.score(X[200:])
+        assert "mse" in result
+
+    def test_history_accessible(self):
+        X = _rng_data(n=300)
+        pipe = Pipeline(lambda x: x, _quick_fc())
+        pipe.fit(X)
+        assert len(pipe.history_) > 0
+
+    def test_repr(self):
+        pipe = Pipeline(lambda x: x, _quick_fc())
+        assert "Pipeline" in repr(pipe)
+
+    def test_non_callable_preprocessor_raises(self):
+        with pytest.raises(ValueError, match="callable"):
+            Pipeline("not_callable", _quick_fc())
+
+    def test_inverse_applied_in_predict(self):
+        X = _rng_data(n=300)
+        scale = 2.0
+        pipe = Pipeline(
+            lambda x: x * scale,
+            _quick_fc(normalize=False),
+        )
+        pipe.set_inverse(lambda y: y / scale)
+        pipe.fit(X)
+        y_with_inv = pipe.predict(X[-SEQ:])
+        # Same pipe without inverse
+        pipe2 = Pipeline(lambda x: x * scale, _quick_fc(normalize=False))
+        pipe2.fit(X)
+        y_no_inv = pipe2.predict(X[-SEQ:])
+        # With inverse the output differs from no-inverse output
+        assert y_with_inv.shape == (PRED, C)

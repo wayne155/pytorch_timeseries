@@ -814,6 +814,40 @@ class Forecaster:
             plt.tight_layout()
         return ax
 
+    def partial_fit(
+        self,
+        X,
+        *,
+        val_split: float = 0.1,
+    ) -> "Forecaster":
+        """Continue training on new data without discarding prior weights.
+
+        Unlike :meth:`fit`, ``partial_fit`` always uses ``warm_start=True``
+        semantics regardless of the instance's ``warm_start`` setting.  The
+        model is trained for ``self.epochs`` additional epochs.  The scaler is
+        re-fitted on the new data.
+
+        Use this for online / streaming scenarios where data arrives in chunks.
+
+        Parameters
+        ----------
+        X:
+            New time series data for the next training round.
+        val_split:
+            Val fraction passed to the training loop.
+
+        Returns
+        -------
+        self
+        """
+        original_warm_start = self.warm_start
+        self.warm_start = True
+        try:
+            self.fit(X, val_split=val_split)
+        finally:
+            self.warm_start = original_warm_start
+        return self
+
     def compare_horizons(
         self,
         X,
@@ -2034,6 +2068,130 @@ class BaggingForecaster:
 # ──────────────────────────────────────────────────────────────────────────────
 # compare_to_dataframe helper
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class Pipeline:
+    """Chain a preprocessing step with a :class:`Forecaster`.
+
+    The preprocessor is applied to raw data before training and inference.
+    Typical use: apply a custom callable (e.g. differencing, log-transform,
+    or a rolling-mean detrend) upstream of the :class:`Forecaster`'s built-in
+    normalisation.
+
+    Parameters
+    ----------
+    preprocessor:
+        A callable ``(X: np.ndarray) -> np.ndarray`` applied to data before
+        passing it to the forecaster.  Must accept ``(N, C)`` arrays and
+        return the same shape.  Examples:
+
+        * ``lambda X: np.diff(X, axis=0)`` — first differences
+        * ``lambda X: np.log1p(np.abs(X)) * np.sign(X)`` — signed log
+        * ``lambda X: X / X.std(axis=0)`` — channel-wise std scaling
+    forecaster:
+        A (not-yet-fitted) :class:`Forecaster`.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from torch_timeseries import Forecaster, Pipeline
+    >>>
+    >>> def log_transform(X):
+    ...     return np.sign(X) * np.log1p(np.abs(X))
+    >>>
+    >>> pipe = Pipeline(log_transform, Forecaster("DLinear", seq_len=96, pred_len=24))
+    >>> pipe.fit(X_train)
+    >>> y_hat = pipe.predict(X_train[-96:])  # in original space
+    """
+
+    def __init__(self, preprocessor, forecaster: Forecaster) -> None:
+        if not callable(preprocessor):
+            raise ValueError("preprocessor must be callable.")
+        self.preprocessor = preprocessor
+        self.forecaster = forecaster
+        self._inv_preprocessor = None
+
+    def set_inverse(self, inv_preprocessor) -> "Pipeline":
+        """Register the inverse of the preprocessor for output inversion.
+
+        Parameters
+        ----------
+        inv_preprocessor:
+            Callable ``(y: np.ndarray) -> np.ndarray`` that undoes
+            ``preprocessor``.  If set, :meth:`predict` will apply it to
+            the forecast before returning.
+
+        Returns
+        -------
+        self
+        """
+        self._inv_preprocessor = inv_preprocessor
+        return self
+
+    def fit(self, X, *, val_split: float = 0.1) -> "Pipeline":
+        """Apply the preprocessor then fit the forecaster.
+
+        Parameters
+        ----------
+        X:
+            Raw training time series.
+        val_split:
+            Val fraction for the forecaster.
+
+        Returns
+        -------
+        self
+        """
+        X_np = _to_numpy(X)
+        X_proc = self.preprocessor(X_np)
+        self.forecaster.fit(X_proc, val_split=val_split)
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        """Preprocess *X*, forecast, and optionally apply inverse transform.
+
+        Parameters
+        ----------
+        X:
+            Context window(s).  Same shapes as :meth:`Forecaster.predict`.
+
+        Returns
+        -------
+        np.ndarray
+            Forecast in the *preprocessed* space if no inverse was registered,
+            otherwise in the *original* space.
+        """
+        X_np = _to_numpy(X)
+        if X_np.ndim == 2:
+            X_proc = self.preprocessor(X_np)
+        else:
+            X_proc = np.stack([self.preprocessor(w) for w in X_np])
+        pred = self.forecaster.predict(X_proc)
+        if self._inv_preprocessor is not None:
+            if pred.ndim == 2:
+                pred = self._inv_preprocessor(pred)
+            else:
+                pred = np.stack([self._inv_preprocessor(p) for p in pred])
+        return pred
+
+    def score(self, X) -> Dict[str, float]:
+        """Evaluate MSE/MAE/RMSE/SMAPE on preprocessed data."""
+        X_np = _to_numpy(X)
+        X_proc = self.preprocessor(X_np)
+        return self.forecaster.score(X_proc)
+
+    @property
+    def history_(self):
+        """Training history from the underlying forecaster."""
+        return self.forecaster.history_
+
+    def __repr__(self) -> str:
+        return f"Pipeline(preprocessor={self.preprocessor!r}, forecaster={self.forecaster!r})"
 
 
 def compare_to_dataframe(results: Dict[str, Dict[str, float]]):
