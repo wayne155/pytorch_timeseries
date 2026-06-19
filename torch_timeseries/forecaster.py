@@ -5611,6 +5611,199 @@ class Forecaster:
             results.append(out)
         return np.concatenate(results, axis=0)
 
+    @staticmethod
+    def detect_change_points(
+        X: np.ndarray,
+        *,
+        window: int = 20,
+        threshold: Optional[float] = None,
+        channel: int = 0,
+    ) -> np.ndarray:
+        """Detect change points using a sliding-window energy ratio test.
+
+        For each timestep, compute the ratio of the variance in the right
+        window to the variance in the left window (CUSUM-style).  A
+        large ratio indicates a structural change in variance; large absolute
+        mean shift indicates a level change.  The combined score is
+        thresholded to flag change points.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        window:
+            Half-window size on each side of the candidate change point
+            (default ``20``).
+        threshold:
+            Score threshold above which a point is flagged.  If ``None``,
+            the 95th percentile of all scores is used.
+        channel:
+            Channel index to analyse (default ``0``).
+
+        Returns
+        -------
+        np.ndarray of integer indices where change points are detected.
+        """
+        ts = X[:, channel] if X.ndim > 1 else X
+        ts = ts.astype(float)
+        T = len(ts)
+        scores = np.zeros(T)
+        for t in range(window, T - window):
+            left = ts[t - window : t]
+            right = ts[t : t + window]
+            mean_shift = abs(right.mean() - left.mean())
+            var_ratio = (right.var() + 1e-12) / (left.var() + 1e-12)
+            scores[t] = mean_shift + abs(np.log(var_ratio))
+
+        thr = threshold if threshold is not None else float(np.percentile(scores, 95))
+        cps = np.where(scores >= thr)[0]
+
+        # Suppress duplicates within window distance
+        if len(cps) == 0:
+            return cps
+        merged = [cps[0]]
+        for cp in cps[1:]:
+            if cp - merged[-1] >= window:
+                merged.append(cp)
+        return np.array(merged)
+
+    @staticmethod
+    def plot_change_points(
+        X: np.ndarray,
+        change_points: np.ndarray,
+        *,
+        channel: int = 0,
+        ax=None,
+        title: Optional[str] = None,
+        color: str = "red",
+        alpha: float = 0.7,
+    ):
+        """Overlay detected change points on the raw time series.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        change_points:
+            Array of change point indices from :meth:`detect_change_points`.
+        channel:
+            Channel to plot (default ``0``).
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+        color:
+            Color of change-point vertical lines.
+        alpha:
+            Transparency.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_change_points()") from exc
+
+        ts = X[:, channel] if X.ndim > 1 else X
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 4))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot(ts, linewidth=0.8, label="signal")
+        for cp in change_points:
+            ax.axvline(cp, color=color, alpha=alpha, linewidth=1.2, linestyle="--")
+        ax.set_xlabel("Timestep")
+        ax.set_title(title or f"Change points (channel {channel})")
+        ax.grid(True, alpha=0.3)
+        if len(change_points):
+            ax.axvline(change_points[0], color=color, alpha=alpha,
+                       linewidth=1.2, linestyle="--", label="change point")
+        ax.legend()
+        plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def describe(X: np.ndarray, *, channel_names: Optional[List[str]] = None) -> "pd.DataFrame":
+        """Compute descriptive statistics of a time series per channel.
+
+        Returns a DataFrame analogous to ``pandas.DataFrame.describe()``,
+        extended with additional time-series-relevant statistics.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)`` or ``(T,)``.
+        channel_names:
+            Column labels for channels.
+
+        Returns
+        -------
+        pandas.DataFrame with one column per channel and rows:
+        ``count``, ``mean``, ``std``, ``min``, ``q25``, ``median``,
+        ``q75``, ``max``, ``range``, ``skewness``, ``kurtosis``,
+        ``autocorr_lag1``, ``n_missing``.
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:
+            raise ImportError("pandas is required for describe()") from exc
+
+        X_f = np.asarray(X, dtype=float)
+        if X_f.ndim == 1:
+            X_f = X_f[:, None]
+        T, C = X_f.shape
+        if channel_names is None:
+            channel_names = [f"ch{i}" for i in range(C)]
+
+        stats = {}
+        for ci, name in enumerate(channel_names):
+            col = X_f[:, ci]
+            valid = col[~np.isnan(col)]
+            n = len(valid)
+            if n == 0:
+                stats[name] = {k: np.nan for k in (
+                    "count", "mean", "std", "min", "q25", "median", "q75",
+                    "max", "range", "skewness", "kurtosis", "autocorr_lag1", "n_missing"
+                )}
+                continue
+            mu = valid.mean()
+            sd = valid.std()
+            q25, median, q75 = np.percentile(valid, [25, 50, 75])
+            vmin, vmax = valid.min(), valid.max()
+            if sd > 1e-12:
+                z = (valid - mu) / sd
+                skew = float(np.mean(z ** 3))
+                kurt = float(np.mean(z ** 4) - 3.0)
+            else:
+                skew = kurt = 0.0
+            # lag-1 autocorrelation (partial, on valid slice)
+            if n > 1:
+                a = valid[:-1] - valid[:-1].mean()
+                b = valid[1:] - valid[1:].mean()
+                denom = (np.sqrt((a ** 2).sum()) * np.sqrt((b ** 2).sum()))
+                ac1 = float(np.dot(a, b) / denom) if denom > 1e-12 else 0.0
+            else:
+                ac1 = 0.0
+            stats[name] = {
+                "count": n,
+                "mean": mu,
+                "std": sd,
+                "min": vmin,
+                "q25": q25,
+                "median": median,
+                "q75": q75,
+                "max": vmax,
+                "range": vmax - vmin,
+                "skewness": skew,
+                "kurtosis": kurt,
+                "autocorr_lag1": ac1,
+                "n_missing": T - n,
+            }
+        return pd.DataFrame(stats)
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

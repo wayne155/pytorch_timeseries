@@ -2947,6 +2947,104 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestDetectChangePoints:
+    def test_returns_array(self):
+        X = _rng_data(n=200)
+        cps = Forecaster.detect_change_points(X, window=10)
+        assert isinstance(cps, np.ndarray)
+
+    def test_indices_in_range(self):
+        X = _rng_data(n=200)
+        cps = Forecaster.detect_change_points(X, window=10)
+        assert (cps >= 0).all() and (cps < 200).all()
+
+    def test_custom_threshold(self):
+        X = _rng_data(n=200)
+        cps_high = Forecaster.detect_change_points(X, window=10, threshold=100.0)
+        cps_low = Forecaster.detect_change_points(X, window=10, threshold=0.0)
+        # lower threshold → at least as many change points
+        assert len(cps_low) >= len(cps_high)
+
+    def test_detects_obvious_change(self):
+        # abrupt level shift
+        rng = np.random.default_rng(42)
+        X = np.concatenate([
+            rng.standard_normal((100, 1)),
+            rng.standard_normal((100, 1)) + 10.0,
+        ])
+        cps = Forecaster.detect_change_points(X, window=10)
+        # change point should be somewhere near timestep 100
+        assert any(80 <= cp <= 120 for cp in cps)
+
+    def test_1d_input(self):
+        X = _rng_data(n=100)[:, 0]
+        cps = Forecaster.detect_change_points(X, window=10)
+        assert isinstance(cps, np.ndarray)
+
+
+class TestPlotChangePoints:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        cps = Forecaster.detect_change_points(X, window=5)
+        fig = Forecaster.plot_change_points(X, cps)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_empty_change_points(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_change_points(X, np.array([]))
+        assert fig is not None
+        plt.close("all")
+
+
+class TestDescribe:
+    def test_returns_dataframe(self):
+        pytest.importorskip("pandas")
+        import pandas as pd
+        X = _rng_data(n=100)
+        df = Forecaster.describe(X)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_columns_are_channels(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)
+        df = Forecaster.describe(X)
+        assert list(df.columns) == [f"ch{i}" for i in range(C)]
+
+    def test_expected_rows(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)
+        df = Forecaster.describe(X)
+        for row in ("count", "mean", "std", "min", "q25", "median",
+                    "q75", "max", "range", "skewness", "kurtosis",
+                    "autocorr_lag1", "n_missing"):
+            assert row in df.index
+
+    def test_n_missing_counts_nans(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)
+        X[5:10, 0] = np.nan
+        df = Forecaster.describe(X)
+        assert df.loc["n_missing", "ch0"] == 5
+
+    def test_custom_channel_names(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)
+        df = Forecaster.describe(X, channel_names=["A", "B", "C"])
+        assert list(df.columns) == ["A", "B", "C"]
+
+    def test_1d_input(self):
+        pytest.importorskip("pandas")
+        X = _rng_data(n=100)[:, 0]
+        df = Forecaster.describe(X)
+        assert df.shape[1] == 1
+
+
 class TestPersistenceForecast:
     def setup_method(self):
         self.fc = _quick_fc()  # no need to fit for persistence
