@@ -76,6 +76,7 @@ from .LRUForecaster import LRUForecaster
 from .S4Forecaster import S4Forecaster
 from .HyenaForecaster import HyenaForecaster
 from .PrototypicalForecaster import PrototypicalForecaster
+from .MultiscaleConvForecaster import MultiscaleConvForecaster
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -130,6 +131,7 @@ forecasting_models = [
     "S4Forecaster",
     "HyenaForecaster",
     "PrototypicalForecaster",
+    "MultiscaleConvForecaster",
 ]
 
 prob_forecasting_models = [

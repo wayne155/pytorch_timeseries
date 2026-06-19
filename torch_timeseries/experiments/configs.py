@@ -506,6 +506,25 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class MultiscaleConvForecasterConfig:
+    d_model: int = 64
+    n_layers: int = 3
+    kernels: tuple = (3, 7, 15, 31)
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_layers <= 0:
+            raise ValueError("n_layers must be positive")
+        if self.d_model % len(self.kernels) != 0:
+            raise ValueError("d_model must be divisible by len(kernels)")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class PrototypicalForecasterConfig:
     n_proto: int = 32
     d_proto: int = 64
@@ -1534,6 +1553,10 @@ def split_experiment_config(
         ("PrototypicalForecaster", "AnomalyDetection"): PrototypicalForecasterConfig,
         ("PrototypicalForecaster", "Imputation"): PrototypicalForecasterConfig,
         ("PrototypicalForecaster", "UEAClassification"): PrototypicalForecasterConfig,
+        ("MultiscaleConvForecaster", "Forecast"): MultiscaleConvForecasterConfig,
+        ("MultiscaleConvForecaster", "AnomalyDetection"): MultiscaleConvForecasterConfig,
+        ("MultiscaleConvForecaster", "Imputation"): MultiscaleConvForecasterConfig,
+        ("MultiscaleConvForecaster", "UEAClassification"): MultiscaleConvForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

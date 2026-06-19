@@ -394,6 +394,12 @@ from .PrototypicalForecaster import (
     PrototypicalForecasterAnomalyDetection,
     PrototypicalForecasterImputation,
 )
+from .MultiscaleConvForecaster import (
+    MultiscaleConvForecasterForecast,
+    MultiscaleConvForecasterUEAClassification,
+    MultiscaleConvForecasterAnomalyDetection,
+    MultiscaleConvForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
