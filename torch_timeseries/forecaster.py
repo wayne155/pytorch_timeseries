@@ -1406,6 +1406,75 @@ class Forecaster:
         self.fit(X_np[:n_train], val_split=val_split)
         return self.evaluate(X_np[n_train:], seasonal_period=seasonal_period)
 
+    def plot_residuals(
+        self,
+        X,
+        *,
+        channel: int = 0,
+        bins: int = 40,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Histogram of forecast residuals for one channel.
+
+        Uses :meth:`residuals` to compute ``true - predicted`` over all valid
+        windows of *X*, then plots the distribution.  Requires ``matplotlib``.
+
+        Parameters
+        ----------
+        X:
+            Time series, shape ``(N, C)``.
+        channel:
+            Channel index to plot (default ``0``).
+        bins:
+            Number of histogram bins (default 40).
+        ax:
+            Existing ``matplotlib.axes.Axes``.  New figure if ``None``.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        self._check_fitted()
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_residuals(). "
+                "Install it with: pip install matplotlib"
+            ) from exc
+
+        res = self.residuals(X)          # (W, pred_len, C)
+        flat = res[:, :, channel].ravel()
+
+        created_fig = ax is None
+        if created_fig:
+            _, ax = plt.subplots(figsize=(7, 4))
+
+        ax.hist(flat, bins=bins, edgecolor="white", linewidth=0.4,
+                color="steelblue", alpha=0.85)
+        ax.axvline(0, color="tomato", linewidth=1.2, linestyle="--",
+                   label="zero")
+        ax.axvline(flat.mean(), color="green", linewidth=1.2, linestyle=":",
+                   label=f"mean={flat.mean():.3f}")
+
+        model_name = (
+            self.model_spec
+            if isinstance(self.model_spec, str)
+            else type(self.model_spec).__name__
+        )
+        ax.set_title(title or f"{model_name} — residuals (channel {channel})")
+        ax.set_xlabel("Residual (true − predicted)")
+        ax.set_ylabel("Count")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        if created_fig:
+            plt.tight_layout()
+        return ax
+
     def score_per_channel(self, X) -> Dict[str, np.ndarray]:
         """Per-channel MSE, MAE, and RMSE over sliding windows of *X*.
 

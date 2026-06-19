@@ -2101,6 +2101,45 @@ class TestFitScore:
 # ── detect_anomalies() ────────────────────────────────────────────────────────
 
 
+class TestPlotResiduals:
+    def setup_method(self):
+        pytest.importorskip("matplotlib")
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_returns_axes(self):
+        import matplotlib.axes
+        ax = self.fc.plot_residuals(self.X)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_accepts_existing_axes(self):
+        import matplotlib.pyplot as plt
+        fig, ax_in = plt.subplots()
+        ax_out = self.fc.plot_residuals(self.X, ax=ax_in)
+        assert ax_out is ax_in
+        plt.close(fig)
+
+    def test_custom_channel(self):
+        import matplotlib.axes
+        ax = self.fc.plot_residuals(self.X, channel=1)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        import matplotlib.pyplot as plt
+        plt.close("all")
+
+    def test_custom_title(self):
+        import matplotlib.pyplot as plt
+        ax = self.fc.plot_residuals(self.X, title="My Residuals")
+        assert ax.get_title() == "My Residuals"
+        plt.close("all")
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.plot_residuals(self.X)
+
+
 class TestPlotChannelScores:
     def setup_method(self):
         pytest.importorskip("matplotlib")
