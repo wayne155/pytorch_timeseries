@@ -2947,6 +2947,83 @@ class TestPlotDecomposition:
         plt.close("all")
 
 
+class TestCountParameters:
+    def test_returns_dict(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.count_parameters()
+        assert isinstance(result, dict)
+
+    def test_total_key_present(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.count_parameters()
+        assert "total" in result
+
+    def test_total_positive(self):
+        fc = _quick_fc().fit(_rng_data())
+        result = fc.count_parameters()
+        assert result["total"] > 0
+
+    def test_trainable_le_total(self):
+        fc = _quick_fc().fit(_rng_data())
+        trainable = fc.count_parameters(trainable_only=True)["total"]
+        total = fc.count_parameters()["total"]
+        assert trainable <= total
+
+    def test_unfitted_raises(self):
+        fc = Forecaster("NLinear", seq_len=SEQ, pred_len=PRED)
+        with pytest.raises(RuntimeError):
+            fc.count_parameters()
+
+
+class TestRollingCorrelation:
+    def test_shapes(self):
+        X = _rng_data(n=100)
+        ts, corr = Forecaster.rolling_correlation(X, window=20)
+        assert ts.shape == corr.shape
+
+    def test_output_length(self):
+        X = _rng_data(n=100)
+        ts, corr = Forecaster.rolling_correlation(X, window=20)
+        assert len(corr) == 100 - 20 + 1
+
+    def test_bounded_values(self):
+        X = _rng_data(n=100)
+        _, corr = Forecaster.rolling_correlation(X, window=20)
+        assert (corr >= -1.0 - 1e-6).all() and (corr <= 1.0 + 1e-6).all()
+
+    def test_perfect_correlation(self):
+        x = np.arange(100, dtype=float)
+        X = np.column_stack([x, 2 * x + 1])
+        _, corr = Forecaster.rolling_correlation(X, window=10)
+        np.testing.assert_allclose(corr, 1.0, atol=1e-6)
+
+    def test_timestep_values(self):
+        X = _rng_data(n=100)
+        ts, _ = Forecaster.rolling_correlation(X, window=20)
+        assert ts[0] == 19  # window - 1
+        assert ts[-1] == 99
+
+
+class TestPlotRollingCorrelation:
+    def test_returns_figure(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.figure
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_rolling_correlation(X, window=20)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        plt.close("all")
+
+    def test_custom_title(self):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        X = _rng_data(n=100)
+        fig = Forecaster.plot_rolling_correlation(X, window=20, title="RC")
+        ax = fig.get_axes()[0]
+        assert "RC" in ax.get_title()
+        plt.close("all")
+
+
 class TestSetDevice:
     def test_returns_self(self):
         fc = _quick_fc().fit(_rng_data())

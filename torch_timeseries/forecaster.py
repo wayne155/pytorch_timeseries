@@ -5158,6 +5158,144 @@ class Forecaster:
         plt.tight_layout()
         return fig
 
+    def count_parameters(self, *, trainable_only: bool = False) -> Dict[str, int]:
+        """Return the total parameter count, broken down by top-level module.
+
+        Parameters
+        ----------
+        trainable_only:
+            If ``True``, count only parameters that require gradients.
+            Default ``False`` (count all parameters).
+
+        Returns
+        -------
+        dict with keys:
+
+        ``total``   — aggregate parameter count
+        one key per *named* top-level child of the model, e.g.
+        ``"encoder"``, ``"decoder"``, etc.
+        """
+        self._check_fitted()
+        result: Dict[str, int] = {}
+        total = 0
+        for name, module in self._model.named_children():
+            cnt = sum(
+                p.numel()
+                for p in module.parameters()
+                if (not trainable_only or p.requires_grad)
+            )
+            result[name] = cnt
+            total += cnt
+        # catch parameters at the top level (not under any child)
+        child_params = set(
+            id(p) for m in self._model.children() for p in m.parameters()
+        )
+        top_level = sum(
+            p.numel()
+            for p in self._model.parameters()
+            if id(p) not in child_params and (not trainable_only or p.requires_grad)
+        )
+        if top_level:
+            result["_top_level"] = top_level
+            total += top_level
+        result["total"] = total
+        return result
+
+    @staticmethod
+    def rolling_correlation(
+        X: np.ndarray,
+        *,
+        window: int = 30,
+        channel_i: int = 0,
+        channel_j: int = 1,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute rolling Pearson correlation between two channels.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        window:
+            Rolling window size (default ``30``).
+        channel_i:
+            First channel index (default ``0``).
+        channel_j:
+            Second channel index (default ``1``).
+
+        Returns
+        -------
+        timesteps : np.ndarray of length ``T - window + 1``
+        corr      : np.ndarray of rolling correlations
+        """
+        xi = X[:, channel_i].astype(float)
+        xj = X[:, channel_j].astype(float)
+        T = len(xi)
+        n_windows = T - window + 1
+        corrs = np.empty(n_windows)
+        for k in range(n_windows):
+            a = xi[k : k + window]
+            b = xj[k : k + window]
+            a_c = a - a.mean()
+            b_c = b - b.mean()
+            denom = (np.sqrt((a_c ** 2).sum()) * np.sqrt((b_c ** 2).sum()))
+            corrs[k] = float(np.dot(a_c, b_c) / denom) if denom > 1e-12 else 0.0
+        return np.arange(window - 1, T), corrs
+
+    @staticmethod
+    def plot_rolling_correlation(
+        X: np.ndarray,
+        *,
+        window: int = 30,
+        channel_i: int = 0,
+        channel_j: int = 1,
+        ax=None,
+        title: Optional[str] = None,
+    ):
+        """Plot rolling Pearson correlation between two channels.
+
+        Parameters
+        ----------
+        X:
+            Time series ``(T, C)``.
+        window:
+            Rolling window size (default ``30``).
+        channel_i / channel_j:
+            Channel indices to correlate.
+        ax:
+            Matplotlib axes.
+        title:
+            Axes title.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError("matplotlib is required for plot_rolling_correlation()") from exc
+
+        ts, corrs = Forecaster.rolling_correlation(
+            X, window=window, channel_i=channel_i, channel_j=channel_j
+        )
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 3))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot(ts, corrs, linewidth=0.9)
+        ax.axhline(0, color="black", linewidth=0.6, linestyle="--")
+        ax.set_ylim(-1.05, 1.05)
+        ax.set_xlabel("Timestep")
+        ax.set_ylabel("Pearson r")
+        ax.set_title(
+            title or f"Rolling correlation (window={window}): ch{channel_i} vs ch{channel_j}"
+        )
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"
