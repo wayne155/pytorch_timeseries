@@ -2914,6 +2914,48 @@ class TestMultiChannelForecaster:
 # ── Forecaster.smooth() ───────────────────────────────────────────────────────
 
 
+class TestComputeMetrics:
+    def test_returns_expected_keys(self):
+        y = _rng_data(n=10)
+        result = Forecaster.compute_metrics(y, y)
+        for k in ("mse", "mae", "rmse", "smape", "mase"):
+            assert k in result
+
+    def test_perfect_prediction_zero_mse(self):
+        y = _rng_data(n=10)
+        result = Forecaster.compute_metrics(y, y)
+        assert result["mse"] == pytest.approx(0.0, abs=1e-9)
+        assert result["mae"] == pytest.approx(0.0, abs=1e-9)
+
+    def test_mse_non_negative(self):
+        y_true = _rng_data(n=20)
+        y_pred = _rng_data(n=20, seed=1)
+        result = Forecaster.compute_metrics(y_true, y_pred)
+        assert result["mse"] >= 0.0
+
+    def test_rmse_sqrt_mse(self):
+        y_true = _rng_data(n=20)
+        y_pred = _rng_data(n=20, seed=1)
+        result = Forecaster.compute_metrics(y_true, y_pred)
+        assert result["rmse"] == pytest.approx(np.sqrt(result["mse"]), rel=1e-5)
+
+    def test_shape_mismatch_raises(self):
+        y = _rng_data(n=10)
+        with pytest.raises(ValueError, match="shape"):
+            Forecaster.compute_metrics(y, y[:5])
+
+    def test_callable_without_instance(self):
+        y = _rng_data(n=10)
+        result = Forecaster.compute_metrics(y, y + 0.1)
+        assert isinstance(result["mse"], float)
+
+    def test_3d_input(self):
+        Xw, yw = Forecaster.create_windows(_rng_data(n=200), SEQ, PRED)
+        preds = yw + 0.01
+        result = Forecaster.compute_metrics(yw, preds)
+        assert result["mse"] >= 0.0
+
+
 class TestCreateWindows:
     def test_basic_shapes(self):
         X = _rng_data(n=200)

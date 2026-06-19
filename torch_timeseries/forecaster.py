@@ -1497,6 +1497,56 @@ class Forecaster:
         return {**base, "mase": mase}
 
     @staticmethod
+    def compute_metrics(
+        y_true,
+        y_pred,
+        *,
+        seasonal_period: int = 1,
+    ) -> Dict[str, float]:
+        """Compute forecast metrics from raw arrays without a fitted model.
+
+        A static utility for comparing predictions from any source.
+
+        Parameters
+        ----------
+        y_true:
+            Ground truth, shape ``(N, pred_len, C)`` or ``(pred_len, C)``
+            or ``(N,)``.
+        y_pred:
+            Predictions, same shape as *y_true*.
+        seasonal_period:
+            Period for MASE (default 1 = non-seasonal MAE baseline).
+
+        Returns
+        -------
+        dict
+            ``{"mse", "mae", "rmse", "smape", "mase"}`` — all floats.
+        """
+        y_t = np.asarray(y_true, dtype=np.float64)
+        y_p = np.asarray(y_pred, dtype=np.float64)
+        if y_t.shape != y_p.shape:
+            raise ValueError(
+                f"y_true shape {y_t.shape} != y_pred shape {y_p.shape}."
+            )
+        diff = y_p - y_t
+        mse = float((diff ** 2).mean())
+        mae = float(np.abs(diff).mean())
+        rmse = float(np.sqrt(mse))
+        denom = np.abs(y_p) + np.abs(y_t) + 1e-8
+        smape = float((2.0 * np.abs(diff) / denom * 100.0).mean())
+        # MASE: scale by seasonal naive MAE
+        y_flat = y_t.ravel()
+        if len(y_flat) > seasonal_period:
+            naive_errors = np.abs(
+                y_flat[seasonal_period:] - y_flat[:-seasonal_period]
+            )
+            scale = naive_errors.mean() if naive_errors.size > 0 else 1.0
+        else:
+            scale = 1.0
+        mase = mae / (scale + 1e-8)
+        return {"mse": mse, "mae": mae, "rmse": rmse, "smape": smape, "mase": mase}
+
+    @staticmethod
     def smooth(X, window: int = 5, method: str = "mean") -> np.ndarray:
         """Apply a rolling smoothing filter along the time axis.
 
