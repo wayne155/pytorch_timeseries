@@ -253,6 +253,15 @@ MODEL_PARAMS = {
         "dropout": 0.0,
         "revin": True,
     },
+    "ETSformer": {
+        "d_model": 256,
+        "n_heads": 4,
+        "e_layers": 2,
+        "d_ff": 512,
+        "dropout": 0.1,
+        "top_k": 5,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

@@ -172,6 +172,12 @@ from .WaveNet import (
     WaveNetAnomalyDetection,
     WaveNetImputation,
 )
+from .ETSformer import (
+    ETSformerForecast,
+    ETSformerUEAClassification,
+    ETSformerAnomalyDetection,
+    ETSformerImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

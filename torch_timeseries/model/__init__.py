@@ -39,6 +39,7 @@ from .LightTS import LightTS
 from .CycleNet import CycleNet
 from .WaveNet import WaveNet
 from .NormalizingFlowForecaster import NormalizingFlowForecaster
+from .ETSformer import ETSformer
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -56,6 +57,7 @@ forecasting_models = [
     "LightTS",
     "CycleNet",
     "WaveNet",
+    "ETSformer",
 ]
 
 prob_forecasting_models = [

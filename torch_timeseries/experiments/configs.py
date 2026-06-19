@@ -309,6 +309,33 @@ class EnsembleConfig:
 
 
 @dataclass
+class ETSformerConfig:
+    d_model: int = 256
+    n_heads: int = 4
+    e_layers: int = 2
+    d_ff: int = 512
+    dropout: float = 0.1
+    top_k: int = 5
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_model <= 0:
+            raise ValueError("d_model must be positive")
+        if self.n_heads <= 0:
+            raise ValueError("n_heads must be positive")
+        if self.d_model % self.n_heads != 0:
+            raise ValueError("d_model must be divisible by n_heads")
+        if self.e_layers <= 0:
+            raise ValueError("e_layers must be positive")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+        if self.top_k < 1:
+            raise ValueError("top_k must be >= 1")
+
+
+@dataclass
 class NormalizingFlowConfig:
     d_model: int = 256
     n_heads: int = 4
@@ -623,6 +650,10 @@ def split_experiment_config(
         ("WaveNet", "AnomalyDetection"): WaveNetConfig,
         ("WaveNet", "Imputation"): WaveNetConfig,
         ("WaveNet", "UEAClassification"): WaveNetConfig,
+        ("ETSformer", "Forecast"): ETSformerConfig,
+        ("ETSformer", "AnomalyDetection"): ETSformerConfig,
+        ("ETSformer", "Imputation"): ETSformerConfig,
+        ("ETSformer", "UEAClassification"): ETSformerConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

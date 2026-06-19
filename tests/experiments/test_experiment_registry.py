@@ -30,6 +30,7 @@ FORECAST_FOUR_TASK_MODELS = [
     "LightTS",
     "CycleNet",
     "WaveNet",
+    "ETSformer",
 ]
 
 FORECAST_ONLY_MODELS = ["CATS"]
@@ -99,7 +100,7 @@ class TestRegistryCompleteness:
         assert len(list_experiments()) > 0
 
     def test_expected_minimum_size(self):
-        assert len(list_experiments()) >= 124  # +1 NormalizingFlow/Forecast
+        assert len(list_experiments()) >= 128  # +4 ETSformer tasks
 
 
 # ---------------------------------------------------------------------------
