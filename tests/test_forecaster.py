@@ -833,6 +833,42 @@ class TestSummary:
         assert "last epoch" in fc.summary()
 
 
+class TestExplain:
+    def setup_method(self):
+        self.fc = _quick_fc().fit(_rng_data())
+        self.X = _rng_data(n=200)
+
+    def test_returns_string(self):
+        result = self.fc.explain(self.X, n_repeats=2)
+        assert isinstance(result, str)
+
+    def test_contains_model_name(self):
+        result = self.fc.explain(self.X, n_repeats=2)
+        assert "DLinear" in result
+
+    def test_contains_mse(self):
+        result = self.fc.explain(self.X, n_repeats=2)
+        assert "mse" in result.lower()
+
+    def test_contains_channel_importance(self):
+        result = self.fc.explain(self.X, n_repeats=2)
+        assert "Channel importance" in result
+
+    def test_contains_timestep_importance(self):
+        result = self.fc.explain(self.X, n_repeats=2)
+        assert "Timestep importance" in result
+
+    def test_custom_channel_names(self):
+        result = self.fc.explain(self.X, n_repeats=2,
+                                 channel_names=["temp", "wind", "rain"])
+        assert "temp" in result
+
+    def test_before_fit_raises(self):
+        fc = _quick_fc()
+        with pytest.raises(RuntimeError):
+            fc.explain(self.X, n_repeats=2)
+
+
 # ── grad_clip ─────────────────────────────────────────────────────────────────
 
 

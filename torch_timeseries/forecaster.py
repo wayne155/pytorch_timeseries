@@ -2826,6 +2826,106 @@ class Forecaster:
             )
         return "\n".join(lines)
 
+    def explain(
+        self,
+        X,
+        *,
+        n_repeats: int = 3,
+        seasonal_period: int = 1,
+        channel_names: Optional[List[str]] = None,
+    ) -> str:
+        """Return a comprehensive diagnostic report for this forecaster.
+
+        Combines the output of :meth:`summary`, :meth:`evaluate`,
+        :meth:`score_per_channel`, :meth:`feature_importance`, and
+        :meth:`timestep_importance` into a single human-readable string.
+
+        Parameters
+        ----------
+        X:
+            Evaluation time series, shape ``(N, C)``.
+        n_repeats:
+            Permutation repeats for importance methods (default 3 for speed).
+        seasonal_period:
+            Passed to :meth:`evaluate` for MASE computation.
+        channel_names:
+            Optional channel labels for display.
+
+        Returns
+        -------
+        str
+            Multi-section diagnostic report.
+        """
+        self._check_fitted()
+        X_np = _to_numpy(X)
+        if X_np.ndim == 1:
+            X_np = X_np[:, None]
+        _, C = X_np.shape
+        ch_labels = channel_names or [f"ch{i}" for i in range(C)]
+
+        lines = ["=" * 60, "Forecaster Diagnostic Report", "=" * 60]
+
+        # Model summary
+        lines.append("")
+        lines.append("─── Model ───")
+        for ln in self.summary().splitlines():
+            lines.append("  " + ln)
+
+        # Overall metrics
+        lines.append("")
+        lines.append("─── Evaluation metrics ───")
+        try:
+            metrics = self.evaluate(X_np, seasonal_period=seasonal_period)
+            for k, v in metrics.items():
+                lines.append(f"  {k:10s}: {v:.6f}")
+        except Exception as e:
+            lines.append(f"  (evaluate failed: {e})")
+
+        # Per-channel metrics
+        lines.append("")
+        lines.append("─── Per-channel MSE ───")
+        try:
+            ch_scores = self.score_per_channel(X_np)
+            for i, label in enumerate(ch_labels):
+                lines.append(f"  {label:12s}: {ch_scores['mse'][i]:.6f}")
+        except Exception as e:
+            lines.append(f"  (score_per_channel failed: {e})")
+
+        # Channel importance
+        lines.append("")
+        lines.append("─── Channel importance (MSE increase on shuffle) ───")
+        try:
+            fi = self.feature_importance(X_np, n_repeats=n_repeats, random_state=0)
+            ranked = np.argsort(fi["importances_mean"])[::-1]
+            for idx in ranked:
+                label = ch_labels[idx]
+                mean = fi["importances_mean"][idx]
+                std = fi["importances_std"][idx]
+                lines.append(f"  {label:12s}: {mean:+.6f} ± {std:.6f}")
+        except Exception as e:
+            lines.append(f"  (feature_importance failed: {e})")
+
+        # Timestep importance summary (top 3 and bottom 3)
+        lines.append("")
+        lines.append("─── Timestep importance (top/bottom 3 positions) ───")
+        try:
+            ti = self.timestep_importance(X_np, n_repeats=n_repeats, random_state=0)
+            imp = ti["importances_mean"]
+            top3 = np.argsort(imp)[::-1][:3]
+            bot3 = np.argsort(imp)[:3]
+            lines.append("  Most important:")
+            for t in top3:
+                lines.append(f"    t={t:3d}: {imp[t]:+.6f}")
+            lines.append("  Least important:")
+            for t in bot3:
+                lines.append(f"    t={t:3d}: {imp[t]:+.6f}")
+        except Exception as e:
+            lines.append(f"  (timestep_importance failed: {e})")
+
+        lines.append("")
+        lines.append("=" * 60)
+        return "\n".join(lines)
+
     def hyperparameter_sensitivity(
         self,
         X,
