@@ -436,6 +436,12 @@ from .xLSTMForecaster import (
     xLSTMForecasterAnomalyDetection,
     xLSTMForecasterImputation,
 )
+from .EchoStateForecaster import (
+    EchoStateForecasterForecast,
+    EchoStateForecasterUEAClassification,
+    EchoStateForecasterAnomalyDetection,
+    EchoStateForecasterImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration

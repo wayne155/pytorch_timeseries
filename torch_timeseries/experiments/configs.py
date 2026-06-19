@@ -506,6 +506,28 @@ class AdaptiveSpectralForecasterConfig:
 
 
 @dataclass
+class EchoStateForecasterConfig:
+    d_reservoir: int = 256
+    sparsity: float = 0.9
+    spectral_radius: float = 0.9
+    leak_rate: float = 1.0
+    dropout: float = 0.1
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_reservoir <= 0:
+            raise ValueError("d_reservoir must be positive")
+        if not (0 <= self.sparsity < 1):
+            raise ValueError("sparsity must be in [0,1)")
+        if self.spectral_radius <= 0:
+            raise ValueError("spectral_radius must be positive")
+        if not (0 < self.leak_rate <= 1):
+            raise ValueError("leak_rate must be in (0,1]")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class xLSTMForecasterConfig:
     d_model: int = 32
     n_layers: int = 2
@@ -1693,6 +1715,10 @@ def split_experiment_config(
         ("xLSTMForecaster", "AnomalyDetection"): xLSTMForecasterConfig,
         ("xLSTMForecaster", "Imputation"): xLSTMForecasterConfig,
         ("xLSTMForecaster", "UEAClassification"): xLSTMForecasterConfig,
+        ("EchoStateForecaster", "Forecast"): EchoStateForecasterConfig,
+        ("EchoStateForecaster", "AnomalyDetection"): EchoStateForecasterConfig,
+        ("EchoStateForecaster", "Imputation"): EchoStateForecasterConfig,
+        ("EchoStateForecaster", "UEAClassification"): EchoStateForecasterConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

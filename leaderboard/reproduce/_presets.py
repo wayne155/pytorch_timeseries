@@ -582,6 +582,14 @@ MODEL_PARAMS = {
         "dropout": 0.1,
         "revin": True,
     },
+    "EchoStateForecaster": {
+        "d_reservoir": 256,
+        "sparsity": 0.9,
+        "spectral_radius": 0.9,
+        "leak_rate": 1.0,
+        "dropout": 0.1,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,
