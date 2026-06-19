@@ -282,6 +282,13 @@ MODEL_PARAMS = {
         "num_lstm_layers": 2,
         "dropout": 0.1,
     },
+    "FiLM": {
+        "d_order": 32,
+        "n_lowpass": 2,
+        "d_ff": 256,
+        "dropout": 0.05,
+        "revin": True,
+    },
     "NormalizingFlow": {
         "d_model": 256,
         "n_heads": 4,

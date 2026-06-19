@@ -336,6 +336,25 @@ class ETSformerConfig:
 
 
 @dataclass
+class FiLMConfig:
+    d_order: int = 32
+    n_lowpass: int = 2
+    d_ff: int = 256
+    dropout: float = 0.05
+    revin: bool = True
+
+    def validate(self) -> None:
+        if self.d_order < 1:
+            raise ValueError("d_order must be >= 1")
+        if self.n_lowpass < 1:
+            raise ValueError("n_lowpass must be >= 1")
+        if self.d_ff <= 0:
+            raise ValueError("d_ff must be positive")
+        if not (0 <= self.dropout < 1):
+            raise ValueError("dropout must be between 0 and 1")
+
+
+@dataclass
 class TFTConfig:
     d_model: int = 128
     n_heads: int = 4
@@ -728,6 +747,10 @@ def split_experiment_config(
         ("TFT", "AnomalyDetection"): TFTConfig,
         ("TFT", "Imputation"): TFTConfig,
         ("TFT", "UEAClassification"): TFTConfig,
+        ("FiLM", "Forecast"): FiLMConfig,
+        ("FiLM", "AnomalyDetection"): FiLMConfig,
+        ("FiLM", "Imputation"): FiLMConfig,
+        ("FiLM", "UEAClassification"): FiLMConfig,
         ("Ensemble", "Forecast"): EnsembleConfig,
     }
     if (model, task) not in model_configs:

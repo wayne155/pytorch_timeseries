@@ -43,6 +43,7 @@ from .ETSformer import ETSformer
 from .NSTransformer import NSTransformer
 from .MICN import MICN
 from .TFT import TFT
+from .FiLM import FiLM
 from .EnsembleForecaster import EnsembleForecaster
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
@@ -64,6 +65,7 @@ forecasting_models = [
     "NSTransformer",
     "MICN",
     "TFT",
+    "FiLM",
 ]
 
 prob_forecasting_models = [

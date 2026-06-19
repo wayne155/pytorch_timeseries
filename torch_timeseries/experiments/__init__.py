@@ -196,6 +196,12 @@ from .TFT import (
     TFTAnomalyDetection,
     TFTImputation,
 )
+from .FiLM import (
+    FiLMForecast,
+    FiLMUEAClassification,
+    FiLMAnomalyDetection,
+    FiLMImputation,
+)
 
 from .generation import GenerationExp
 from .TimeGAN import TimeGANGeneration
