@@ -9878,6 +9878,278 @@ class Forecaster:
             plt.tight_layout()
         return fig
 
+    # ------------------------------------------------------------------ #
+    # Phase 16 — Horizon Analysis, Channel Ablation & Baselines
+    # ------------------------------------------------------------------ #
+
+    def forecast_horizon_analysis(
+        self,
+        X_train,
+        X_test,
+        horizons,
+        *,
+        metric: str = "mse",
+    ) -> dict:
+        """Evaluate the model at multiple forecast horizons.
+
+        Trains a fresh clone for each horizon so the architecture and loss
+        are properly aligned to the target pred_len, then reports the score.
+
+        Args:
+            X_train: training series ``(T, C)``.
+            X_test: test series ``(T, C)``.
+            horizons: sequence of pred_len values to evaluate.
+            metric: ``"mse"``, ``"mae"``, or ``"rmse"``.
+
+        Returns:
+            dict ``{pred_len: score}``.
+        """
+        results = {}
+        for h in horizons:
+            fc = self.clone()
+            fc.pred_len = h
+            fc.fit(X_train)
+            s = fc.score(X_test)
+            key = metric.lower() if metric.lower() in s else metric.upper()
+            results[int(h)] = float(s[key])
+        return results
+
+    def plot_forecast_horizon_analysis(
+        self,
+        X_train,
+        X_test,
+        horizons,
+        *,
+        metric: str = "mse",
+        ax=None,
+        title: str | None = None,
+    ):
+        """Line chart of error vs forecast horizon (see :meth:`forecast_horizon_analysis`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.forecast_horizon_analysis(X_train, X_test, horizons, metric=metric)
+        hs = sorted(res.keys())
+        vs = [res[h] for h in hs]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(8, 3.5))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot(hs, vs, marker="o", ms=5, color="#4C72B0", lw=1.5)
+        ax.set_xlabel("Forecast horizon (pred_len)")
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Error vs forecast horizon — {metric.upper()}")
+        ax.grid(True, alpha=0.25)
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    def channel_dropout_study(
+        self,
+        X_train,
+        X_test,
+        *,
+        metric: str = "mse",
+    ) -> dict:
+        """Measure model degradation when each input channel is zeroed out.
+
+        Trains the original model, then for each channel re-evaluates on a
+        copy of the test set where that channel is replaced with its mean.
+        The difference from the baseline score indicates the channel's contribution.
+
+        Args:
+            X_train: training series ``(T, C)``.
+            X_test: test series ``(T, C)``.
+            metric: ``"mse"``, ``"mae"``, or ``"rmse"``.
+
+        Returns:
+            dict with ``"baseline"`` (scalar), ``"scores"`` list of per-channel
+            scores when dropped, and ``"importance"`` list of score deltas.
+        """
+        self._check_fitted()
+        arr_test = np.asarray(X_test, dtype=np.float32)
+        C = arr_test.shape[1]
+
+        s = self.score(X_test)
+        key = metric.lower() if metric.lower() in s else metric.upper()
+        baseline = float(s[key])
+
+        scores, deltas = [], []
+        for c in range(C):
+            masked = arr_test.copy()
+            masked[:, c] = masked[:, c].mean()
+            s_c = self.score(masked)
+            sc = float(s_c[key])
+            scores.append(sc)
+            deltas.append(sc - baseline)
+
+        return {
+            "baseline": baseline,
+            "scores": scores,
+            "importance": deltas,
+            "metric": metric,
+        }
+
+    def plot_channel_dropout(
+        self,
+        X_train,
+        X_test,
+        *,
+        metric: str = "mse",
+        channel_names=None,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Bar chart of channel dropout importance (see :meth:`channel_dropout_study`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.channel_dropout_study(X_train, X_test, metric=metric)
+        C = len(res["scores"])
+        labels = channel_names or [f"ch{i}" for i in range(C)]
+        deltas = res["importance"]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(max(5, C * 0.8), 3.5))
+        else:
+            fig = ax.get_figure()
+
+        colors = ["#d62728" if d > 0 else "#4C72B0" for d in deltas]
+        ax.bar(labels, deltas, color=colors, alpha=0.85, edgecolor="white")
+        ax.axhline(0, color="k", lw=0.8)
+        ax.set_xlabel("Channel dropped")
+        ax.set_ylabel(f"Δ{metric.upper()} (higher = more important)")
+        ax.set_title(title or "Channel dropout importance")
+        ax.grid(True, alpha=0.2, axis="y")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def persistence_forecast(X, *, pred_len: int) -> np.ndarray:
+        """Naive persistence baseline: repeat the last observed value.
+
+        Args:
+            X: context array ``(T, C)``.
+            pred_len: number of steps to forecast.
+
+        Returns:
+            ``(pred_len, C)`` array of repeated last values.
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        return np.tile(arr[-1:], (pred_len, 1))
+
+    @staticmethod
+    def ar_baseline(X, p: int, *, pred_len: int) -> np.ndarray:
+        """Pure-numpy AR(p) multi-step forecast.
+
+        Fits a separate AR(p) model to each channel via least-squares and
+        predicts ``pred_len`` steps ahead recursively.
+
+        Args:
+            X: context series ``(T, C)``.
+            p: autoregressive order.
+            pred_len: number of steps to forecast.
+
+        Returns:
+            ``(pred_len, C)`` forecast array.
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        T, C = arr.shape
+        out = np.zeros((pred_len, C), dtype=np.float64)
+
+        for c in range(C):
+            x = arr[:, c]
+            if p == 0:
+                out[:, c] = x[-1]
+                continue
+            # Build Yule-Walker design matrix
+            Y = x[p:]
+            rows = T - p
+            if rows <= 0:
+                out[:, c] = x[-1]
+                continue
+            A_mat = np.zeros((rows, p))
+            for lag in range(1, p + 1):
+                A_mat[:, lag - 1] = x[p - lag: T - lag]
+            # Least-squares fit
+            coeffs, _, _, _ = np.linalg.lstsq(A_mat, Y, rcond=None)  # (p,)
+            # Recursive multi-step prediction
+            history = list(x[-p:])
+            for step in range(pred_len):
+                val = float(np.dot(coeffs, history[-p:][::-1]))
+                out[step, c] = val
+                history.append(val)
+
+        return out.astype(np.float32)
+
+    def compare_with_baselines(
+        self,
+        X_train,
+        X_test,
+        *,
+        ar_p: int = 3,
+        metric: str = "mse",
+    ) -> dict:
+        """Compare model against persistence and AR(p) baselines.
+
+        Args:
+            X_train: training series ``(T, C)``.
+            X_test: test series ``(T, C)``.
+            ar_p: autoregressive order for the AR baseline.
+            metric: ``"mse"``, ``"mae"``, or ``"rmse"``.
+
+        Returns:
+            dict with ``"model"``, ``"persistence"``, and ``"ar_p"`` scores.
+        """
+        self._check_fitted()
+        arr_test = np.asarray(X_test, dtype=np.float32)
+        T = arr_test.shape[0]
+        pred_len = self.pred_len
+
+        def _score(pred, true):
+            e = pred - true
+            m = metric.lower()
+            if m == "mse":
+                return float(np.mean(e ** 2))
+            if m == "mae":
+                return float(np.mean(np.abs(e)))
+            return float(np.sqrt(np.mean(e ** 2)))
+
+        model_scores = []
+        pers_scores  = []
+        ar_scores    = []
+
+        for start in range(0, T - self.seq_len - pred_len + 1):
+            ctx  = arr_test[start: start + self.seq_len]
+            true = arr_test[start + self.seq_len: start + self.seq_len + pred_len]
+
+            model_pred = self.predict(ctx)
+            model_scores.append(_score(model_pred, true))
+
+            pers_pred = self.persistence_forecast(ctx, pred_len=pred_len)
+            pers_scores.append(_score(pers_pred, true))
+
+            ar_pred = self.ar_baseline(ctx, ar_p, pred_len=pred_len)
+            ar_scores.append(_score(ar_pred, true))
+
+        return {
+            "model":       float(np.mean(model_scores)),
+            "persistence": float(np.mean(pers_scores)),
+            f"ar_{ar_p}":  float(np.mean(ar_scores)),
+            "metric":      metric,
+        }
+
     def quantile_residuals(
         self,
         X,

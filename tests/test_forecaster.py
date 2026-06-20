@@ -6605,3 +6605,95 @@ class TestAugmentationStudy:
         augs = {"none": None, "jitter": Forecaster.jitter}
         fig = fc.plot_augmentation_study(X, X, augmenters=augs, metric="mse", n_trials=1)
         assert hasattr(fig, "savefig")
+
+
+# ── Phase 16 — Horizon Analysis, Channel Ablation & Baselines ───────────────
+
+class TestForecastHorizonAnalysis:
+    def test_returns_dict_with_horizons(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        res = fc.forecast_horizon_analysis(X, X, horizons=[4, 8], metric="mse")
+        assert set(res.keys()) == {4, 8}
+
+    def test_values_positive(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        res = fc.forecast_horizon_analysis(X, X, horizons=[4, 8], metric="mse")
+        for v in res.values():
+            assert v >= 0
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        fig = fc.plot_forecast_horizon_analysis(X, X, horizons=[4, 8])
+        assert hasattr(fig, "savefig")
+
+
+class TestChannelDropoutStudy:
+    def test_keys_present(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.channel_dropout_study(X, X)
+        for k in ("baseline", "scores", "importance", "metric"):
+            assert k in res
+
+    def test_length_matches_channels(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.channel_dropout_study(X, X)
+        assert len(res["scores"]) == C
+        assert len(res["importance"]) == C
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_channel_dropout(X, X)
+        assert hasattr(fig, "savefig")
+
+
+class TestPersistenceForecast:
+    def test_shape(self):
+        X = _rng_data()
+        pred = Forecaster.persistence_forecast(X, pred_len=PRED)
+        assert pred.shape == (PRED, C)
+
+    def test_all_values_equal_last(self):
+        X = _rng_data()
+        pred = Forecaster.persistence_forecast(X, pred_len=PRED)
+        np.testing.assert_allclose(pred, np.tile(X[-1:], (PRED, 1)), atol=1e-5)
+
+
+class TestArBaseline:
+    def test_shape(self):
+        X = _rng_data()
+        pred = Forecaster.ar_baseline(X, p=3, pred_len=PRED)
+        assert pred.shape == (PRED, C)
+
+    def test_finite(self):
+        X = _rng_data()
+        pred = Forecaster.ar_baseline(X, p=3, pred_len=PRED)
+        assert np.all(np.isfinite(pred))
+
+    def test_p_zero_uses_last(self):
+        X = _rng_data()
+        pred = Forecaster.ar_baseline(X, p=0, pred_len=PRED)
+        assert pred.shape == (PRED, C)
+
+
+class TestCompareWithBaselines:
+    def test_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.compare_with_baselines(X, X, ar_p=2, metric="mse")
+        assert "model" in res
+        assert "persistence" in res
+        assert "ar_2" in res
+
+    def test_values_finite(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.compare_with_baselines(X, X, ar_p=2)
+        for k, v in res.items():
+            if isinstance(v, float):
+                assert np.isfinite(v), f"{k}={v}"
