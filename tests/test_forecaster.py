@@ -6511,3 +6511,97 @@ class TestQuantileResiduals:
         X = _rng_data()
         fig = fc.plot_quantile_residuals(X, quantiles=(0.1, 0.5, 0.9), channel=0)
         assert hasattr(fig, "savefig")
+
+
+# ── Phase 15 — Data-Augmentation Utilities & Robustness ────────────────────
+
+class TestJitter:
+    def test_shape_preserved(self):
+        X = _rng_data()
+        out = Forecaster.jitter(X, sigma=0.05)
+        assert out.shape == X.shape
+
+    def test_output_differs_from_input(self):
+        X = _rng_data()
+        out = Forecaster.jitter(X, sigma=0.1)
+        assert not np.allclose(out, X)
+
+    def test_zero_sigma_nearly_unchanged(self):
+        X = _rng_data()
+        out = Forecaster.jitter(X, sigma=0.0)
+        np.testing.assert_allclose(out, X, atol=1e-5)
+
+
+class TestWindowSlice:
+    def test_shape_preserved(self):
+        X = _rng_data()
+        out = Forecaster.window_slice(X, ratio=0.8)
+        assert out.shape == X.shape
+
+    def test_ratio_one_unchanged(self):
+        X = _rng_data()
+        out = Forecaster.window_slice(X, ratio=1.0)
+        assert out.shape == X.shape
+
+
+class TestMagnitudeWarp:
+    def test_shape_preserved(self):
+        X = _rng_data()
+        out = Forecaster.magnitude_warp(X, n_knots=4, sigma=0.2)
+        assert out.shape == X.shape
+
+    def test_output_finite(self):
+        X = _rng_data()
+        out = Forecaster.magnitude_warp(X)
+        assert np.all(np.isfinite(out))
+
+
+class TestTimeMask:
+    def test_shape_preserved(self):
+        X = _rng_data()
+        out = Forecaster.time_mask(X, max_mask_ratio=0.1)
+        assert out.shape == X.shape
+
+    def test_some_positions_changed(self):
+        X = _rng_data(seed=7)
+        out = Forecaster.time_mask(X, max_mask_ratio=0.3, n_segments=3)
+        assert not np.allclose(out, X)
+
+
+class TestAugmentFit:
+    def test_returns_self(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        result = fc.augment_fit(X, Forecaster.jitter)
+        assert result is fc
+
+    def test_fitted_after_call(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        fc.augment_fit(X, Forecaster.jitter)
+        pred = fc.predict(X[-SEQ:])
+        assert pred.shape == (PRED, C)
+
+
+class TestAugmentationStudy:
+    def test_keys_present(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        augs = {"none": None, "jitter": Forecaster.jitter}
+        res = fc.augmentation_study(X, X, augmenters=augs, metric="mse", n_trials=1)
+        assert "none" in res and "jitter" in res
+
+    def test_values_positive(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        augs = {"none": None, "jitter": Forecaster.jitter}
+        res = fc.augmentation_study(X, X, augmenters=augs, metric="mse", n_trials=1)
+        for v in res.values():
+            assert v >= 0
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc()
+        X = _rng_data()
+        augs = {"none": None, "jitter": Forecaster.jitter}
+        fig = fc.plot_augmentation_study(X, X, augmenters=augs, metric="mse", n_trials=1)
+        assert hasattr(fig, "savefig")

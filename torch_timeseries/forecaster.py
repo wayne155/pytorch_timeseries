@@ -9658,6 +9658,226 @@ class Forecaster:
         x_max = np.asarray(X_max, dtype=np.float32)
         return ((arr - lo) / denom * (x_max - x_min) + x_min).astype(np.float32)
 
+    # ------------------------------------------------------------------ #
+    # Phase 15 — Data-Augmentation Utilities & Robustness
+    # ------------------------------------------------------------------ #
+
+    def augment_fit(self, X, augmenter, *, extra_ratio: float = 1.0) -> "Forecaster":
+        """Fit with on-the-fly data augmentation.
+
+        Generates ``extra_ratio * len(X)`` augmented copies of the training
+        windows and adds them to the training set before fitting.  The
+        augmenter must be a callable ``(T, C) numpy → (T, C) numpy``
+        (e.g. any :class:`torch_timeseries.augment.transforms` transform).
+
+        Args:
+            X: training time series ``(T, C)``.
+            augmenter: callable that perturbs a ``(T, C)`` numpy array.
+            extra_ratio: ratio of extra augmented data to add (1.0 = double
+                the training data size).
+
+        Returns:
+            self (fitted).
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        T = len(arr)
+        n_extra = max(1, int(T * extra_ratio))
+        rng = np.random.default_rng(42)
+        parts = [arr]
+        for _ in range(n_extra // T + 1):
+            start = int(rng.integers(0, max(1, T // 4)))
+            chunk = arr[start: start + T] if start + T <= T else arr
+            aug = augmenter(chunk)
+            parts.append(np.asarray(aug, dtype=np.float32)[:T])
+        augmented = np.concatenate(parts[:1 + n_extra // T + 1], axis=0)[:T + n_extra]
+        return self.fit(augmented)
+
+    @staticmethod
+    def jitter(X, *, sigma: float = 0.03) -> np.ndarray:
+        """Add Gaussian noise to all channels.
+
+        Args:
+            X: array ``(T, C)``.
+            sigma: noise standard deviation relative to signal std.
+
+        Returns:
+            Perturbed array of same shape.
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        scale = arr.std(axis=0, keepdims=True).clip(1e-6) * sigma
+        return arr + np.random.default_rng().normal(0, 1, arr.shape).astype(np.float32) * scale
+
+    @staticmethod
+    def window_slice(X, *, ratio: float = 0.9) -> np.ndarray:
+        """Crop a random sub-window and stretch back to original length.
+
+        Args:
+            X: array ``(T, C)``.
+            ratio: fraction of the window to keep (0 < ratio ≤ 1).
+
+        Returns:
+            Array of the same shape ``(T, C)``.
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        T, C = arr.shape
+        n = max(1, int(T * ratio))
+        start = np.random.randint(0, T - n + 1)
+        sliced = arr[start: start + n]          # (n, C)
+        indices = np.linspace(0, n - 1, T)
+        floor = np.floor(indices).astype(int).clip(0, n - 1)
+        ceil_ = np.ceil(indices).astype(int).clip(0, n - 1)
+        frac = (indices - floor)[:, np.newaxis]
+        return ((1 - frac) * sliced[floor] + frac * sliced[ceil_]).astype(np.float32)
+
+    @staticmethod
+    def magnitude_warp(X, *, n_knots: int = 4, sigma: float = 0.2) -> np.ndarray:
+        """Smooth multiplicative warp of the magnitude envelope.
+
+        Fits a random smooth curve via linear spline interpolation through
+        ``n_knots`` random control points centred around 1 and multiplies
+        the series pointwise.
+
+        Args:
+            X: array ``(T, C)``.
+            n_knots: number of control points for the warp envelope.
+            sigma: std of the random control-point deviations from 1.
+
+        Returns:
+            Warped array of same shape.
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        T, C = arr.shape
+        rng = np.random.default_rng()
+        knot_x = np.linspace(0, T - 1, n_knots)
+        t_all = np.arange(T, dtype=np.float64)
+        out = np.empty_like(arr)
+        for c in range(C):
+            knot_y = 1.0 + rng.normal(0, sigma, n_knots)
+            envelope = np.interp(t_all, knot_x, knot_y).astype(np.float32)
+            out[:, c] = arr[:, c] * envelope
+        return out
+
+    @staticmethod
+    def time_mask(X, *, max_mask_ratio: float = 0.1, n_segments: int = 1) -> np.ndarray:
+        """Zero out random contiguous time segments (time-domain masking).
+
+        Mimics SpecAugment's time-masking adapted to time series.  Masked
+        positions are set to the channel mean so the overall distribution
+        is preserved.
+
+        Args:
+            X: array ``(T, C)``.
+            max_mask_ratio: maximum fraction of timesteps to mask per segment.
+            n_segments: number of independent mask segments.
+
+        Returns:
+            Masked array of same shape.
+        """
+        arr = np.asarray(X, dtype=np.float32).copy()
+        T = arr.shape[0]
+        rng = np.random.default_rng()
+        channel_means = arr.mean(axis=0, keepdims=True)
+        max_len = max(1, int(T * max_mask_ratio))
+        for _ in range(n_segments):
+            mlen = rng.integers(1, max_len + 1)
+            start = rng.integers(0, max(1, T - mlen))
+            arr[start: start + mlen] = channel_means
+        return arr
+
+    def augmentation_study(
+        self,
+        X_train,
+        X_test,
+        *,
+        augmenters: dict | None = None,
+        metric: str = "mse",
+        n_trials: int = 3,
+    ) -> dict:
+        """Compare model performance with and without augmentation strategies.
+
+        Trains fresh model copies for each augmenter, averaging over
+        ``n_trials`` random seeds, and reports the metric.
+
+        Args:
+            X_train: training time series ``(T, C)``.
+            X_test: test time series ``(T, C)``.
+            augmenters: dict of ``{name: callable}``.  Defaults to
+                ``{'jitter': Forecaster.jitter, 'window_slice':
+                Forecaster.window_slice, 'magnitude_warp':
+                Forecaster.magnitude_warp}``.
+            metric: ``"mse"``, ``"mae"``, or ``"rmse"``.
+            n_trials: number of seeds to average.
+
+        Returns:
+            dict of ``{augmenter_name: mean_metric_value}``.
+        """
+        if augmenters is None:
+            augmenters = {
+                "none":           None,
+                "jitter":         Forecaster.jitter,
+                "window_slice":   Forecaster.window_slice,
+                "magnitude_warp": Forecaster.magnitude_warp,
+            }
+
+        results = {}
+        for name, aug in augmenters.items():
+            scores = []
+            for seed in range(n_trials):
+                fc = self.clone()
+                fc.random_seed = seed
+                if aug is None:
+                    fc.fit(X_train)
+                else:
+                    fc.augment_fit(X_train, aug)
+                s = fc.score(X_test)
+                key = metric.lower() if metric.lower() in s else metric.upper()
+                scores.append(float(s[key]))
+            results[name] = float(np.mean(scores))
+        return results
+
+    def plot_augmentation_study(
+        self,
+        X_train,
+        X_test,
+        *,
+        augmenters: dict | None = None,
+        metric: str = "mse",
+        n_trials: int = 3,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Bar chart of augmentation study results (see :meth:`augmentation_study`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.augmentation_study(
+            X_train, X_test, augmenters=augmenters, metric=metric, n_trials=n_trials
+        )
+        names = list(res.keys())
+        vals  = [res[n] for n in names]
+        best  = min(range(len(vals)), key=lambda i: vals[i])
+        colors = ["#d62728" if i == best else "#4C72B0" for i in range(len(vals))]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(max(5, len(names) * 1.2), 3.5))
+        else:
+            fig = ax.get_figure()
+
+        bars = ax.bar(names, vals, color=colors, alpha=0.85, edgecolor="white")
+        for bar, v in zip(bars, vals):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(vals) * 0.01,
+                    f"{v:.4f}", ha="center", va="bottom", fontsize=8)
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Augmentation study — {metric.upper()}")
+        ax.grid(True, alpha=0.2, axis="y")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
     def quantile_residuals(
         self,
         X,
