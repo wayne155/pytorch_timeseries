@@ -9175,6 +9175,562 @@ class Forecaster:
         sig = np.asarray(std,      dtype=np.float32)
         return arr * sig + mu
 
+    # ------------------------------------------------------------------ #
+    # Phase 14 — Error Analysis & Advanced Visualization
+    # ------------------------------------------------------------------ #
+
+    def error_heatmap(self, X, *, channel: int = 0, ax=None, title: str | None = None):
+        """2-D heatmap of forecast error indexed by time position × horizon step.
+
+        Rows = overlapping prediction windows (x-axis = time position of the
+        first predicted step); columns = forecast step within each window.
+        Color = signed error (pred − true) so over- vs under-prediction is
+        immediately visible.
+
+        Args:
+            X: time series array ``(T, C)``.
+            channel: which output channel to visualise.
+            ax: existing :class:`matplotlib.axes.Axes`.  A new figure is
+                created when ``None``.
+            title: axes title override.
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        self._check_fitted()
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+
+        actuals, preds = self._collect_actuals_predictions(X)
+        # actuals/preds: (n_windows, pred_len, C)
+        errors = preds[:, :, channel] - actuals[:, :, channel]   # signed
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(10, 4))
+        else:
+            fig = ax.get_figure()
+
+        vmax = np.abs(errors).max() + 1e-9
+        im = ax.imshow(
+            errors.T,
+            aspect="auto",
+            cmap="RdBu_r",
+            origin="lower",
+            vmin=-vmax,
+            vmax=vmax,
+        )
+        ax.set_xlabel("Window index (time position)")
+        ax.set_ylabel("Forecast step")
+        ax.set_title(title or f"Error heatmap — channel {channel}")
+        plt.colorbar(im, ax=ax, label="pred − true")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    def rolling_forecast_quality(
+        self,
+        X,
+        *,
+        window: int = 100,
+        metric: str = "mse",
+        channel: int = 0,
+    ) -> dict:
+        """Track how forecast quality evolves over the series.
+
+        Computes per-window error then applies a rolling mean so you can see
+        whether model quality degrades (concept drift) or improves over time.
+
+        Args:
+            X: time series array ``(T, C)``.
+            window: rolling average window size (number of prediction windows).
+            metric: ``"mse"``, ``"mae"``, or ``"rmse"``.
+            channel: which output channel to evaluate.
+
+        Returns:
+            dict with keys ``"indices"`` (1-D), ``"raw"`` (per-window error),
+            ``"rolling"`` (rolling-averaged error).
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        a = actuals[:, :, channel]
+        p = preds[:, :, channel]
+
+        m = metric.lower()
+        if m == "mse":
+            per_window = np.mean((p - a) ** 2, axis=1)
+        elif m == "mae":
+            per_window = np.mean(np.abs(p - a), axis=1)
+        elif m == "rmse":
+            per_window = np.sqrt(np.mean((p - a) ** 2, axis=1))
+        else:
+            raise ValueError(f"Unknown metric '{metric}'")
+
+        n = len(per_window)
+        rolling = np.array([
+            per_window[max(0, i - window + 1): i + 1].mean()
+            for i in range(n)
+        ])
+        return {"indices": np.arange(n), "raw": per_window, "rolling": rolling}
+
+    def plot_rolling_forecast_quality(
+        self,
+        X,
+        *,
+        window: int = 100,
+        metric: str = "mse",
+        channel: int = 0,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Plot rolling forecast quality (see :meth:`rolling_forecast_quality`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.rolling_forecast_quality(X, window=window, metric=metric, channel=channel)
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(10, 3))
+        else:
+            fig = ax.get_figure()
+
+        idx = res["indices"]
+        ax.plot(idx, res["raw"],     color="#bbb", lw=0.7, label="per-window")
+        ax.plot(idx, res["rolling"], color="#d62728", lw=1.5, label=f"rolling {window}")
+        ax.set_xlabel("Window index")
+        ax.set_ylabel(metric.upper())
+        ax.set_title(title or f"Rolling forecast quality — {metric.upper()} (channel {channel})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.25)
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def mutual_information_matrix(X, *, n_bins: int = 20) -> np.ndarray:
+        """Pairwise mutual information between channels via histogram binning.
+
+        Unlike Pearson correlation, MI captures non-linear dependencies.
+
+        Args:
+            X: time series array ``(T, C)``.
+            n_bins: number of histogram bins for joint density estimation.
+
+        Returns:
+            ``(C, C)`` float32 array — MI in nats (diagonal = marginal entropy).
+        """
+        arr = np.asarray(X, dtype=np.float64)
+        T, C = arr.shape
+        mi = np.zeros((C, C), dtype=np.float32)
+        eps = 1e-12
+
+        def _entropy(p):
+            p = p[p > 0]
+            return -np.sum(p * np.log(p + eps))
+
+        for i in range(C):
+            px, _ = np.histogram(arr[:, i], bins=n_bins, density=True)
+            px = px / (px.sum() + eps)
+            h_x = _entropy(px)
+            mi[i, i] = h_x
+            for j in range(i + 1, C):
+                joint, _, _ = np.histogram2d(arr[:, i], arr[:, j], bins=n_bins, density=True)
+                joint = joint / (joint.sum() + eps)
+                px_j = joint.sum(axis=1)
+                py_j = joint.sum(axis=0)
+                h_xy = _entropy(joint.ravel())
+                h_xi = _entropy(px_j)
+                h_yi = _entropy(py_j)
+                val = float(np.clip(h_xi + h_yi - h_xy, 0, None))
+                mi[i, j] = val
+                mi[j, i] = val
+        return mi
+
+    @staticmethod
+    def plot_mutual_information(
+        X,
+        *,
+        n_bins: int = 20,
+        channel_names=None,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Heatmap of pairwise mutual information (see :meth:`mutual_information_matrix`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        mi = Forecaster.mutual_information_matrix(X, n_bins=n_bins)
+        C = mi.shape[0]
+        labels = channel_names or [f"ch{i}" for i in range(C)]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(max(4, C * 0.7), max(3.5, C * 0.6)))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(mi, cmap="YlOrRd", aspect="auto", vmin=0)
+        ax.set_xticks(range(C)); ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+        ax.set_yticks(range(C)); ax.set_yticklabels(labels, fontsize=8)
+        ax.set_title(title or "Pairwise mutual information")
+        plt.colorbar(im, ax=ax, label="MI (nats)")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    def coverage_by_horizon(
+        self,
+        X_calib,
+        X_test,
+        *,
+        coverage: float = 0.90,
+        n_samples: int = 200,
+    ) -> dict:
+        """Empirical PI coverage as a function of forecast step.
+
+        Calibrates conformal intervals on ``X_calib`` and evaluates them on
+        ``X_test``, returning per-step coverage.
+
+        Args:
+            X_calib: calibration series ``(T, C)``.
+            X_test: test series ``(T, C)``.
+            coverage: nominal coverage level.
+            n_samples: MC-Dropout samples for residual estimation.
+
+        Returns:
+            dict with ``"steps"`` (1-D), ``"coverage"`` (per-step empirical
+            coverage), ``"nominal"`` (scalar).
+        """
+        self._check_fitted()
+        actuals_cal, preds_cal = self._collect_actuals_predictions(X_calib)
+        residuals = np.abs(actuals_cal - preds_cal)            # (n_w, pred_len, C)
+        q = np.quantile(residuals, coverage, axis=0)           # (pred_len, C)
+
+        actuals_t, preds_t = self._collect_actuals_predictions(X_test)
+        n_t = actuals_t.shape[0]
+        covered = np.abs(actuals_t - preds_t) <= q[np.newaxis]  # (n_w, pred_len, C)
+        per_step = covered.mean(axis=(0, 2))                    # (pred_len,)
+
+        return {
+            "steps": np.arange(1, len(per_step) + 1),
+            "coverage": per_step.astype(np.float32),
+            "nominal": coverage,
+        }
+
+    def plot_coverage_by_horizon(
+        self,
+        X_calib,
+        X_test,
+        *,
+        coverage: float = 0.90,
+        n_samples: int = 200,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Plot per-step PI coverage vs nominal level (see :meth:`coverage_by_horizon`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.coverage_by_horizon(X_calib, X_test, coverage=coverage, n_samples=n_samples)
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(8, 3.5))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot(res["steps"], res["coverage"], marker="o", ms=4, color="#4C72B0", label="empirical")
+        ax.axhline(res["nominal"], color="#d62728", ls="--", lw=1.2, label=f"nominal {res['nominal']:.0%}")
+        ax.set_ylim(0, 1.05)
+        ax.set_xlabel("Forecast step")
+        ax.set_ylabel("Coverage")
+        ax.set_title(title or f"PI coverage by horizon (nominal={res['nominal']:.0%})")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.25)
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    def sharpness(
+        self,
+        X_calib,
+        X_test,
+        *,
+        coverage: float = 0.90,
+    ) -> float:
+        """Mean interval width (sharpness) of conformal prediction intervals.
+
+        Lower sharpness = narrower intervals = more informative forecasts.
+        A well-calibrated model should be both sharp and cover the nominal level.
+
+        Args:
+            X_calib: calibration series ``(T, C)``.
+            X_test: test series ``(T, C)``.
+            coverage: nominal coverage level.
+
+        Returns:
+            Scalar mean interval width.
+        """
+        self._check_fitted()
+        actuals_cal, preds_cal = self._collect_actuals_predictions(X_calib)
+        residuals = np.abs(actuals_cal - preds_cal)
+        q = np.quantile(residuals, coverage, axis=0)   # (pred_len, C)
+        return float(2 * q.mean())
+
+    def conditional_bias(
+        self,
+        X,
+        *,
+        channel: int = 0,
+        n_bins: int = 5,
+    ) -> dict:
+        """Mean forecast bias conditioned on the magnitude of the true value.
+
+        Reveals whether the model systematically over- or under-predicts for
+        large vs. small values of the target.
+
+        Args:
+            X: time series array ``(T, C)``.
+            channel: which output channel to analyse.
+            n_bins: number of quantile bins of the true target.
+
+        Returns:
+            dict with ``"bin_centers"``, ``"bias"`` (mean signed error per bin),
+            ``"std"`` (std of signed error per bin).
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        a = actuals[:, :, channel].ravel()
+        p = preds[:, :, channel].ravel()
+        err = p - a
+
+        quantiles = np.linspace(0, 100, n_bins + 1)
+        edges = np.percentile(a, quantiles)
+        bin_centers = 0.5 * (edges[:-1] + edges[1:])
+        bias = np.zeros(n_bins, dtype=np.float32)
+        std_ = np.zeros(n_bins, dtype=np.float32)
+
+        for k in range(n_bins):
+            mask = (a >= edges[k]) & (a < edges[k + 1])
+            if mask.sum() > 0:
+                bias[k] = float(err[mask].mean())
+                std_[k] = float(err[mask].std())
+
+        return {"bin_centers": bin_centers.astype(np.float32), "bias": bias, "std": std_}
+
+    def plot_conditional_bias(
+        self,
+        X,
+        *,
+        channel: int = 0,
+        n_bins: int = 5,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Bar chart of conditional forecast bias (see :meth:`conditional_bias`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.conditional_bias(X, channel=channel, n_bins=n_bins)
+        centers = res["bin_centers"]
+        bias    = res["bias"]
+        std_    = res["std"]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(7, 3.5))
+        else:
+            fig = ax.get_figure()
+
+        colors = ["#d62728" if b > 0 else "#4C72B0" for b in bias]
+        ax.bar(range(len(bias)), bias, color=colors, alpha=0.8, edgecolor="white",
+               yerr=std_, capsize=3)
+        ax.set_xticks(range(len(bias)))
+        ax.set_xticklabels([f"{c:.2f}" for c in centers], rotation=30, ha="right", fontsize=8)
+        ax.axhline(0, color="k", lw=0.8)
+        ax.set_xlabel(f"True value (channel {channel}) — quantile bins")
+        ax.set_ylabel("Mean signed error (pred − true)")
+        ax.set_title(title or f"Conditional bias — channel {channel}")
+        ax.grid(True, alpha=0.2, axis="y")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    def error_correlation_matrix(self, X, *, channel: int = 0) -> np.ndarray:
+        """Pearson correlation between per-step forecast errors.
+
+        A strongly non-diagonal matrix indicates that errors at different
+        forecast horizons are correlated — useful for diagnosing systematic
+        patterns in multi-step predictions.
+
+        Args:
+            X: time series array ``(T, C)``.
+            channel: which output channel to analyse.
+
+        Returns:
+            ``(pred_len, pred_len)`` correlation matrix.
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        errors = preds[:, :, channel] - actuals[:, :, channel]   # (n_w, pred_len)
+        errc = errors - errors.mean(axis=0, keepdims=True)
+        std  = errc.std(axis=0, keepdims=True) + 1e-9
+        errc = errc / std
+        corr = (errc.T @ errc) / max(errc.shape[0] - 1, 1)
+        return np.clip(corr, -1, 1).astype(np.float32)
+
+    def plot_error_correlation(
+        self,
+        X,
+        *,
+        channel: int = 0,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Heatmap of forecast-error correlation (see :meth:`error_correlation_matrix`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        corr = self.error_correlation_matrix(X, channel=channel)
+        pred_len = corr.shape[0]
+
+        fig_created = ax is None
+        if fig_created:
+            size = max(4, pred_len * 0.25)
+            fig, ax = plt.subplots(figsize=(size, size * 0.85))
+        else:
+            fig = ax.get_figure()
+
+        im = ax.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
+        ax.set_xlabel("Forecast step")
+        ax.set_ylabel("Forecast step")
+        ax.set_title(title or f"Error correlation — channel {channel}")
+        plt.colorbar(im, ax=ax, label="Pearson r")
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
+    @staticmethod
+    def minmax_scale(X, *, feature_range: tuple = (0.0, 1.0)) -> tuple:
+        """Min-max scale each channel independently.
+
+        Args:
+            X: array ``(T, C)``.
+            feature_range: target ``(min, max)`` range.
+
+        Returns:
+            ``(X_scaled, X_min, X_max)`` — all arrays ``(T, C)``.
+        """
+        arr = np.asarray(X, dtype=np.float32)
+        lo, hi = float(feature_range[0]), float(feature_range[1])
+        x_min = arr.min(axis=0, keepdims=True)
+        x_max = arr.max(axis=0, keepdims=True)
+        denom = np.where(x_max - x_min < 1e-9, 1.0, x_max - x_min)
+        scaled = (arr - x_min) / denom * (hi - lo) + lo
+        return scaled.astype(np.float32), x_min, x_max
+
+    @staticmethod
+    def minmax_inverse(X_scaled, X_min, X_max, *, feature_range: tuple = (0.0, 1.0)) -> np.ndarray:
+        """Reverse :meth:`minmax_scale`::
+
+            X_back = Forecaster.minmax_inverse(X_scaled, x_min, x_max)
+        """
+        arr = np.asarray(X_scaled, dtype=np.float32)
+        lo, hi = float(feature_range[0]), float(feature_range[1])
+        denom = float(hi - lo) if abs(hi - lo) > 1e-9 else 1.0
+        x_min = np.asarray(X_min, dtype=np.float32)
+        x_max = np.asarray(X_max, dtype=np.float32)
+        return ((arr - lo) / denom * (x_max - x_min) + x_min).astype(np.float32)
+
+    def quantile_residuals(
+        self,
+        X,
+        *,
+        quantiles: tuple = (0.1, 0.25, 0.5, 0.75, 0.9),
+        channel: int = 0,
+    ) -> dict:
+        """Per-step empirical quantiles of the forecast residual distribution.
+
+        Useful for visualising how residual spread grows (or shrinks) with
+        the forecast horizon.
+
+        Args:
+            X: time series array ``(T, C)``.
+            quantiles: sequence of quantile levels to compute.
+            channel: which output channel to analyse.
+
+        Returns:
+            dict with ``"steps"`` and one key per quantile (e.g. ``"q0.10"``).
+        """
+        self._check_fitted()
+        actuals, preds = self._collect_actuals_predictions(X)
+        errors = preds[:, :, channel] - actuals[:, :, channel]   # (n_w, pred_len)
+        steps = np.arange(1, errors.shape[1] + 1)
+        result = {"steps": steps}
+        for q in quantiles:
+            result[f"q{q:.2f}"] = np.quantile(errors, q, axis=0).astype(np.float32)
+        return result
+
+    def plot_quantile_residuals(
+        self,
+        X,
+        *,
+        quantiles: tuple = (0.1, 0.25, 0.5, 0.75, 0.9),
+        channel: int = 0,
+        ax=None,
+        title: str | None = None,
+    ):
+        """Fan chart of per-step residual quantiles (see :meth:`quantile_residuals`).
+
+        Returns:
+            :class:`matplotlib.figure.Figure`
+        """
+        import matplotlib.pyplot as plt
+
+        res = self.quantile_residuals(X, quantiles=quantiles, channel=channel)
+        steps = res["steps"]
+        qs = sorted([q for q in quantiles])
+        mid = qs[len(qs) // 2]
+
+        fig_created = ax is None
+        if fig_created:
+            fig, ax = plt.subplots(figsize=(8, 3.5))
+        else:
+            fig = ax.get_figure()
+
+        colors = ["#4C72B0", "#5B8DC0", "#6FA8CF", "#84C2DF", "#9AD6EE"]
+        pairs = list(zip(qs[:len(qs) // 2], qs[len(qs) // 2 + 1:][::-1]))
+        for idx, (ql, qh) in enumerate(pairs):
+            ax.fill_between(steps, res[f"q{ql:.2f}"], res[f"q{qh:.2f}"],
+                            alpha=0.3, color=colors[idx % len(colors)],
+                            label=f"{ql:.0%}–{qh:.0%}")
+        ax.axhline(0, color="k", lw=0.8)
+        ax.plot(steps, res[f"q{mid:.2f}"], color="#d62728", lw=1.5, label=f"median")
+        ax.set_xlabel("Forecast step")
+        ax.set_ylabel("Residual (pred − true)")
+        ax.set_title(title or f"Residual distribution by horizon — channel {channel}")
+        ax.legend(fontsize=7, ncol=3)
+        ax.grid(True, alpha=0.25)
+        if fig_created:
+            plt.tight_layout()
+        return fig
+
     def __repr__(self) -> str:
         name = self.model_spec if isinstance(self.model_spec, str) else type(self.model_spec).__name__
         status = "fitted" if self._model is not None else "not fitted"

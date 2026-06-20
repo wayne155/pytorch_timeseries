@@ -6305,3 +6305,209 @@ class TestSklearnForecaster:
                                epochs=2, verbose=False)
         sk.fit_ts(X)
         assert "fitted" in repr(sk)
+
+
+# ── Phase 14 — Error Analysis & Advanced Visualization ─────────────────────
+
+class TestErrorHeatmap:
+    def test_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.error_heatmap(X, channel=0)
+        assert hasattr(fig, "savefig")
+
+    def test_custom_ax(self):
+        import matplotlib.pyplot as plt
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig, ax = plt.subplots()
+        ret = fc.error_heatmap(X, channel=0, ax=ax)
+        assert ret is fig
+        plt.close("all")
+
+
+class TestRollingForecastQuality:
+    def test_keys_present(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.rolling_forecast_quality(X, window=5)
+        for k in ("indices", "raw", "rolling"):
+            assert k in res
+
+    def test_shapes_consistent(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.rolling_forecast_quality(X, window=5)
+        assert len(res["indices"]) == len(res["raw"]) == len(res["rolling"])
+
+    def test_metric_mae(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.rolling_forecast_quality(X, metric="mae", window=5)
+        assert np.all(res["raw"] >= 0)
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_rolling_forecast_quality(X, window=5)
+        assert hasattr(fig, "savefig")
+
+
+class TestMutualInformationMatrix:
+    def test_shape(self):
+        X = _rng_data()
+        mi = Forecaster.mutual_information_matrix(X, n_bins=10)
+        assert mi.shape == (C, C)
+
+    def test_symmetric(self):
+        X = _rng_data()
+        mi = Forecaster.mutual_information_matrix(X, n_bins=10)
+        np.testing.assert_allclose(mi, mi.T, atol=1e-5)
+
+    def test_nonnegative(self):
+        X = _rng_data()
+        mi = Forecaster.mutual_information_matrix(X, n_bins=10)
+        assert np.all(mi >= -1e-6)
+
+    def test_plot_returns_figure(self):
+        X = _rng_data()
+        fig = Forecaster.plot_mutual_information(X, n_bins=10)
+        assert hasattr(fig, "savefig")
+
+
+class TestCoverageByHorizon:
+    def test_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.coverage_by_horizon(X, X, coverage=0.9)
+        for k in ("steps", "coverage", "nominal"):
+            assert k in res
+
+    def test_coverage_in_01(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.coverage_by_horizon(X, X, coverage=0.9)
+        assert np.all((res["coverage"] >= 0) & (res["coverage"] <= 1))
+
+    def test_steps_length(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.coverage_by_horizon(X, X, coverage=0.9)
+        assert len(res["steps"]) == PRED
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_coverage_by_horizon(X, X, coverage=0.9)
+        assert hasattr(fig, "savefig")
+
+
+class TestSharpness:
+    def test_positive(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        s = fc.sharpness(X, X, coverage=0.9)
+        assert isinstance(s, float) and s >= 0
+
+    def test_higher_coverage_wider(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        s90 = fc.sharpness(X, X, coverage=0.90)
+        s50 = fc.sharpness(X, X, coverage=0.50)
+        assert s90 >= s50
+
+
+class TestConditionalBias:
+    def test_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.conditional_bias(X, channel=0, n_bins=4)
+        for k in ("bin_centers", "bias", "std"):
+            assert k in res
+
+    def test_length(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.conditional_bias(X, channel=0, n_bins=4)
+        assert len(res["bin_centers"]) == len(res["bias"]) == 4
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_conditional_bias(X, channel=0, n_bins=4)
+        assert hasattr(fig, "savefig")
+
+
+class TestErrorCorrelationMatrix:
+    def test_shape(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        corr = fc.error_correlation_matrix(X, channel=0)
+        assert corr.shape == (PRED, PRED)
+
+    def test_symmetric(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        corr = fc.error_correlation_matrix(X, channel=0)
+        np.testing.assert_allclose(corr, corr.T, atol=1e-5)
+
+    def test_diagonal_one(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        corr = fc.error_correlation_matrix(X, channel=0)
+        np.testing.assert_allclose(np.diag(corr), 1.0, atol=1e-4)
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_error_correlation(X, channel=0)
+        assert hasattr(fig, "savefig")
+
+
+class TestMinmaxScale:
+    def test_output_range(self):
+        X = _rng_data()
+        X_s, xmin, xmax = Forecaster.minmax_scale(X, feature_range=(0, 1))
+        assert float(X_s.min()) >= -1e-5
+        assert float(X_s.max()) <= 1 + 1e-5
+
+    def test_inverse_roundtrip(self):
+        X = _rng_data()
+        X_s, xmin, xmax = Forecaster.minmax_scale(X, feature_range=(0, 1))
+        X_back = Forecaster.minmax_inverse(X_s, xmin, xmax, feature_range=(0, 1))
+        np.testing.assert_allclose(X_back, X, atol=1e-4)
+
+    def test_custom_range(self):
+        X = _rng_data()
+        X_s, _, _ = Forecaster.minmax_scale(X, feature_range=(-1, 1))
+        assert float(X_s.min()) >= -1 - 1e-5
+        assert float(X_s.max()) <= 1 + 1e-5
+
+
+class TestQuantileResiduals:
+    def test_keys(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.quantile_residuals(X, quantiles=(0.1, 0.5, 0.9), channel=0)
+        assert "steps" in res
+        for q in (0.1, 0.5, 0.9):
+            assert f"q{q:.2f}" in res
+
+    def test_step_length(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.quantile_residuals(X, quantiles=(0.5,), channel=0)
+        assert len(res["steps"]) == PRED
+
+    def test_median_near_zero_for_unbiased(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        res = fc.quantile_residuals(X, quantiles=(0.5,), channel=0)
+        # median residual should be finite
+        assert np.all(np.isfinite(res["q0.50"]))
+
+    def test_plot_returns_figure(self):
+        fc = _quick_fc().fit(_rng_data())
+        X = _rng_data()
+        fig = fc.plot_quantile_residuals(X, quantiles=(0.1, 0.5, 0.9), channel=0)
+        assert hasattr(fig, "savefig")
