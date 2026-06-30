@@ -97,6 +97,8 @@ from .QRNNForecaster import QRNNForecaster
 from .HGRN2Forecaster import HGRN2Forecaster
 from .NystromForecaster import NystromForecaster
 from .EnsembleForecaster import EnsembleForecaster
+from .TSFlowForecaster import TSFlowForecaster
+from .FlowTS import FlowTS
 from .irregular import GRUD, mTAN, LatentODE, NeuralCDE, Raindrop
 
 forecasting_models = [
@@ -179,10 +181,12 @@ prob_forecasting_models = [
     "QuantileForecaster",
     "EnsembleForecaster",
     "NormalizingFlowForecaster",
+    "TSFlowForecaster",
 ]
 
 generation_models = [
     "TimeGAN", "CSDI", "DiffusionTS", "TimeDiff", "NsDiff", "TMDM",
+    "FlowTS",
 ]
 
 irregular_models = ["GRUD", "mTAN", "LatentODE", "NeuralCDE", "Raindrop"]

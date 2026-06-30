@@ -130,6 +130,7 @@ from .StudentTForecaster import StudentTForecast
 from .QuantileForecaster import QuantileForecast
 from .EnsembleForecaster import EnsembleForecast
 from .NormalizingFlowForecaster import NormalizingFlowForecast
+from .TSFlowForecaster import TSFlowForecast
 from .NBEATS import (
     NBEATSForecast,
     NBEATSUEAClassification,
@@ -522,6 +523,7 @@ from .DiffusionTS import DiffusionTSGeneration
 from .TimeDiff import TimeDiffGeneration
 from .NsDiff import NsDiffGeneration
 from .TMDM import TMDMGeneration
+from .FlowTS import FlowTSGeneration
 
 from .registry import build_experiment_registry, format_experiment_choices
 
